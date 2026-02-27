@@ -1,0 +1,55 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# testing
+/coverage
+
+# production
+/build
+/dist
+
+# misc
+.DS_Store
+*.pem
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Convex
+convex/_generated/
+convex/README.md
+!convex/_generated/server.d.ts
+!convex/_generated/api.d.ts
+!convex/_generated/dataModel.d.ts
+
+# Vite
+vite.config.ts.*
+*.tsbuildinfo
+
+# environment variables
+.env
+.env.*
+!.env.example
+
+# logs
+logs
+*.log
