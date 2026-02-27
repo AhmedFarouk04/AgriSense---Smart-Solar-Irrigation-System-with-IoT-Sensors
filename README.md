@@ -1,30 +1,25 @@
-# قاعدة البيانات والوظائف الخلفية
+🌱 AgriSense is a full-stack smart farming solution that combines IoT sensors, solar energy, and artificial intelligence to optimize agricultural irrigation.
 
-This is a project built with Stunning.
+🚀 Features:
+• Real-time soil monitoring (moisture, salinity, temperature)
+• Solar-powered operation with zero electricity costs
+• AI-driven irrigation recommendations based on crop type
+• Multi-device support for different farm zones
+• Email verification & Google OAuth authentication
+• Interactive dashboards with Recharts visualizations
+• Automated alerts and notifications
+• CSV data export for analysis
 
-This project is connected to the deployment: `grandiose-falcon-261`.
+🛠️ Tech Stack:
+• Frontend: React 19, TypeScript, TailwindCSS, Framer Motion
+• Backend: Convex (Database + Serverless Functions)
+• Authentication: Convex Auth (Email/Password + Google OAuth)
+• Email: Resend API for verification codes
+• Charts: Recharts for data visualization
+• Deployment: Vercel (Frontend) + Convex Cloud (Backend)
 
-## Project structure
-
-The frontend code is in the `app` directory and is built with [Vite](https://vitejs.dev/).
-
-The backend code is in the `convex` directory.
-
-`npm run dev` will start the frontend and backend servers.
-
-## App authentication
-
-Stunning apps use built-in authentication with Anonymous auth for easy sign in. You may wish to change this before deploying your app.
-
-## Developing and deploying your app
-
-Your full-stack application includes:
-* Built-in database for data storage
-* Authentication system with multiple providers
-* File upload and storage capabilities
-* Real-time UI updates
-* Background workflows and scheduled tasks
-
-## HTTP API
-
-User-defined http routes are defined in the `convex/router.ts` file. We split these routes into a separate file from `convex/http.ts` to allow us to prevent the LLM from modifying the authentication routes.
+📊 Perfect for:
+• Small to medium-sized farms
+• Agricultural research projects
+• Smart agriculture initiatives
+• Sustainable farming practices
