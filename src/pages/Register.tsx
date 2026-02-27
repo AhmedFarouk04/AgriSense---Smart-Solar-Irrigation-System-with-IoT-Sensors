@@ -1,5 +1,5 @@
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
@@ -11,7 +11,7 @@ import {
   ArrowRight,
   CheckCircle,
   XCircle,
-  ShieldCheck,
+  Check,
 } from "lucide-react";
 import { AgriSenseLogo } from "../components/Logo";
 
@@ -41,21 +41,34 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const StrengthRow = ({ label, valid }: { label: string; valid: boolean }) => (
+const StrengthRow = ({
+  label,
+  valid,
+  isDark,
+}: {
+  label: string;
+  valid: boolean;
+  isDark: boolean;
+}) => (
   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
     {valid ? (
       <CheckCircle
-        style={{ width: 14, height: 14, color: "#16a34a", flexShrink: 0 }}
+        style={{ width: 14, height: 14, color: "#22c55e", flexShrink: 0 }}
       />
     ) : (
       <XCircle
-        style={{ width: 14, height: 14, color: "#d1d5db", flexShrink: 0 }}
+        style={{
+          width: 14,
+          height: 14,
+          color: isDark ? "#374151" : "#d1d5db",
+          flexShrink: 0,
+        }}
       />
     )}
     <span
       style={{
         fontSize: 12,
-        color: valid ? "#15803d" : "#9ca3af",
+        color: valid ? "#22c55e" : isDark ? "#6b7280" : "#9ca3af",
         fontWeight: 500,
       }}
     >
@@ -63,6 +76,14 @@ const StrengthRow = ({ label, valid }: { label: string; valid: boolean }) => (
     </span>
   </div>
 );
+
+const nameRules = {
+  length: (v: string) => v.trim().length >= 3 && v.trim().length <= 30,
+  noNumbers: (v: string) => !/\d/.test(v),
+  noSpecial: (v: string) => !/[!@#$%^&*(),.?":{}|<>_\-=+\[\]\\\/]/.test(v),
+  noConsecutiveSpaces: (v: string) => !/\s{2,}/.test(v),
+  lettersOnly: (v: string) => /^[a-zA-Z\u0600-\u06FF\s]+$/.test(v.trim()),
+};
 
 export default function Register() {
   const { signIn } = useAuthActions();
@@ -72,10 +93,33 @@ export default function Register() {
     password: "",
     confirm: "",
   });
+  const [errors, setErrors] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirm: "",
+  });
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [gLoading, setGLoading] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  // ✅ agreed state
+  const [agreed, setAgreed] = useState(false);
+  const [agreeError, setAgreeError] = useState(false);
+
+  useEffect(() => {
+    const check = () =>
+      setIsDark(document.body.classList.contains("theme-dark"));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
 
   const ps = {
     length: form.password.length >= 8,
@@ -86,32 +130,109 @@ export default function Register() {
   };
   const psValid = Object.values(ps).every(Boolean);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const validateName = (val: string): string => {
+    if (!val.trim()) return "Full name is required";
+    if (!nameRules.length(val)) return "Name must be 3–30 characters";
+    if (!nameRules.lettersOnly(val))
+      return "Name can only contain letters and spaces";
+    if (!nameRules.noNumbers(val)) return "Name cannot contain numbers";
+    if (!nameRules.noSpecial(val))
+      return "Name cannot contain special characters";
+    if (!nameRules.noConsecutiveSpaces(val))
+      return "No consecutive spaces allowed";
+    return "";
+  };
+
+  const validateEmailFormat = (val: string): string => {
+    if (!val.trim()) return "Email is required";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim()))
+      return "Please enter a valid email address";
+    return "";
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    if (errors[name as keyof typeof errors]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+  };
+
+  const handleEmailBlur = () => {
+    const err = validateEmailFormat(form.email);
+    if (err) setErrors((prev) => ({ ...prev, email: err }));
+  };
+
+  const validateAll = (): boolean => {
+    const newErrors = { name: "", email: "", password: "", confirm: "" };
+    let valid = true;
+
+    // ✅ validate agreed first
+    if (!agreed) {
+      setAgreeError(true);
+      valid = false;
+    }
+
+    const nameErr = validateName(form.name);
+    if (nameErr) {
+      newErrors.name = nameErr;
+      valid = false;
+    }
+    const emailErr = validateEmailFormat(form.email);
+    if (emailErr) {
+      newErrors.email = emailErr;
+      valid = false;
+    }
+    if (!form.password) {
+      newErrors.password = "Password is required";
+      valid = false;
+    } else if (!psValid) {
+      newErrors.password = "Password does not meet all requirements";
+      valid = false;
+    }
+    if (!form.confirm) {
+      newErrors.confirm = "Please confirm your password";
+      valid = false;
+    } else if (form.password !== form.confirm) {
+      newErrors.confirm = "Passwords do not match";
+      valid = false;
+    }
+    setErrors(newErrors);
+    return valid;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (form.name.trim().length < 3)
-      return toast.error("Name must be at least 3 characters");
-    if (!form.email.includes("@"))
-      return toast.error("Enter a valid email address");
-    if (!psValid) return toast.error("Password is not strong enough");
-    if (form.password !== form.confirm)
-      return toast.error("Passwords don't match");
+    if (!validateAll()) return;
     setLoading(true);
     try {
       await signIn("password", {
-        email: form.email,
+        email: form.email.trim().toLowerCase(),
         password: form.password,
-        name: form.name,
+        name: form.name.trim(),
         flow: "signUp",
       });
-      toast.success(
-        "Account created! Check your email for the verification code.",
+
+      sessionStorage.setItem(
+        "verificationEmail",
+        form.email.trim().toLowerCase(),
       );
-      setTimeout(() => nav("/verify"), 1500);
-    } catch {
-      toast.error("Email already exists or invalid data");
+
+      nav("/verify");
+    } catch (error: any) {
+      const msg: string = error?.message ?? "";
+      if (
+        msg.includes("already") ||
+        msg.includes("exists") ||
+        msg.includes("AccountAlreadyExists")
+      ) {
+        setErrors((prev) => ({
+          ...prev,
+          email: "This email is already registered",
+        }));
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
       setLoading(false);
     }
   };
@@ -126,23 +247,74 @@ export default function Register() {
     }
   };
 
-  const inputStyle = {
-    base: {
-      width: "100%",
-      padding: "14px 16px 14px 44px",
-      background: "white",
-      borderRadius: 16,
-      outline: "none",
-      fontSize: 14,
-      fontWeight: 500,
-      border: "2px solid #e5e7eb",
-      transition: "border .2s",
-    } as React.CSSProperties,
-  };
+  const tk = isDark
+    ? {
+        panelBg: "linear-gradient(135deg,#070d09 0%,#0d1a10 55%,#080f18 100%)",
+        blob1Op: 0.06,
+        blob2Op: 0.05,
+        heading: "#e8f5e9",
+        subtext: "rgba(255,255,255,0.45)",
+        label: "rgba(255,255,255,0.70)",
+        inputBg: "#0f1f12",
+        inputBorder: "#1f3a25",
+        inputFocus: "#22c55e",
+        inputColor: "#e8f5e9",
+        iconColor: "rgba(255,255,255,0.30)",
+        dividerLine: "rgba(255,255,255,0.08)",
+        dividerText: "rgba(255,255,255,0.28)",
+        googleBg: "#0f1f12",
+        googleBorder: "#1f3a25",
+        googleColor: "#e8f5e9",
+        strengthBg: "#0a1a0d",
+        strengthBorder: "#1a3020",
+        hintText: "rgba(255,255,255,0.28)",
+        termsText: "rgba(255,255,255,0.45)",
+        footerText: "rgba(255,255,255,0.38)",
+        mobileName: "#e8f5e9",
+        errorColor: "#f87171",
+      }
+    : {
+        panelBg: "linear-gradient(135deg,#f6fdf8 0%,#ffffff 55%,#f7fbff 100%)",
+        blob1Op: 0.1,
+        blob2Op: 0.08,
+        heading: "#111827",
+        subtext: "#6b7280",
+        label: "#374151",
+        inputBg: "#ffffff",
+        inputBorder: "#e5e7eb",
+        inputFocus: "#16a34a",
+        inputColor: "#111827",
+        iconColor: "#9ca3af",
+        dividerLine: "#e5e7eb",
+        dividerText: "#9ca3af",
+        googleBg: "#ffffff",
+        googleBorder: "#e5e7eb",
+        googleColor: "#374151",
+        strengthBg: "#f9fafb",
+        strengthBorder: "#e5e7eb",
+        hintText: "#9ca3af",
+        termsText: "#6b7280",
+        footerText: "#6b7280",
+        mobileName: "#111827",
+        errorColor: "#ef4444",
+      };
+
+  const inputBase = (field: keyof typeof errors): React.CSSProperties => ({
+    width: "100%",
+    padding: "14px 16px 14px 44px",
+    background: tk.inputBg,
+    borderRadius: 16,
+    outline: "none",
+    fontSize: 14,
+    fontWeight: 500,
+    color: tk.inputColor,
+    border: `2px solid ${errors[field] ? tk.errorColor : tk.inputBorder}`,
+    transition: "border .2s",
+  });
 
   return (
     <div style={{ minHeight: "100vh", display: "flex" }}>
-      {/* ═══════════ LEFT PANEL ═══════════ */}
+      {/* LEFT PANEL */}
       <div
         className="hidden lg:flex lg:w-[46%] flex-col justify-between p-14 relative overflow-hidden"
         style={{
@@ -150,7 +322,6 @@ export default function Register() {
             "linear-gradient(150deg,#071c0e 0%,#0d3320 45%,#0c3347 100%)",
         }}
       >
-        {/* bg decoration */}
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
           <div
             style={{
@@ -187,8 +358,6 @@ export default function Register() {
             }}
           />
         </div>
-
-        {/* Logo */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -236,8 +405,6 @@ export default function Register() {
             </div>
           </div>
         </motion.div>
-
-        {/* Center hero */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -264,14 +431,12 @@ export default function Register() {
                 background: "rgba(255,255,255,0.06)",
                 backdropFilter: "blur(20px)",
                 border: "1px solid rgba(255,255,255,0.13)",
-                boxShadow:
-                  "0 32px 64px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)",
+                boxShadow: "0 32px 64px rgba(0,0,0,0.4)",
               }}
             >
               <AgriSenseLogo size={96} />
             </div>
           </motion.div>
-
           <h2
             style={{
               fontFamily: "'Fraunces',Georgia,serif",
@@ -300,65 +465,51 @@ export default function Register() {
               color: "rgba(187,247,208,0.7)",
               fontSize: 17,
               lineHeight: 1.7,
-              marginBottom: 40,
+              marginBottom: 32,
             }}
           >
             Create your free account and start saving water, boosting yields,
             and farming smarter from day one.
           </p>
-
-          {/* Stats */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3,1fr)",
-              gap: 12,
-            }}
-          >
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {[
-              ["10K+", "Farmers"],
-              ["50K+", "Acres"],
-              ["30%", "Water Saved"],
-            ].map(([n, l], i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.55 + i * 0.1 }}
-                style={{
-                  textAlign: "center",
-                  padding: "16px 8px",
-                  borderRadius: 16,
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.09)",
-                }}
+              "Real-time soil moisture & salinity tracking",
+              "AI-powered irrigation recommendations",
+              "Solar energy with zero electricity costs",
+              "Multi-device support for different crop zones",
+              "Automated alerts and scheduled irrigation",
+            ].map((item) => (
+              <div
+                key={item}
+                style={{ display: "flex", alignItems: "center", gap: 12 }}
               >
                 <div
                   style={{
-                    fontFamily: "'Fraunces',Georgia,serif",
-                    fontSize: 22,
-                    fontWeight: 900,
-                    color: "white",
+                    width: 22,
+                    height: 22,
+                    borderRadius: "50%",
+                    background: "rgba(74,222,128,0.15)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
                   }}
                 >
-                  {n}
+                  <Check style={{ width: 13, height: 13, color: "#4ade80" }} />
                 </div>
-                <div
+                <span
                   style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: "rgba(134,239,172,0.7)",
-                    marginTop: 2,
+                    fontSize: 14,
+                    color: "rgba(209,250,229,0.85)",
+                    lineHeight: 1.5,
                   }}
                 >
-                  {l}
-                </div>
-              </motion.div>
+                  {item}
+                </span>
+              </div>
             ))}
           </div>
         </motion.div>
-
-        {/* Testimonial */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -366,76 +517,19 @@ export default function Register() {
           style={{
             position: "relative",
             zIndex: 10,
-            padding: 20,
-            borderRadius: 16,
-            background: "rgba(255,255,255,0.05)",
-            border: "1px solid rgba(255,255,255,0.08)",
+            color: "rgba(187,247,208,0.5)",
+            fontSize: 12,
           }}
         >
-          <div style={{ display: "flex", gap: 2, marginBottom: 10 }}>
-            {[...Array(5)].map((_, i) => (
-              <span key={i} style={{ color: "#fbbf24", fontSize: 13 }}>
-                ★
-              </span>
-            ))}
-          </div>
-          <p
-            style={{
-              color: "rgba(209,250,229,0.8)",
-              fontSize: 13,
-              lineHeight: 1.65,
-              fontStyle: "italic",
-            }}
-          >
-            "Setup took less than 10 minutes. Within a week, AgriSense had
-            already optimized my irrigation schedule and cut my water bill
-            significantly."
-          </p>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              marginTop: 14,
-            }}
-          >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "white",
-                fontSize: 11,
-                fontWeight: 900,
-                background: "linear-gradient(135deg,#16a34a,#0ea5e9)",
-              }}
-            >
-              SM
-            </div>
-            <div>
-              <div style={{ color: "white", fontSize: 13, fontWeight: 700 }}>
-                Sara Al-Mutairi
-              </div>
-              <div style={{ color: "#4ade80", fontSize: 11 }}>
-                Greenhouse Owner · Dubai, UAE
-              </div>
-            </div>
-          </div>
+          © 2026 AgriSense · Sustainable farming technology
         </motion.div>
       </div>
 
-      {/* ═══════════ RIGHT PANEL ═══════════ */}
+      {/* RIGHT PANEL */}
       <div
         className="flex-1 flex items-center justify-center p-6 lg:p-14 relative overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(135deg,#f0fdf4 0%,#ffffff 50%,#eff6ff 100%)",
-        }}
+        style={{ background: tk.panelBg, transition: "background 0.3s ease" }}
       >
-        {/* bg blobs */}
         <div
           style={{
             position: "absolute",
@@ -452,7 +546,7 @@ export default function Register() {
               width: 384,
               height: 384,
               borderRadius: "50%",
-              opacity: 0.25,
+              opacity: tk.blob1Op,
               filter: "blur(48px)",
               background: "radial-gradient(circle,#bbf7d0,transparent)",
             }}
@@ -465,14 +559,12 @@ export default function Register() {
               width: 384,
               height: 384,
               borderRadius: "50%",
-              opacity: 0.18,
+              opacity: tk.blob2Op,
               filter: "blur(48px)",
               background: "radial-gradient(circle,#bfdbfe,transparent)",
             }}
           />
         </div>
-
-        {/* Mobile logo */}
         <div
           className="lg:hidden"
           style={{
@@ -489,7 +581,7 @@ export default function Register() {
             style={{
               fontFamily: "'Fraunces',Georgia,serif",
               fontWeight: 900,
-              color: "#111827",
+              color: tk.mobileName,
               fontSize: 18,
             }}
           >
@@ -508,29 +600,27 @@ export default function Register() {
             maxWidth: 440,
           }}
         >
-          {/* Header */}
           <div style={{ marginBottom: 28 }}>
             <h1
               style={{
                 fontSize: 32,
                 fontWeight: 900,
-                color: "#111827",
+                color: tk.heading,
                 marginBottom: 8,
                 letterSpacing: "-0.025em",
               }}
             >
               Create Account 🌾
             </h1>
-            <p style={{ color: "#6b7280", fontSize: 15 }}>
+            <p style={{ color: tk.subtext, fontSize: 15 }}>
               Join AgriSense and start smart farming
             </p>
           </div>
 
-          {/* Google */}
           <motion.button
             whileHover={{
               scale: 1.015,
-              boxShadow: "0 8px 28px rgba(0,0,0,0.1)",
+              boxShadow: "0 8px 28px rgba(0,0,0,0.12)",
             }}
             whileTap={{ scale: 0.985 }}
             onClick={handleGoogle}
@@ -542,12 +632,12 @@ export default function Register() {
               justifyContent: "center",
               gap: 12,
               padding: "14px 16px",
-              background: "white",
+              background: tk.googleBg,
               borderRadius: 16,
               fontWeight: 600,
               fontSize: 14,
-              color: "#374151",
-              border: "2px solid #e5e7eb",
+              color: tk.googleColor,
+              border: `2px solid ${tk.googleBorder}`,
               boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
               cursor: "pointer",
               marginBottom: 20,
@@ -567,7 +657,7 @@ export default function Register() {
                     display: "inline-block",
                   }}
                 />{" "}
-                Redirecting to Google...
+                Redirecting...
               </>
             ) : (
               <>
@@ -576,7 +666,6 @@ export default function Register() {
             )}
           </motion.button>
 
-          {/* Divider */}
           <div
             style={{
               display: "flex",
@@ -585,23 +674,24 @@ export default function Register() {
               marginBottom: 20,
             }}
           >
-            <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
+            <div style={{ flex: 1, height: 1, background: tk.dividerLine }} />
             <span
               style={{
                 fontSize: 11,
                 fontWeight: 700,
-                color: "#9ca3af",
+                color: tk.dividerText,
                 letterSpacing: "0.06em",
               }}
             >
               OR SIGN UP WITH EMAIL
             </span>
-            <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
+            <div style={{ flex: 1, height: 1, background: tk.dividerLine }} />
           </div>
 
-          {/* Form */}
           <form
             onSubmit={handleSubmit}
+            autoComplete="on"
+            noValidate
             style={{ display: "flex", flexDirection: "column", gap: 16 }}
           >
             {/* Full Name */}
@@ -611,7 +701,7 @@ export default function Register() {
                   display: "block",
                   fontSize: 13,
                   fontWeight: 700,
-                  color: "#374151",
+                  color: tk.label,
                   marginBottom: 6,
                 }}
               >
@@ -626,25 +716,45 @@ export default function Register() {
                     transform: "translateY(-50%)",
                     width: 16,
                     height: 16,
-                    color: "#9ca3af",
+                    color: tk.iconColor,
                   }}
                 />
                 <input
                   name="name"
                   type="text"
+                  autoComplete="name"
                   value={form.name}
                   onChange={handleChange}
-                  required
-                  placeholder="Ahmed Al-Mutairi"
-                  style={inputStyle.base}
-                  onFocus={(e) =>
-                    (e.currentTarget.style.border = "2px solid #16a34a")
+                  onBlur={() =>
+                    setErrors((prev) => ({
+                      ...prev,
+                      name: validateName(form.name),
+                    }))
                   }
-                  onBlur={(e) =>
-                    (e.currentTarget.style.border = "2px solid #e5e7eb")
+                  style={inputBase("name")}
+                  onFocus={(e) =>
+                    (e.currentTarget.style.border = `2px solid ${errors.name ? tk.errorColor : tk.inputFocus}`)
                   }
                 />
               </div>
+              {errors.name ? (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  style={{
+                    fontSize: 12,
+                    color: tk.errorColor,
+                    marginTop: 4,
+                    fontWeight: 500,
+                  }}
+                >
+                  ⚠ {errors.name}
+                </motion.p>
+              ) : (
+                <p
+                  style={{ fontSize: 12, color: tk.hintText, marginTop: 4 }}
+                ></p>
+              )}
             </div>
 
             {/* Email */}
@@ -654,7 +764,7 @@ export default function Register() {
                   display: "block",
                   fontSize: 13,
                   fontWeight: 700,
-                  color: "#374151",
+                  color: tk.label,
                   marginBottom: 6,
                 }}
               >
@@ -669,28 +779,41 @@ export default function Register() {
                     transform: "translateY(-50%)",
                     width: 16,
                     height: 16,
-                    color: "#9ca3af",
+                    color: tk.iconColor,
                   }}
                 />
                 <input
                   name="email"
-                  type="email"
+                  type="text"
+                  autoComplete="username"
+                  inputMode="email"
                   value={form.email}
                   onChange={handleChange}
-                  required
-                  placeholder="farmer@gmail.com"
-                  style={inputStyle.base}
+                  onBlur={handleEmailBlur}
+                  style={inputBase("email")}
                   onFocus={(e) =>
-                    (e.currentTarget.style.border = "2px solid #16a34a")
-                  }
-                  onBlur={(e) =>
-                    (e.currentTarget.style.border = "2px solid #e5e7eb")
+                    (e.currentTarget.style.border = `2px solid ${errors.email ? tk.errorColor : tk.inputFocus}`)
                   }
                 />
               </div>
-              <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 4 }}>
-                We'll send a verification code to this email
-              </p>
+              {errors.email ? (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  style={{
+                    fontSize: 12,
+                    color: tk.errorColor,
+                    marginTop: 4,
+                    fontWeight: 500,
+                  }}
+                >
+                  ⚠ {errors.email}
+                </motion.p>
+              ) : (
+                <p style={{ fontSize: 12, color: tk.hintText, marginTop: 4 }}>
+                  We'll send a verification code to this email
+                </p>
+              )}
             </div>
 
             {/* Password */}
@@ -700,7 +823,7 @@ export default function Register() {
                   display: "block",
                   fontSize: 13,
                   fontWeight: 700,
-                  color: "#374151",
+                  color: tk.label,
                   marginBottom: 6,
                 }}
               >
@@ -715,27 +838,27 @@ export default function Register() {
                     transform: "translateY(-50%)",
                     width: 16,
                     height: 16,
-                    color: "#9ca3af",
+                    color: tk.iconColor,
                   }}
                 />
                 <input
                   name="password"
                   type={showPass ? "text" : "password"}
+                  autoComplete="new-password"
                   value={form.password}
                   onChange={handleChange}
-                  required
-                  placeholder="••••••••"
-                  style={{ ...inputStyle.base, paddingRight: 48 }}
+                  style={{ ...inputBase("password"), paddingRight: 48 }}
                   onFocus={(e) =>
-                    (e.currentTarget.style.border = "2px solid #16a34a")
+                    (e.currentTarget.style.border = `2px solid ${errors.password ? tk.errorColor : tk.inputFocus}`)
                   }
                   onBlur={(e) =>
-                    (e.currentTarget.style.border = "2px solid #e5e7eb")
+                    (e.currentTarget.style.border = `2px solid ${errors.password ? tk.errorColor : tk.inputBorder}`)
                   }
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
+                  tabIndex={-1}
                   style={{
                     position: "absolute",
                     right: 16,
@@ -744,7 +867,7 @@ export default function Register() {
                     background: "none",
                     border: "none",
                     cursor: "pointer",
-                    color: "#9ca3af",
+                    color: tk.iconColor,
                     padding: 0,
                   }}
                 >
@@ -755,8 +878,6 @@ export default function Register() {
                   )}
                 </button>
               </div>
-
-              {/* Strength indicators */}
               {form.password && (
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}
@@ -764,20 +885,54 @@ export default function Register() {
                   style={{
                     marginTop: 10,
                     padding: "12px 14px",
-                    background: "#f9fafb",
+                    background: tk.strengthBg,
                     borderRadius: 12,
-                    border: "1px solid #e5e7eb",
+                    border: `1px solid ${tk.strengthBorder}`,
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr",
                     gap: "6px 16px",
                   }}
                 >
-                  <StrengthRow label="8+ characters" valid={ps.length} />
-                  <StrengthRow label="Number" valid={ps.number} />
-                  <StrengthRow label="Symbol" valid={ps.symbol} />
-                  <StrengthRow label="Uppercase" valid={ps.upper} />
-                  <StrengthRow label="Lowercase" valid={ps.lower} />
+                  <StrengthRow
+                    label="8+ characters"
+                    valid={ps.length}
+                    isDark={isDark}
+                  />
+                  <StrengthRow
+                    label="Number"
+                    valid={ps.number}
+                    isDark={isDark}
+                  />
+                  <StrengthRow
+                    label="Symbol (!@#...)"
+                    valid={ps.symbol}
+                    isDark={isDark}
+                  />
+                  <StrengthRow
+                    label="Uppercase"
+                    valid={ps.upper}
+                    isDark={isDark}
+                  />
+                  <StrengthRow
+                    label="Lowercase"
+                    valid={ps.lower}
+                    isDark={isDark}
+                  />
                 </motion.div>
+              )}
+              {errors.password && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  style={{
+                    fontSize: 12,
+                    color: tk.errorColor,
+                    marginTop: 6,
+                    fontWeight: 500,
+                  }}
+                >
+                  ⚠ {errors.password}
+                </motion.p>
               )}
             </div>
 
@@ -788,7 +943,7 @@ export default function Register() {
                   display: "block",
                   fontSize: 13,
                   fontWeight: 700,
-                  color: "#374151",
+                  color: tk.label,
                   marginBottom: 6,
                 }}
               >
@@ -803,37 +958,27 @@ export default function Register() {
                     transform: "translateY(-50%)",
                     width: 16,
                     height: 16,
-                    color: "#9ca3af",
+                    color: tk.iconColor,
                   }}
                 />
                 <input
                   name="confirm"
                   type={showConfirm ? "text" : "password"}
+                  autoComplete="new-password"
                   value={form.confirm}
                   onChange={handleChange}
-                  required
-                  placeholder="••••••••"
-                  style={{
-                    ...inputStyle.base,
-                    paddingRight: 48,
-                    borderColor:
-                      form.confirm && form.password !== form.confirm
-                        ? "#ef4444"
-                        : "#e5e7eb",
-                  }}
+                  style={{ ...inputBase("confirm"), paddingRight: 48 }}
                   onFocus={(e) =>
-                    (e.currentTarget.style.border = "2px solid #16a34a")
+                    (e.currentTarget.style.border = `2px solid ${errors.confirm ? tk.errorColor : tk.inputFocus}`)
                   }
                   onBlur={(e) =>
-                    (e.currentTarget.style.border =
-                      form.confirm && form.password !== form.confirm
-                        ? "2px solid #ef4444"
-                        : "2px solid #e5e7eb")
+                    (e.currentTarget.style.border = `2px solid ${errors.confirm ? tk.errorColor : tk.inputBorder}`)
                   }
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
+                  tabIndex={-1}
                   style={{
                     position: "absolute",
                     right: 16,
@@ -842,7 +987,7 @@ export default function Register() {
                     background: "none",
                     border: "none",
                     cursor: "pointer",
-                    color: "#9ca3af",
+                    color: tk.iconColor,
                     padding: 0,
                   }}
                 >
@@ -853,51 +998,79 @@ export default function Register() {
                   )}
                 </button>
               </div>
-              {form.confirm && form.password !== form.confirm && (
-                <p
+              {errors.confirm && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
                   style={{
                     fontSize: 12,
-                    color: "#ef4444",
+                    color: tk.errorColor,
                     marginTop: 4,
                     fontWeight: 500,
                   }}
                 >
-                  Passwords do not match
-                </p>
+                  ⚠ {errors.confirm}
+                </motion.p>
               )}
             </div>
 
-            {/* Terms */}
-            <label
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 10,
-                cursor: "pointer",
-              }}
-            >
-              <input
-                type="checkbox"
-                required
+            {/* ✅ Terms checkbox with manual validation */}
+            <div>
+              <label
                 style={{
-                  marginTop: 2,
-                  accentColor: "#16a34a",
-                  width: 15,
-                  height: 15,
-                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 10,
+                  cursor: "pointer",
                 }}
-              />
-              <span style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.5 }}>
-                I agree to the{" "}
-                <a href="#" style={{ color: "#16a34a", fontWeight: 700 }}>
-                  Terms of Service
-                </a>{" "}
-                and{" "}
-                <a href="#" style={{ color: "#16a34a", fontWeight: 700 }}>
-                  Privacy Policy
-                </a>
-              </span>
-            </label>
+              >
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => {
+                    setAgreed(e.target.checked);
+                    if (e.target.checked) setAgreeError(false);
+                  }}
+                  style={{
+                    marginTop: 2,
+                    accentColor: "#16a34a",
+                    width: 15,
+                    height: 15,
+                    flexShrink: 0,
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: 13,
+                    color: agreeError ? tk.errorColor : tk.termsText,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  I agree to the{" "}
+                  <a href="#" style={{ color: "#22c55e", fontWeight: 700 }}>
+                    Terms of Service
+                  </a>{" "}
+                  and{" "}
+                  <a href="#" style={{ color: "#22c55e", fontWeight: 700 }}>
+                    Privacy Policy
+                  </a>
+                </span>
+              </label>
+              {agreeError && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  style={{
+                    fontSize: 12,
+                    color: tk.errorColor,
+                    marginTop: 4,
+                    fontWeight: 500,
+                  }}
+                >
+                  ⚠ You must agree to the Terms of Service
+                </motion.p>
+              )}
+            </div>
 
             {/* Submit */}
             <motion.button
@@ -917,9 +1090,9 @@ export default function Register() {
                 justifyContent: "center",
                 gap: 8,
                 border: "none",
-                cursor: "pointer",
+                cursor: loading || gLoading ? "not-allowed" : "pointer",
                 background: "linear-gradient(135deg,#16a34a 0%,#0ea5e9 100%)",
-                boxShadow: "0 8px 24px rgba(22,163,74,0.38)",
+                boxShadow: "0 8px 24px rgba(22,163,74,0.28)",
                 opacity: loading || gLoading ? 0.5 : 1,
               }}
             >
@@ -951,7 +1124,7 @@ export default function Register() {
             style={{
               textAlign: "center",
               fontSize: 14,
-              color: "#6b7280",
+              color: tk.footerText,
               marginTop: 20,
             }}
           >
@@ -960,7 +1133,7 @@ export default function Register() {
               onClick={() => nav("/login")}
               style={{
                 fontWeight: 900,
-                color: "#16a34a",
+                color: "#22c55e",
                 background: "none",
                 border: "none",
                 cursor: "pointer",
@@ -970,31 +1143,8 @@ export default function Register() {
               Sign in →
             </button>
           </p>
-
-          {/* Trust badge */}
-          <div
-            style={{
-              marginTop: 24,
-              padding: "14px 16px",
-              borderRadius: 16,
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              background: "rgba(22,163,74,0.06)",
-              border: "1px solid rgba(22,163,74,0.14)",
-            }}
-          >
-            <ShieldCheck
-              style={{ width: 20, height: 20, color: "#16a34a", flexShrink: 0 }}
-            />
-            <p style={{ fontSize: 12, color: "#166534" }}>
-              <strong>256-bit SSL encrypted</strong> — your farm data is fully
-              protected and never shared with third parties.
-            </p>
-          </div>
         </motion.div>
       </div>
-
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );

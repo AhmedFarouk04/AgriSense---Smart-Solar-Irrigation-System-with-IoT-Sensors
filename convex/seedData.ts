@@ -1,6 +1,5 @@
 import { mutation } from "./_generated/server";
 
-// إضافة بيانات النباتات الأساسية
 export const seedPlants = mutation({
   args: {},
   handler: async (ctx) => {

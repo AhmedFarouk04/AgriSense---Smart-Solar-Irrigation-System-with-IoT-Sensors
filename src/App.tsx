@@ -1,4 +1,5 @@
-import { Authenticated, Unauthenticated } from "convex/react";
+import { Authenticated, Unauthenticated, useQuery } from "convex/react";
+import { api } from "../convex/_generated/api";
 import { Toaster } from "sonner";
 import { useEffect, useState } from "react";
 import Dashboard from "./pages/Dashboard";
@@ -9,22 +10,42 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Verify from "./pages/Verify";
 
+const THEME = "theme-dark";
+
+// ✅ معرّف خارج App عشان TypeScript يشوفه
+function AuthenticatedRouter({ currentPath }: { currentPath: string }) {
+  const user = useQuery(api.auth.loggedInUser);
+
+  // لسه loading
+  if (user === undefined) return null;
+
+  // ✅ مش verified → اجباري على Verify
+  if (!user?.emailVerificationTime) {
+    return <Verify />;
+  }
+
+  // ✅ verified → Dashboard
+  return <Dashboard />;
+}
+
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
+
+  useEffect(() => {
+    document.body.classList.add(THEME);
+    return () => document.body.classList.remove(THEME);
+  }, []);
 
   useEffect(() => {
     const handleLocationChange = () => {
       setCurrentPath(window.location.pathname);
     };
-
     window.addEventListener("popstate", handleLocationChange);
-
     const originalPushState = history.pushState;
     history.pushState = function (...args) {
       originalPushState.apply(this, args);
       handleLocationChange();
     };
-
     return () => {
       window.removeEventListener("popstate", handleLocationChange);
       history.pushState = originalPushState;
@@ -51,7 +72,7 @@ export default function App() {
       </Unauthenticated>
 
       <Authenticated>
-        <Dashboard />
+        <AuthenticatedRouter currentPath={currentPath} />
       </Authenticated>
     </div>
   );

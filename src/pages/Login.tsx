@@ -1,8 +1,8 @@
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Check } from "lucide-react";
 import { AgriSenseLogo } from "../components/Logo";
 
 const nav = (p: string) => {
@@ -38,30 +38,133 @@ export default function Login() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [gLoading, setGLoading] = useState(false);
+  const [errors, setErrors] = useState({ email: "", password: "" });
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const check = () =>
+      setIsDark(document.body.classList.contains("theme-dark"));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  const validateForm = (): boolean => {
+    const newErrors = { email: "", password: "" };
+    let isValid = true;
+
+    if (!email.trim()) {
+      newErrors.email = "Email is required";
+      isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      newErrors.email = "Please enter a valid email address";
+      isValid = false;
+    }
+
+    if (!password) {
+      newErrors.password = "Password is required";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateForm()) return;
+
     setLoading(true);
     try {
-      await signIn("password", { email, password, flow: "signIn" });
-      toast.success("Welcome back! 🌱");
-    } catch {
-      toast.error("Invalid email or password");
+      await signIn("password", {
+        email: email.trim(),
+        password,
+        flow: "signIn",
+      });
+      toast.success("Welcome back! 🌱", {
+        description: "Redirecting to dashboard...",
+      });
+
+      setTimeout(() => nav("/dashboard"), 1500);
+    } catch (error: any) {
+      console.error("Login error:", error);
+
+      setErrors({
+        email: " ",
+        password: "Invalid email or password",
+      });
+
       setLoading(false);
     }
   };
-
   const handleGoogle = async () => {
     setGLoading(true);
     try {
-      await signIn("google", {
-        redirectTo: window.location.origin, // سيقوم تلقائياً بالعودة لـ localhost:5173
+      await signIn("google", { redirectTo: window.location.origin });
+    } catch (error: any) {
+      console.error(error);
+      toast.error("Google sign-in failed", {
+        description: error?.message || "Please try again later.",
       });
-    } catch (e) {
-      console.error(e);
       setGLoading(false);
     }
   };
+
+  const tk = isDark
+    ? {
+        panelBg: "linear-gradient(135deg,#070d09 0%,#0d1a10 55%,#080f18 100%)",
+        blob1Op: 0.06,
+        blob2Op: 0.05,
+        heading: "#e8f5e9",
+        subtext: "rgba(255,255,255,0.45)",
+        label: "rgba(255,255,255,0.70)",
+        inputBg: "#0f1f12",
+        inputBorder: "#1f3a25",
+        inputFocus: "#22c55e",
+        inputColor: "#e8f5e9",
+        iconColor: "rgba(255,255,255,0.30)",
+        dividerLine: "rgba(255,255,255,0.08)",
+        dividerText: "rgba(255,255,255,0.28)",
+        googleBg: "#0f1f12",
+        googleBorder: "#1f3a25",
+        googleColor: "#e8f5e9",
+        checkText: "rgba(255,255,255,0.55)",
+        footerText: "rgba(255,255,255,0.38)",
+        mobileName: "#e8f5e9",
+      }
+    : {
+        panelBg: "linear-gradient(135deg,#f6fdf8 0%,#ffffff 55%,#f7fbff 100%)",
+        blob1Op: 0.1,
+        blob2Op: 0.08,
+        heading: "#111827",
+        subtext: "#6b7280",
+        label: "#374151",
+        inputBg: "#ffffff",
+        inputBorder: "#e5e7eb",
+        inputFocus: "#16a34a",
+        inputColor: "#111827",
+        iconColor: "#9ca3af",
+        dividerLine: "#e5e7eb",
+        dividerText: "#9ca3af",
+        googleBg: "#ffffff",
+        googleBorder: "#e5e7eb",
+        googleColor: "#374151",
+        checkText: "#4b5563",
+        footerText: "#6b7280",
+        mobileName: "#111827",
+      };
+
+  // Helper: border color based on error / focus state
+  const borderColor = (field: "email" | "password", focused = false) => {
+    if (errors[field]) return "#ef4444";
+    return focused ? tk.inputFocus : tk.inputBorder;
+  };
+
   return (
     <div className="min-h-screen flex">
       {/* ===== LEFT PANEL ===== */}
@@ -72,7 +175,6 @@ export default function Login() {
             "linear-gradient(150deg,#071c0e 0%,#0d3320 45%,#0c3347 100%)",
         }}
       >
-        {/* bg decoration */}
         <div className="absolute inset-0 pointer-events-none">
           <div
             className="absolute inset-0 opacity-[0.04]"
@@ -94,15 +196,8 @@ export default function Login() {
               background: "radial-gradient(circle,#38bdf8,transparent 70%)",
             }}
           />
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full opacity-[0.03]"
-            style={{
-              background: "radial-gradient(circle,white,transparent 70%)",
-            }}
-          />
         </div>
 
-        {/* Logo */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -134,7 +229,6 @@ export default function Login() {
           </div>
         </motion.div>
 
-        {/* Center hero */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -144,30 +238,28 @@ export default function Login() {
           <motion.div
             animate={{ y: [0, -14, 0] }}
             transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-            className="flex justify-center mb-10"
+            className="flex justify-center mb-8"
           >
             <div
-              className="w-[148px] h-[148px] rounded-[32px] flex items-center justify-center"
+              className="w-[140px] h-[140px] rounded-[32px] flex items-center justify-center"
               style={{
                 background: "rgba(255,255,255,0.06)",
                 backdropFilter: "blur(20px)",
                 border: "1px solid rgba(255,255,255,0.13)",
-                boxShadow:
-                  "0 32px 64px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)",
               }}
             >
-              <AgriSenseLogo size={96} />
+              <AgriSenseLogo size={88} />
             </div>
           </motion.div>
 
           <h2
-            className="font-black text-[40px] leading-[1.08] mb-4 text-white"
+            className="font-black text-[36px] leading-[1.08] mb-3 text-white"
             style={{
               fontFamily: "'Fraunces',Georgia,serif",
               letterSpacing: "-0.03em",
             }}
           >
-            Farm Smarter,
+            Smart Farming
             <br />
             <span
               style={{
@@ -176,107 +268,63 @@ export default function Login() {
                 WebkitTextFillColor: "transparent",
               }}
             >
-              Not Harder
+              Powered by AI & Solar
             </span>
           </h2>
-          <p className="text-green-200/70 text-[17px] leading-relaxed mb-10">
-            AI-powered solar irrigation that monitors your soil 24/7 and waters
-            automatically — saving water and maximizing yields.
+
+          <p className="text-green-200/70 text-[16px] leading-relaxed mb-6">
+            Monitor soil conditions in real-time, automate irrigation, and
+            maximize your crop yields with our intelligent solar-powered system.
           </p>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-3">
             {[
-              ["10K+", "Farmers"],
-              ["30%", "Water Saved"],
-              ["24/7", "Monitoring"],
-            ].map(([n, l], i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.55 + i * 0.1 }}
-                className="text-center py-4 px-2 rounded-2xl"
-                style={{
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.09)",
-                }}
+              "Real-time soil moisture & salinity tracking",
+              "AI-powered irrigation recommendations",
+              "Solar energy with zero electricity costs",
+              "Multi-device support for different crop zones",
+            ].map((item) => (
+              <div
+                key={item}
+                className="flex items-center gap-3 text-green-100/80"
               >
-                <div
-                  className="text-white font-black text-[22px]"
-                  style={{ fontFamily: "'Fraunces',Georgia,serif" }}
-                >
-                  {n}
+                <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <Check className="w-3 h-3 text-green-400" />
                 </div>
-                <div className="text-green-300/70 text-[11px] font-semibold mt-0.5">
-                  {l}
-                </div>
-              </motion.div>
+                <span className="text-[14px]">{item}</span>
+              </div>
             ))}
           </div>
         </motion.div>
 
-        {/* Testimonial */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7 }}
-          className="relative z-10 p-5 rounded-2xl"
-          style={{
-            background: "rgba(255,255,255,0.05)",
-            border: "1px solid rgba(255,255,255,0.08)",
-          }}
+          className="relative z-10 text-green-200/50 text-[12px]"
         >
-          <div className="flex gap-0.5 mb-3">
-            {[...Array(5)].map((_, i) => (
-              <span key={i} className="text-yellow-400 text-sm">
-                ★
-              </span>
-            ))}
-          </div>
-          <p className="text-green-100/80 text-sm leading-relaxed italic">
-            "AgriSense cut my water usage by 35% in the first season. The
-            real-time alerts saved my entire tomato crop last summer."
-          </p>
-          <div className="flex items-center gap-2.5 mt-4">
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-black"
-              style={{ background: "linear-gradient(135deg,#16a34a,#0ea5e9)" }}
-            >
-              AK
-            </div>
-            <div>
-              <div className="text-white text-[13px] font-bold">
-                Ahmed Al-Khalili
-              </div>
-              <div className="text-green-400 text-[11px]">
-                Farm Owner · Riyadh, KSA
-              </div>
-            </div>
-          </div>
+          © 2026 AgriSense · Sustainable farming technology
         </motion.div>
       </div>
 
       {/* ===== RIGHT PANEL ===== */}
       <div
         className="flex-1 flex items-center justify-center p-6 lg:p-14 relative overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(135deg,#f0fdf4 0%,#ffffff 50%,#eff6ff 100%)",
-        }}
+        style={{ background: tk.panelBg, transition: "background 0.3s ease" }}
       >
-        {/* bg blobs */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div
-            className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-30 blur-3xl"
+            className="absolute -top-32 -right-32 w-96 h-96 rounded-full blur-3xl"
             style={{
               background: "radial-gradient(circle,#bbf7d0,transparent)",
+              opacity: tk.blob1Op,
             }}
           />
           <div
-            className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full opacity-20 blur-3xl"
+            className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full blur-3xl"
             style={{
               background: "radial-gradient(circle,#bfdbfe,transparent)",
+              opacity: tk.blob2Op,
             }}
           />
         </div>
@@ -285,8 +333,11 @@ export default function Login() {
         <div className="lg:hidden absolute top-6 left-6 flex items-center gap-2">
           <AgriSenseLogo size={34} />
           <span
-            className="font-black text-gray-900 text-lg"
-            style={{ fontFamily: "'Fraunces',Georgia,serif" }}
+            className="font-black text-lg"
+            style={{
+              fontFamily: "'Fraunces',Georgia,serif",
+              color: tk.mobileName,
+            }}
           >
             AgriSense
           </span>
@@ -300,35 +351,37 @@ export default function Login() {
         >
           <div className="mb-8">
             <h1
-              className="text-[32px] font-black text-gray-900 mb-2"
-              style={{ letterSpacing: "-0.025em" }}
+              className="text-[32px] font-black mb-2"
+              style={{ letterSpacing: "-0.025em", color: tk.heading }}
             >
               Welcome back 👋
             </h1>
-            <p className="text-gray-500 text-[15px]">
+            <p className="text-[15px]" style={{ color: tk.subtext }}>
               Sign in to manage your smart farm
             </p>
           </div>
 
-          {/* Google */}
+          {/* Google Button */}
           <motion.button
             whileHover={{
               scale: 1.015,
-              boxShadow: "0 8px 28px rgba(0,0,0,0.1)",
+              boxShadow: "0 8px 28px rgba(0,0,0,0.12)",
             }}
             whileTap={{ scale: 0.985 }}
             onClick={handleGoogle}
             disabled={gLoading || loading}
-            className="w-full flex items-center justify-center gap-3 py-[14px] px-4 bg-white rounded-2xl font-semibold text-gray-700 transition-all disabled:opacity-50 mb-5"
+            className="w-full flex items-center justify-center gap-3 py-[14px] px-4 rounded-2xl font-semibold transition-all disabled:opacity-50 mb-5"
             style={{
-              border: "2px solid #e5e7eb",
+              background: tk.googleBg,
+              border: `2px solid ${tk.googleBorder}`,
+              color: tk.googleColor,
               boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
             }}
           >
             {gLoading ? (
               <>
-                <span className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />{" "}
-                Redirecting to Google...
+                <span className="w-4 h-4 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin" />
+                Redirecting...
               </>
             ) : (
               <>
@@ -339,64 +392,123 @@ export default function Login() {
 
           {/* Divider */}
           <div className="flex items-center gap-3 mb-5">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-gray-400 text-xs font-semibold">
+            <div
+              className="flex-1 h-px"
+              style={{ background: tk.dividerLine }}
+            />
+            <span
+              className="text-xs font-semibold"
+              style={{ color: tk.dividerText }}
+            >
               OR SIGN IN WITH EMAIL
             </span>
-            <div className="flex-1 h-px bg-gray-200" />
+            <div
+              className="flex-1 h-px"
+              style={{ background: tk.dividerLine }}
+            />
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* ✅ form با autoComplete="on" — مهم عشان البراوزر يعرف يملّي الـ credentials صح */}
+          <form
+            onSubmit={handleSubmit}
+            autoComplete="on"
+            className="space-y-4"
+            noValidate
+          >
+            {/* Email Field */}
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1.5">
+              <label
+                className="block text-sm font-bold mb-1.5"
+                style={{ color: tk.label }}
+              >
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Mail
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                  style={{ color: tk.iconColor }}
+                />
                 <input
-                  type="email"
+                  // ✅ type="text" بدل "email" يمنع browser suggestion box
+                  type="text"
+                  // ✅ autoComplete="username" — القيمة الصحيحة لإيميل الـ login
+                  autoComplete="username"
+                  // ✅ inputMode="email" يظهر keyboard إيميل على الموبايل
+                  inputMode="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="farmer@gmail.com"
-                  className="w-full pl-11 pr-4 py-[14px] bg-white rounded-2xl outline-none transition-all text-sm font-medium placeholder:text-gray-400 placeholder:font-normal"
-                  style={{ border: "2px solid #e5e7eb" }}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errors.email)
+                      setErrors((prev) => ({ ...prev, email: "" }));
+                  }}
+                  className="w-full pl-11 pr-4 py-[14px] rounded-2xl outline-none transition-all text-sm font-medium"
+                  style={{
+                    background: tk.inputBg,
+                    border: `2px solid ${borderColor("email")}`,
+                    color: tk.inputColor,
+                  }}
                   onFocus={(e) =>
-                    (e.currentTarget.style.border = "2px solid #16a34a")
+                    (e.currentTarget.style.border = `2px solid ${borderColor("email", true)}`)
                   }
                   onBlur={(e) =>
-                    (e.currentTarget.style.border = "2px solid #e5e7eb")
+                    (e.currentTarget.style.border = `2px solid ${borderColor("email")}`)
                   }
                 />
               </div>
+              {/* Error message */}
+              {errors.email && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-500 text-xs mt-1.5 flex items-center gap-1"
+                >
+                  <span>⚠</span> {errors.email}
+                </motion.p>
+              )}
             </div>
 
+            {/* Password Field */}
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1.5">
+              <label
+                className="block text-sm font-bold mb-1.5"
+                style={{ color: tk.label }}
+              >
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Lock
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                  style={{ color: tk.iconColor }}
+                />
                 <input
                   type={showPass ? "text" : "password"}
+                  // ✅ autoComplete="current-password" — يخلي البراوزر يعرف ده password field صح
+                  autoComplete="current-password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  className="w-full pl-11 pr-12 py-[14px] bg-white rounded-2xl outline-none transition-all text-sm font-medium"
-                  style={{ border: "2px solid #e5e7eb" }}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errors.password)
+                      setErrors((prev) => ({ ...prev, password: "" }));
+                  }}
+                  className="w-full pl-11 pr-12 py-[14px] rounded-2xl outline-none transition-all text-sm font-medium"
+                  style={{
+                    background: tk.inputBg,
+                    border: `2px solid ${borderColor("password")}`,
+                    color: tk.inputColor,
+                  }}
                   onFocus={(e) =>
-                    (e.currentTarget.style.border = "2px solid #16a34a")
+                    (e.currentTarget.style.border = `2px solid ${borderColor("password", true)}`)
                   }
                   onBlur={(e) =>
-                    (e.currentTarget.style.border = "2px solid #e5e7eb")
+                    (e.currentTarget.style.border = `2px solid ${borderColor("password")}`)
                   }
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 transition-colors"
+                  style={{ color: tk.iconColor }}
+                  tabIndex={-1}
                 >
                   {showPass ? (
                     <EyeOff className="w-4 h-4" />
@@ -405,25 +517,39 @@ export default function Login() {
                   )}
                 </button>
               </div>
+              {/* Error message */}
+              {errors.password && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-500 text-xs mt-1.5 flex items-center gap-1"
+                >
+                  <span>⚠</span> {errors.password}
+                </motion.p>
+              )}
             </div>
 
+            {/* Remember me + Forgot */}
             <div className="flex items-center justify-between py-1">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  className="w-4 h-4 rounded border-gray-300 accent-green-600"
+                  className="w-4 h-4 rounded accent-green-600"
                 />
-                <span className="text-sm text-gray-600">Remember me</span>
+                <span className="text-sm" style={{ color: tk.checkText }}>
+                  Remember me
+                </span>
               </label>
               <button
                 type="button"
                 onClick={() => nav("/forgot-password")}
-                className="text-sm font-bold text-green-600 hover:text-green-700 transition-colors"
+                className="text-sm font-bold text-green-500 hover:text-green-400 transition-colors"
               >
                 Forgot password?
               </button>
             </div>
 
+            {/* Submit */}
             <motion.button
               whileHover={{ scale: 1.015 }}
               whileTap={{ scale: 0.985 }}
@@ -432,12 +558,12 @@ export default function Login() {
               className="w-full py-[14px] text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
               style={{
                 background: "linear-gradient(135deg,#16a34a 0%,#0ea5e9 100%)",
-                boxShadow: "0 8px 24px rgba(22,163,74,0.38)",
+                boxShadow: "0 8px 24px rgba(22,163,74,0.28)",
               }}
             >
               {loading ? (
                 <>
-                  <span className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />{" "}
+                  <span className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
                   Signing in...
                 </>
               ) : (
@@ -448,30 +574,18 @@ export default function Login() {
             </motion.button>
           </form>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
+          <p
+            className="text-center text-sm mt-6"
+            style={{ color: tk.footerText }}
+          >
             Don't have an account?{" "}
             <button
               onClick={() => nav("/register")}
-              className="font-black text-green-600 hover:text-green-700 transition-colors"
+              className="font-black text-green-500 hover:text-green-400 transition-colors"
             >
               Create account →
             </button>
           </p>
-
-          {/* Trust */}
-          <div
-            className="mt-8 p-4 rounded-2xl flex items-center gap-3"
-            style={{
-              background: "rgba(22,163,74,0.06)",
-              border: "1px solid rgba(22,163,74,0.14)",
-            }}
-          >
-            <ShieldCheck className="w-5 h-5 text-green-600 flex-shrink-0" />
-            <p className="text-xs text-green-800">
-              <strong>256-bit SSL encrypted</strong> — your farm data is fully
-              protected and never shared with third parties.
-            </p>
-          </div>
         </motion.div>
       </div>
     </div>

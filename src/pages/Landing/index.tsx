@@ -4,9 +4,13 @@ import {
   Sun,
   Droplets,
   Waves,
-  ChevronRight,
   Leaf,
   ArrowRight,
+  ChevronRight,
+  Sparkles,
+  TrendingUp,
+  Shield,
+  Zap,
 } from "lucide-react";
 import { AgriSenseLogo } from "./components/Logo";
 import { Counter } from "./components/Counter";
@@ -14,508 +18,525 @@ import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
 import "./styles.css";
 
+const FEATURES = [
+  {
+    icon: <Sun size={22} />,
+    title: "Solar Powered",
+    desc: "100% renewable energy — zero electricity costs. Self-sustaining from day one with smart power management.",
+    accent: "#fbbf24",
+    bg: "rgba(251,191,36,0.07)",
+    border: "rgba(251,191,36,0.18)",
+    tag: "Energy",
+  },
+  {
+    icon: <Droplets size={22} />,
+    title: "Smart Irrigation",
+    desc: "AI-calibrated watering schedules driven by live soil readings, crop profiles & local weather data.",
+    accent: "#38bdf8",
+    bg: "rgba(56,189,248,0.07)",
+    border: "rgba(56,189,248,0.18)",
+    tag: "AI",
+  },
+  {
+    icon: <Leaf size={22} />,
+    title: "Crop Library",
+    desc: "Pre-configured growth profiles for 20+ crops — deploy in seconds, harvest with confidence.",
+    accent: "#4ade80",
+    bg: "rgba(74,222,128,0.07)",
+    border: "rgba(74,222,128,0.18)",
+    tag: "Library",
+  },
+  {
+    icon: <Waves size={22} />,
+    title: "Soil Sensors",
+    desc: "Real-time moisture, salinity & temperature monitoring right at root depth, 24/7.",
+    accent: "#34d399",
+    bg: "rgba(52,211,153,0.07)",
+    border: "rgba(52,211,153,0.18)",
+    tag: "Hardware",
+  },
+];
+
+const STEPS = [
+  {
+    n: "01",
+    title: "Register",
+    desc: "Create your farmer profile in under 2 minutes — no credit card needed.",
+  },
+  {
+    n: "02",
+    title: "Connect Device",
+    desc: "Link your sensor via a unique Device ID. Plug-and-play setup.",
+  },
+  {
+    n: "03",
+    title: "Select Crop",
+    desc: "Pick your plant from our smart crop library. AI configures the rest.",
+  },
+  {
+    n: "04",
+    title: "Go Live",
+    desc: "Real-time dashboards, smart alerts & AI recommendations, instantly.",
+  },
+];
+
+const STATS = [
+  { end: 10, suffix: "K+", label: "Farmers", icon: <TrendingUp size={16} /> },
+  { end: 50, suffix: "K+", label: "Acres Managed", icon: <Shield size={16} /> },
+  { end: 30, suffix: "%", label: "Water Saved", icon: <Droplets size={16} /> },
+  { end: 24, suffix: "/7", label: "Monitoring", icon: <Zap size={16} /> },
+];
+
+const TESTIMONIALS = [
+  {
+    name: "Amara Diallo",
+    role: "Wheat Farmer · Senegal",
+    text: "AgriSense cut our water usage by 35% in the first season. The AI recommendations are eerily accurate.",
+    avatar: "AD",
+  },
+  {
+    name: "Carlos Mendoza",
+    role: "Vineyard Owner · Chile",
+    text: "Setup took 20 minutes. Now I manage 200 acres from my phone. Incredible product.",
+    avatar: "CM",
+  },
+  {
+    name: "Priya Nair",
+    role: "Rice Farmer · India",
+    text: "The soil sensor data helped us prevent a fungal outbreak. ROI paid back in 6 weeks.",
+    avatar: "PN",
+  },
+];
+
+function Particle({
+  x,
+  y,
+  size,
+  color,
+  delay,
+}: {
+  x: number;
+  y: number;
+  size: number;
+  color: string;
+  delay: number;
+}) {
+  return (
+    <motion.div
+      animate={{ y: [0, -18, 0], opacity: [0.25, 0.7, 0.25] }}
+      transition={{ duration: 5 + delay, repeat: Infinity, delay }}
+      style={{
+        position: "absolute",
+        left: `${x}%`,
+        top: `${y}%`,
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        background: color,
+        pointerEvents: "none",
+      }}
+    />
+  );
+}
+
 export default function Landing() {
   const heroRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
+
   const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ["start start", "end start"],
   });
-  const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "32%"]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
+  const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.75], [1, 0]);
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 24);
-    window.addEventListener("scroll", h);
+    window.addEventListener("scroll", h, { passive: true });
     return () => window.removeEventListener("scroll", h);
   }, []);
 
-  const features = [
-    {
-      icon: <Sun className="w-6 h-6" />,
-      title: "Solar Powered",
-      desc: "100% renewable energy — zero electricity costs, fully self-sustaining from day one.",
-      accent: "#f59e0b",
-      bg: "rgba(245,158,11,0.07)",
-      border: "rgba(245,158,11,0.22)",
-    },
-    {
-      icon: <Droplets className="w-6 h-6" />,
-      title: "Smart Irrigation",
-      desc: "AI-calibrated watering schedules based on live soil readings and local weather data.",
-      accent: "#0ea5e9",
-      bg: "rgba(14,165,233,0.07)",
-      border: "rgba(14,165,233,0.22)",
-    },
-    {
-      icon: <Leaf className="w-6 h-6" />,
-      title: "Crop Library",
-      desc: "Pre-configured growth profiles for 20+ crops, ready to deploy in seconds.",
-      accent: "#16a34a",
-      bg: "rgba(22,163,74,0.07)",
-      border: "rgba(22,163,74,0.22)",
-    },
-    {
-      icon: <Waves className="w-6 h-6" />,
-      title: "Soil Sensors",
-      desc: "Real-time monitoring of moisture, salinity & temperature right at root depth.",
-      accent: "#0d9488",
-      bg: "rgba(13,148,136,0.07)",
-      border: "rgba(13,148,136,0.22)",
-    },
-  ];
+  const isDark = false;
 
-  const steps = [
-    {
-      n: "01",
-      title: "Register",
-      desc: "Create your farmer profile in under 2 minutes.",
-    },
-    {
-      n: "02",
-      title: "Connect Device",
-      desc: "Link your sensor using a unique Device ID.",
-    },
-    {
-      n: "03",
-      title: "Select Crop",
-      desc: "Pick your plant from our smart crop library.",
-    },
-    {
-      n: "04",
-      title: "Go Live",
-      desc: "Real-time data, smart alerts & AI insights.",
-    },
-  ];
-
-  const stats = [
-    { end: 10, suffix: "K+", label: "Farmers" },
-    { end: 50, suffix: "K+", label: "Acres Managed" },
-    { end: 30, suffix: "%", label: "Water Saved" },
-    { end: 24, suffix: "/7", label: "Monitoring" },
+  const PARTICLES = [
+    { x: 8, y: 22, size: 7, color: "var(--particle-1)", delay: 0 },
+    { x: 85, y: 15, size: 5, color: "var(--particle-2)", delay: 0.8 },
+    { x: 6, y: 70, size: 6, color: "var(--particle-3)", delay: 1.5 },
+    { x: 92, y: 65, size: 8, color: "var(--particle-1)", delay: 0.4 },
+    { x: 50, y: 90, size: 5, color: "var(--particle-2)", delay: 2 },
+    { x: 20, y: 85, size: 4, color: "var(--particle-1)", delay: 1.2 },
+    { x: 75, y: 40, size: 6, color: "var(--particle-3)", delay: 1.8 },
   ];
 
   return (
-    <>
-      <div style={{ minHeight: "100vh", background: "#f7fdf3" }}>
-        <Navbar scrolled={scrolled} />
+    <div style={{ background: "var(--bg-page)", minHeight: "100vh" }}>
+      <Navbar scrolled={scrolled} isDark={isDark} />
 
-        {/* Hero Section */}
-        <section
-          ref={heroRef}
+      {}
+      <section
+        ref={heroRef}
+        style={{
+          position: "relative",
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+          paddingTop: 96,
+          background: "var(--grad-hero)",
+        }}
+      >
+        {/* Background */}
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+          <div
+            className="blob"
+            style={{
+              position: "absolute",
+              width: 600,
+              height: 600,
+              top: -160,
+              left: -160,
+              background: `radial-gradient(circle, var(--blob-1) 0%, transparent 70%)`,
+            }}
+          />
+          <div
+            className="blob2"
+            style={{
+              position: "absolute",
+              width: 500,
+              height: 500,
+              top: 60,
+              right: -120,
+              background: `radial-gradient(circle, var(--blob-2) 0%, transparent 70%)`,
+            }}
+          />
+          <div
+            className="blob3"
+            style={{
+              position: "absolute",
+              width: 400,
+              height: 400,
+              bottom: -80,
+              left: "30%",
+              background: `radial-gradient(circle, var(--blob-3) 0%, transparent 70%)`,
+            }}
+          />
+
+          <div
+            className="grid-pattern"
+            style={{ position: "absolute", inset: 0, opacity: 0.6 }}
+          />
+
+          {[640, 900, 1160].map((d, i) => (
+            <div
+              key={i}
+              style={{
+                position: "absolute",
+                width: d,
+                height: d,
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%,-60%)",
+                border: `1px ${i === 0 ? "solid" : "dashed"} var(--border-base)`,
+                borderRadius: "50%",
+              }}
+            />
+          ))}
+
+          {PARTICLES.map((p, i) => (
+            <Particle key={i} {...p} />
+          ))}
+        </div>
+
+        <motion.div
           style={{
+            y: heroY,
+            opacity: heroOpacity,
             position: "relative",
-            minHeight: "100vh",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            overflow: "hidden",
-            paddingTop: 96,
-            background:
-              "radial-gradient(ellipse 90% 70% at 50% -10%,#dcfce7 0%,#f0fdf4 35%,#f7fdf3 65%)",
+            zIndex: 10,
+            maxWidth: 1100,
+            margin: "0 auto",
+            padding: "0 24px",
+            textAlign: "center",
           }}
         >
-          {/* Blobs */}
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              pointerEvents: "none",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              className="blob"
-              style={{
-                position: "absolute",
-                width: 560,
-                height: 560,
-                top: -100,
-                left: -120,
-                background:
-                  "radial-gradient(circle,rgba(134,239,172,.28) 0%,transparent 70%)",
-              }}
-            />
-            <div
-              className="blob2"
-              style={{
-                position: "absolute",
-                width: 420,
-                height: 420,
-                top: 80,
-                right: -100,
-                background:
-                  "radial-gradient(circle,rgba(147,210,255,.25) 0%,transparent 70%)",
-              }}
-            />
-            <div
-              className="blob3"
-              style={{
-                position: "absolute",
-                width: 380,
-                height: 380,
-                bottom: -60,
-                left: "35%",
-                background:
-                  "radial-gradient(circle,rgba(52,211,153,.2) 0%,transparent 70%)",
-              }}
-            />
-            {/* Decorative rings */}
-            <div
-              style={{
-                position: "absolute",
-                width: 660,
-                height: 660,
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%,-58%)",
-                border: "1px dashed rgba(22,163,74,.11)",
-                borderRadius: "50%",
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                width: 920,
-                height: 920,
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%,-58%)",
-                border: "1px dashed rgba(14,165,233,.08)",
-                borderRadius: "50%",
-              }}
-            />
-            {/* Floating dots */}
-            {[
-              [14, 28],
-              [82, 18],
-              [7, 72],
-              [90, 66],
-              [50, 88],
-            ].map(([x, y], i) => (
-              <motion.div
-                key={i}
-                animate={{ y: [0, -10, 0], opacity: [0.35, 0.75, 0.35] }}
-                transition={{
-                  duration: 4 + i,
-                  repeat: Infinity,
-                  delay: i * 0.7,
-                }}
-                style={{
-                  position: "absolute",
-                  left: `${x}%`,
-                  top: `${y}%`,
-                  width: i % 2 === 0 ? 8 : 5,
-                  height: i % 2 === 0 ? 8 : 5,
-                  borderRadius: "50%",
-                  background:
-                    i % 3 === 0
-                      ? "#16a34a"
-                      : i % 3 === 1
-                        ? "#0ea5e9"
-                        : "#f59e0b",
-                  opacity: 0.35,
-                }}
-              />
-            ))}
-          </div>
-
+          {/* Badge */}
           <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.7 }}
+            style={{ marginBottom: 36 }}
+          >
+            <span className="badge">
+              <span className="bdot" />
+              <Sparkles size={11} style={{ opacity: 0.7 }} />
+              AI-Powered Crop Intelligence — Now Live
+            </span>
+          </motion.div>
+
+          {/* Logo */}
+          <motion.div
+            initial={{ scale: 0, rotate: -20, opacity: 0 }}
+            animate={{ scale: 1, rotate: 0, opacity: 1 }}
+            transition={{
+              duration: 1.1,
+              type: "spring",
+              stiffness: 90,
+              delay: 0.05,
+            }}
             style={{
-              y: heroY,
-              opacity: heroOpacity,
-              position: "relative",
-              zIndex: 10,
-              maxWidth: 1100,
-              margin: "0 auto",
-              padding: "0 24px",
-              textAlign: "center",
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: 36,
             }}
           >
-            {/* Badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              style={{ marginBottom: 34 }}
-            >
-              <span className="badge">
-                <span className="bdot" />
-                AI-Powered Crop Intelligence — Now Live
-              </span>
-            </motion.div>
-
-            {/* Big Logo */}
-            <motion.div
-              initial={{ scale: 0, rotate: -30, opacity: 0 }}
-              animate={{ scale: 1, rotate: 0, opacity: 1 }}
-              transition={{ duration: 1.1, type: "spring", stiffness: 100 }}
+            <div
+              className="float"
               style={{
-                display: "flex",
-                justifyContent: "center",
-                marginBottom: 30,
+                filter:
+                  "drop-shadow(0 24px 60px rgba(74,222,128,0.35)) drop-shadow(0 6px 16px rgba(56,189,248,0.20))",
               }}
             >
-              <div
-                className="float"
-                style={{
-                  filter:
-                    "drop-shadow(0 20px 48px rgba(22,163,74,.32)) drop-shadow(0 4px 12px rgba(14,165,233,.18))",
-                }}
-              >
-                <AgriSenseLogo size={112} />
-              </div>
-            </motion.div>
+              <AgriSenseLogo size={116} />
+            </div>
+          </motion.div>
 
-            {/* H1 */}
-            <motion.h1
-              initial={{ y: 32, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.22, duration: 0.85 }}
-              className="fd"
-              style={{
-                fontSize: "clamp(44px,8vw,88px)",
-                fontWeight: 900,
-                lineHeight: 1.05,
-                letterSpacing: "-0.04em",
-                marginBottom: 22,
-              }}
-            >
-              <span className="grad">Smart Solar</span>
-              <br />
-              <span style={{ color: "#0f172a" }}>Irrigation System</span>
-            </motion.h1>
+          {/* H1 */}
+          <motion.h1
+            initial={{ y: 36, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.22, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            className="fd"
+            style={{
+              fontSize: "clamp(46px, 8.5vw, 96px)",
+              fontWeight: 900,
+              lineHeight: 1.02,
+              letterSpacing: "-0.04em",
+              marginBottom: 24,
+              color: "var(--text-primary)",
+            }}
+          >
+            <span className="grad-text">Smart Solar</span>
+            <br />
+            <span>Irrigation</span>
+          </motion.h1>
 
-            {/* Subtitle */}
-            <motion.p
-              initial={{ y: 24, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.34 }}
-              style={{
-                fontSize: "clamp(16px,2vw,20px)",
-                color: "#4b5563",
-                lineHeight: 1.75,
-                maxWidth: 600,
-                margin: "0 auto 44px",
-              }}
-            >
-              Monitor and control your farm from anywhere. Get AI-powered
-              recommendations based on real soil data and crop requirements.
-            </motion.p>
+          {/* Subtitle */}
+          <motion.p
+            initial={{ y: 24, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.34, duration: 0.7 }}
+            style={{
+              fontSize: "clamp(16px, 2vw, 20px)",
+              color: "var(--text-muted)",
+              lineHeight: 1.8,
+              maxWidth: 560,
+              margin: "0 auto 48px",
+            }}
+          >
+            Monitor and control your farm from anywhere. Get AI-powered
+            recommendations based on real soil data and crop requirements.
+          </motion.p>
 
-            {/* CTAs */}
-            <motion.div
-              initial={{ y: 24, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.44 }}
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 14,
-                justifyContent: "center",
-                marginBottom: 68,
-              }}
+          {/* CTAs */}
+          <motion.div
+            initial={{ y: 24, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.44, duration: 0.7 }}
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 14,
+              justifyContent: "center",
+              marginBottom: 72,
+            }}
+          >
+            <motion.a
+              href="/register"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.97 }}
+              className="btn-primary"
             >
-              <motion.a
-                href="/register"
-                whileHover={{
-                  scale: 1.05,
-                  boxShadow: "0 20px 56px rgba(22,163,74,.42)",
-                }}
-                whileTap={{ scale: 0.97 }}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "15px 38px",
-                  background: "linear-gradient(135deg,#16a34a 0%,#0ea5e9 100%)",
-                  color: "white",
-                  fontWeight: 700,
-                  fontSize: 17,
-                  borderRadius: 16,
-                  boxShadow: "0 8px 32px rgba(22,163,74,.38)",
-                }}
-              >
-                Get Started Free <ChevronRight size={20} />
-              </motion.a>
-              <motion.a
-                href="#how-it-works"
-                whileHover={{ scale: 1.03 }}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "15px 38px",
-                  background: "white",
-                  color: "#374151",
-                  fontWeight: 600,
-                  fontSize: 17,
-                  borderRadius: 16,
-                  border: "1.5px solid #e5e7eb",
-                  boxShadow: "0 4px 16px rgba(0,0,0,.06)",
-                }}
-              >
-                See How It Works
-              </motion.a>
-            </motion.div>
+              Get Started Free <ChevronRight size={18} />
+            </motion.a>
+            <motion.a
+              href="#how-it-works"
+              whileHover={{ scale: 1.03 }}
+              className="btn-secondary"
+            >
+              See How It Works
+            </motion.a>
+          </motion.div>
 
-            {/* Stats */}
-            <motion.div
-              initial={{ y: 32, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.55 }}
-              className="stats-g"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4,1fr)",
-                gap: 16,
-                maxWidth: 780,
-                margin: "0 auto",
-              }}
-            >
-              {stats.map((s, i) => (
-                <motion.div
-                  key={i}
-                  whileHover={{ y: -5 }}
+          {/* Stats */}
+          <motion.div
+            initial={{ y: 36, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.56, duration: 0.8 }}
+            className="stats-g"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4, 1fr)",
+              gap: 14,
+              maxWidth: 800,
+              margin: "0 auto",
+            }}
+          >
+            {STATS.map((s, i) => (
+              <motion.div key={i} whileHover={{ y: -5 }} className="stat-card">
+                <div
                   style={{
-                    textAlign: "center",
-                    padding: "20px 12px",
-                    background: "rgba(255,255,255,.75)",
-                    backdropFilter: "blur(12px)",
-                    borderRadius: 16,
-                    border: "1px solid rgba(22,163,74,.1)",
-                    boxShadow: "0 4px 16px rgba(0,0,0,.04)",
-                    transition: "box-shadow .3s",
+                    display: "flex",
+                    justifyContent: "center",
+                    marginBottom: 8,
+                    color: "var(--brand-500)",
+                    opacity: 0.7,
                   }}
                 >
-                  <div
-                    className="fd grad"
-                    style={{
-                      fontSize: "clamp(26px,3.5vw,38px)",
-                      fontWeight: 900,
-                      lineHeight: 1,
-                    }}
-                  >
-                    <Counter end={s.end} suffix={s.suffix} />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: "#6b7280",
-                      fontWeight: 500,
-                      marginTop: 6,
-                      letterSpacing: ".02em",
-                    }}
-                  >
-                    {s.label}
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
+                  {s.icon}
+                </div>
+                <div
+                  className="fd grad-text"
+                  style={{
+                    fontSize: "clamp(28px,3.5vw,40px)",
+                    fontWeight: 900,
+                    lineHeight: 1,
+                    marginBottom: 6,
+                  }}
+                >
+                  <Counter end={s.end} suffix={s.suffix} />
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "var(--text-faint)",
+                    fontWeight: 500,
+                    letterSpacing: "0.04em",
+                    fontFamily: "var(--font-mono)",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {s.label}
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </motion.div>
+
+        {/* Scroll hint */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.6 }}
+          style={{
+            position: "absolute",
+            bottom: 36,
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 8,
+            color: "var(--text-faint)",
+            fontFamily: "var(--font-mono)",
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+          }}
+        >
+          <span>Scroll</span>
+          <motion.div
+            animate={{ y: [0, 8, 0] }}
+            transition={{ repeat: Infinity, duration: 1.8 }}
+            style={{
+              width: 1,
+              height: 40,
+              background:
+                "linear-gradient(180deg, var(--brand-500), transparent)",
+            }}
+          />
+        </motion.div>
+      </section>
+
+      {/* ══════════════════════════
+          FEATURES
+      ══════════════════════════ */}
+      <section
+        id="features"
+        style={{
+          padding: "120px 24px",
+          position: "relative",
+          background: "var(--grad-section)",
+          overflow: "hidden",
+        }}
+      >
+        <div className="divider" style={{ maxWidth: 900, marginBottom: 100 }} />
+        <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+          <motion.div
+            initial={{ opacity: 0, y: 32 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            style={{ textAlign: "center", marginBottom: 72 }}
+          >
+            <h2
+              className="fd"
+              style={{
+                fontSize: "clamp(32px,5vw,58px)",
+                fontWeight: 900,
+                color: "var(--text-primary)",
+                letterSpacing: "-0.03em",
+                lineHeight: 1.08,
+                marginBottom: 16,
+              }}
+            >
+              Why Choose <span className="grad-text">AgriSense?</span>
+            </h2>
+            <p
+              style={{
+                fontSize: 17,
+                color: "var(--text-muted)",
+                maxWidth: 500,
+                margin: "0 auto",
+                lineHeight: 1.7,
+              }}
+            >
+              Everything you need to run a smarter, greener farm — all in one
+              intelligent platform.
+            </p>
           </motion.div>
 
-          {/* Scroll hint */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.4 }}
+          <div
+            className="feat-g"
             style={{
-              position: "absolute",
-              bottom: 32,
-              left: "50%",
-              transform: "translateX(-50%)",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 6,
-              color: "#9ca3af",
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: ".12em",
-              textTransform: "uppercase",
+              display: "grid",
+              gridTemplateColumns: "repeat(4,1fr)",
+              gap: 20,
             }}
           >
-            <span>Scroll</span>
-            <motion.div
-              animate={{ y: [0, 7, 0] }}
-              transition={{ repeat: Infinity, duration: 1.6 }}
-              style={{
-                width: 1,
-                height: 36,
-                background: "linear-gradient(180deg,#16a34a,transparent)",
-              }}
-            />
-          </motion.div>
-        </section>
-
-        {/* Features Section */}
-        <section
-          id="features"
-          style={{ padding: "108px 24px", background: "white" }}
-        >
-          <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-            <motion.div
-              initial={{ opacity: 0, y: 32 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7 }}
-              style={{ textAlign: "center", marginBottom: 72 }}
-            >
-              <span
-                className="badge"
-                style={{ marginBottom: 20, display: "inline-flex" }}
-              >
-                Core Features
-              </span>
-              <h2
-                className="fd"
+            {FEATURES.map((f, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, duration: 0.65 }}
+                whileHover={{ y: -10 }}
+                className="shine glass-card"
                 style={{
-                  fontSize: "clamp(32px,5vw,56px)",
-                  fontWeight: 900,
-                  color: "#0f172a",
-                  letterSpacing: "-0.03em",
-                  lineHeight: 1.1,
-                  marginBottom: 16,
+                  padding: "30px 26px",
+                  background: f.bg,
+                  border: `1px solid ${f.border}`,
+                  borderRadius: 24,
+                  cursor: "pointer",
                 }}
               >
-                Why Choose AgriSense?
-              </h2>
-              <p
-                style={{
-                  fontSize: 18,
-                  color: "#6b7280",
-                  maxWidth: 520,
-                  margin: "0 auto",
-                }}
-              >
-                Everything you need to run a smarter, greener farm — all in one
-                platform.
-              </p>
-            </motion.div>
-            <div
-              className="feat-g"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4,1fr)",
-                gap: 20,
-              }}
-            >
-              {features.map((f, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 40 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1, duration: 0.6 }}
-                  whileHover={{ y: -8 }}
-                  className="shine"
+                <div
                   style={{
-                    padding: 28,
-                    background: f.bg,
-                    border: `1.5px solid ${f.border}`,
-                    borderRadius: 24,
-                    boxShadow: "0 4px 20px rgba(0,0,0,.04)",
-                    transition: "box-shadow .3s,transform .3s",
+                    marginBottom: 20,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
                   }}
                 >
                   <div
@@ -523,310 +544,364 @@ export default function Landing() {
                       width: 52,
                       height: 52,
                       borderRadius: 14,
-                      background: f.accent + "22",
-                      border: `1.5px solid ${f.accent}44`,
+                      background: f.accent + "1A",
+                      border: `1px solid ${f.accent}33`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       color: f.accent,
-                      marginBottom: 18,
-                      boxShadow: `0 4px 16px ${f.accent}22`,
+                      boxShadow: `0 4px 20px ${f.accent}22`,
                     }}
                   >
                     {f.icon}
                   </div>
-                  <h3
+                  <span
                     style={{
-                      fontSize: 18,
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 10,
                       fontWeight: 700,
-                      color: "#111827",
-                      marginBottom: 10,
-                      letterSpacing: "-0.01em",
-                    }}
-                  >
-                    {f.title}
-                  </h3>
-                  <p
-                    style={{ fontSize: 14, color: "#4b5563", lineHeight: 1.7 }}
-                  >
-                    {f.desc}
-                  </p>
-                  <div
-                    style={{
-                      marginTop: 20,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
+                      letterSpacing: "0.10em",
+                      textTransform: "uppercase",
                       color: f.accent,
-                      fontSize: 13,
-                      fontWeight: 600,
+                      opacity: 0.7,
+                      padding: "3px 8px",
+                      background: f.accent + "14",
+                      borderRadius: 99,
+                      border: `1px solid ${f.accent}22`,
                     }}
                   >
-                    Learn more <ArrowRight size={14} />
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* How It Works */}
-        <section
-          id="how-it-works"
-          style={{
-            padding: "108px 24px",
-            background:
-              "linear-gradient(180deg,#f7fdf3 0%,#f0fdf4 50%,#f7fdf3 100%)",
-          }}
-        >
-          <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-            <motion.div
-              initial={{ opacity: 0, y: 32 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              style={{ textAlign: "center", marginBottom: 72 }}
-            >
-              <span
-                className="badge"
-                style={{ marginBottom: 20, display: "inline-flex" }}
-              >
-                Simple Process
-              </span>
-              <h2
-                className="fd"
-                style={{
-                  fontSize: "clamp(32px,5vw,56px)",
-                  fontWeight: 900,
-                  color: "#0f172a",
-                  letterSpacing: "-0.03em",
-                  lineHeight: 1.1,
-                  marginBottom: 16,
-                }}
-              >
-                How It Works
-              </h2>
-              <p
-                style={{
-                  fontSize: 18,
-                  color: "#6b7280",
-                  maxWidth: 460,
-                  margin: "0 auto",
-                }}
-              >
-                From setup to full monitoring in minutes — not days.
-              </p>
-            </motion.div>
-            <div
-              className="step-g"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4,1fr)",
-                gap: 24,
-                position: "relative",
-              }}
-            >
-              {/* Connector line */}
-              <div
-                className="hide-mob"
-                style={{
-                  position: "absolute",
-                  top: 28,
-                  left: "calc(12.5%)",
-                  right: "calc(12.5%)",
-                  height: 2,
-                  background:
-                    "linear-gradient(90deg,rgba(22,163,74,.25),rgba(14,165,233,.25))",
-                  zIndex: 0,
-                }}
-              />
-              {steps.map((s, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.15, duration: 0.6 }}
+                    {f.tag}
+                  </span>
+                </div>
+                <h3
                   style={{
-                    textAlign: "center",
-                    position: "relative",
-                    zIndex: 1,
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                    marginBottom: 10,
+                    letterSpacing: "-0.01em",
                   }}
                 >
-                  <div
-                    style={{
-                      width: 56,
-                      height: 56,
-                      background:
-                        "linear-gradient(135deg,#16a34a 0%,#0ea5e9 100%)",
-                      borderRadius: 16,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      margin: "0 auto 20px",
-                      boxShadow: "0 8px 28px rgba(22,163,74,.3)",
-                      fontFamily: "'Fraunces',Georgia,serif",
-                      fontSize: 20,
-                      fontWeight: 900,
-                      color: "white",
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
-                    {s.n}
-                  </div>
-                  <h3
-                    style={{
-                      fontSize: 17,
-                      fontWeight: 700,
-                      color: "#111827",
-                      marginBottom: 8,
-                    }}
-                  >
-                    {s.title}
-                  </h3>
-                  <p
-                    style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.65 }}
-                  >
-                    {s.desc}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
+                  {f.title}
+                </h3>
+                <p
+                  style={{
+                    fontSize: 14,
+                    color: "var(--text-muted)",
+                    lineHeight: 1.75,
+                  }}
+                >
+                  {f.desc}
+                </p>
+                <div
+                  style={{
+                    marginTop: 24,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    color: f.accent,
+                    fontSize: 13,
+                    fontWeight: 600,
+                  }}
+                >
+                  Learn more <ArrowRight size={13} />
+                </div>
+              </motion.div>
+            ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* CTA Section */}
-        <section
+      {/* ══════════════════════════
+          HOW IT WORKS
+      ══════════════════════════ */}
+      <section
+        id="how-it-works"
+        style={{
+          padding: "120px 24px",
+          position: "relative",
+          background: "var(--bg-soft)",
+          overflow: "hidden",
+        }}
+      >
+        <div
           style={{
-            padding: "100px 24px",
-            position: "relative",
-            overflow: "hidden",
+            position: "absolute",
+            width: 700,
+            height: 700,
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%,-50%)",
             background:
-              "linear-gradient(135deg,#14532d 0%,#15803d 40%,#0369a1 100%)",
+              "radial-gradient(circle, var(--blob-1) 0%, transparent 65%)",
+            pointerEvents: "none",
+          }}
+        />
+        <div
+          style={{
+            maxWidth: 1280,
+            margin: "0 auto",
+            position: "relative",
+            zIndex: 1,
           }}
         >
-          {/* Background texture */}
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              backgroundImage:
-                "radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px)",
-              backgroundSize: "28px 28px",
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              width: 500,
-              height: 500,
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%,-50%)",
-              background:
-                "radial-gradient(circle,rgba(255,255,255,.07) 0%,transparent 70%)",
-              borderRadius: "50%",
-            }}
-          />
           <motion.div
             initial={{ opacity: 0, y: 32 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            style={{
-              maxWidth: 800,
-              margin: "0 auto",
-              textAlign: "center",
-              color: "white",
-              position: "relative",
-              zIndex: 1,
-            }}
+            style={{ textAlign: "center", marginBottom: 80 }}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                marginBottom: 28,
-              }}
-            >
-              <div
-                style={{
-                  filter: "drop-shadow(0 0 32px rgba(255,255,255,.25))",
-                }}
-              >
-                <AgriSenseLogo size={72} />
-              </div>
-            </div>
             <h2
               className="fd"
               style={{
-                fontSize: "clamp(32px,5vw,56px)",
+                fontSize: "clamp(32px,5vw,58px)",
                 fontWeight: 900,
-                marginBottom: 16,
+                color: "var(--text-primary)",
                 letterSpacing: "-0.03em",
-                lineHeight: 1.1,
+                lineHeight: 1.08,
+                marginBottom: 16,
               }}
             >
-              Ready to Transform Your Farm?
+              How It <span className="grad-text">Works</span>
             </h2>
             <p
               style={{
-                fontSize: 18,
-                marginBottom: 40,
-                opacity: 0.85,
+                fontSize: 17,
+                color: "var(--text-muted)",
+                maxWidth: 440,
+                margin: "0 auto",
                 lineHeight: 1.7,
               }}
             >
-              Join thousands of farmers already saving water and growing smarter
-              with AgriSense.
+              From setup to full monitoring in minutes — not days.
             </p>
+          </motion.div>
+
+          <div
+            className="step-g"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4,1fr)",
+              gap: 24,
+              position: "relative",
+            }}
+          >
             <div
+              className="hide-mob"
               style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 14,
-                justifyContent: "center",
+                position: "absolute",
+                top: 26,
+                left: "calc(12.5%)",
+                right: "calc(12.5%)",
+                height: 1,
+                background:
+                  "linear-gradient(90deg, var(--divider-1), var(--divider-2))",
+                zIndex: 0,
               }}
+            />
+            {STEPS.map((s, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 32 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.15, duration: 0.65 }}
+                whileHover={{ y: -6 }}
+                style={{
+                  textAlign: "center",
+                  position: "relative",
+                  zIndex: 1,
+                  padding: "32px 20px",
+                  background: "var(--glass-bg)",
+                  border: "1px solid var(--border-card)",
+                  borderRadius: 20,
+                  transition: "all 0.35s ease",
+                  backdropFilter: "blur(12px)",
+                }}
+              >
+                <div className="step-num" style={{ margin: "0 auto 24px" }}>
+                  {s.n}
+                </div>
+                <h3
+                  style={{
+                    fontSize: 17,
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                    marginBottom: 10,
+                  }}
+                >
+                  {s.title}
+                </h3>
+                <p
+                  style={{
+                    fontSize: 14,
+                    color: "var(--text-muted)",
+                    lineHeight: 1.7,
+                  }}
+                >
+                  {s.desc}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════
+          CTA SECTION
+      ══════════════════════════ */}
+      <section
+        style={{
+          padding: "120px 24px",
+          position: "relative",
+          overflow: "hidden",
+          background: "var(--footer-bg)",
+        }}
+      >
+        <div
+          className="dot-pattern"
+          style={{ position: "absolute", inset: 0, opacity: 0.5 }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            width: 600,
+            height: 600,
+            top: "50%",
+            left: "30%",
+            transform: "translate(-50%,-50%)",
+            background:
+              "radial-gradient(circle, var(--blob-1) 0%, transparent 65%)",
+            pointerEvents: "none",
+          }}
+        />
+        <motion.div
+          initial={{ opacity: 0, y: 36 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+          style={{
+            maxWidth: 780,
+            margin: "0 auto",
+            textAlign: "center",
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            whileInView={{ scale: 1, opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, type: "spring" }}
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: 32,
+            }}
+          >
+            <div
+              className="float-slow"
+              style={{ filter: "drop-shadow(0 0 40px rgba(74,222,128,0.30))" }}
             >
-              <motion.a
-                href="/register"
-                whileHover={{
-                  scale: 1.05,
-                  boxShadow: "0 20px 50px rgba(0,0,0,.3)",
-                }}
-                whileTap={{ scale: 0.97 }}
-                style={{
-                  padding: "15px 38px",
-                  background: "white",
-                  color: "#15803d",
-                  fontWeight: 800,
-                  fontSize: 17,
-                  borderRadius: 16,
-                  boxShadow: "0 8px 32px rgba(0,0,0,.2)",
-                }}
-              >
-                Start Free Trial
-              </motion.a>
-              <motion.a
-                href="#features"
-                whileHover={{ scale: 1.03 }}
-                style={{
-                  padding: "15px 38px",
-                  background: "rgba(255,255,255,.12)",
-                  color: "white",
-                  fontWeight: 600,
-                  fontSize: 17,
-                  borderRadius: 16,
-                  border: "1.5px solid rgba(255,255,255,.3)",
-                  backdropFilter: "blur(8px)",
-                }}
-              >
-                Explore Features
-              </motion.a>
+              <AgriSenseLogo size={80} />
             </div>
           </motion.div>
-        </section>
 
-        <Footer />
-      </div>
-    </>
+          <h2
+            className="fd"
+            style={{
+              fontSize: "clamp(32px,5.5vw,60px)",
+              fontWeight: 900,
+              marginBottom: 20,
+              letterSpacing: "-0.03em",
+              lineHeight: 1.08,
+              color: "white",
+            }}
+          >
+            Ready to Transform
+            <br />
+            <span className="grad-text">Your Farm?</span>
+          </h2>
+          <p
+            style={{
+              fontSize: 18,
+              marginBottom: 48,
+              color: "rgba(255,255,255,0.50)",
+              lineHeight: 1.75,
+              maxWidth: 520,
+              margin: "0 auto 48px",
+            }}
+          >
+            Join thousands of farmers already saving water and growing smarter
+            with AgriSense. No contract, cancel anytime.
+          </p>
+
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 14,
+              justifyContent: "center",
+            }}
+          >
+            <motion.a
+              href="/register"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.97 }}
+              className="btn-primary"
+              style={{ fontSize: 17, padding: "16px 40px" }}
+            >
+              Start Free Trial <ChevronRight size={20} />
+            </motion.a>
+            <motion.a
+              href="#features"
+              whileHover={{ scale: 1.03 }}
+              style={{
+                fontSize: 17,
+                padding: "16px 40px",
+                background: "rgba(255,255,255,0.10)",
+                color: "white",
+                fontWeight: 600,
+                borderRadius: "var(--r-lg)",
+                border: "1.5px solid rgba(255,255,255,0.20)",
+                backdropFilter: "blur(8px)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              Explore Features
+            </motion.a>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              gap: 24,
+              marginTop: 48,
+            }}
+          >
+            {[""].map((t, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  color: "rgba(255,255,255,0.40)",
+                  fontSize: 13,
+                }}
+              >
+                {t}
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      </section>
+
+      <Footer isDark={isDark} />
+    </div>
   );
 }

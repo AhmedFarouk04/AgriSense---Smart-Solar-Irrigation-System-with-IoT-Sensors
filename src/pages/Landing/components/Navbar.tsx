@@ -1,13 +1,14 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { AgriSenseLogo } from "./Logo";
 
 interface NavbarProps {
   scrolled: boolean;
+  isDark: boolean;
 }
 
-export function Navbar({ scrolled }: NavbarProps) {
+export function Navbar({ scrolled, isDark }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -21,14 +22,13 @@ export function Navbar({ scrolled }: NavbarProps) {
         left: 0,
         right: 0,
         zIndex: 100,
-        padding: scrolled ? "10px 24px" : "15px 24px",
-        background: scrolled
-          ? "rgba(247,253,243,.94)"
-          : "rgba(247,253,243,.65)",
-        backdropFilter: "blur(24px)",
-        borderBottom: `1px solid ${scrolled ? "rgba(22,163,74,.14)" : "transparent"}`,
-        boxShadow: scrolled ? "0 4px 28px rgba(22,163,74,.07)" : "none",
-        transition: "all .35s ease",
+        padding: scrolled ? "10px 24px" : "16px 24px",
+        background: scrolled ? "var(--bg-nav)" : "transparent",
+        backdropFilter: scrolled ? "blur(24px)" : "none",
+        WebkitBackdropFilter: scrolled ? "blur(24px)" : "none",
+        borderBottom: `1px solid ${scrolled ? "var(--border-base)" : "transparent"}`,
+        boxShadow: scrolled ? "var(--shadow-sm)" : "none",
+        transition: "all 0.35s ease",
       }}
     >
       <div
@@ -40,7 +40,7 @@ export function Navbar({ scrolled }: NavbarProps) {
           justifyContent: "space-between",
         }}
       >
-        {/* Logo */}
+        {/* ── Logo */}
         <motion.a
           href="/"
           whileHover={{ scale: 1.02 }}
@@ -50,11 +50,11 @@ export function Navbar({ scrolled }: NavbarProps) {
             whileHover={{ rotate: [0, -7, 7, 0] }}
             transition={{ duration: 0.5 }}
             style={{
-              filter: "drop-shadow(0 4px 14px rgba(22,163,74,.3))",
+              filter: "drop-shadow(0 4px 14px rgba(22,163,74,.30))",
               flexShrink: 0,
             }}
           >
-            <AgriSenseLogo size={48} />
+            <AgriSenseLogo size={46} />
           </motion.div>
           <div
             style={{
@@ -65,11 +65,11 @@ export function Navbar({ scrolled }: NavbarProps) {
             }}
           >
             <span
-              className="fd grad"
+              className="fd grad-text"
               style={{
-                fontSize: 22,
+                fontSize: 21,
                 fontWeight: 900,
-                letterSpacing: "-0.02em",
+                letterSpacing: "-0.025em",
               }}
             >
               AgriSense
@@ -80,7 +80,7 @@ export function Navbar({ scrolled }: NavbarProps) {
                 fontWeight: 600,
                 letterSpacing: "0.14em",
                 textTransform: "uppercase",
-                color: "#9ca3af",
+                color: "var(--text-faint)",
               }}
             >
               Smart Solar Irrigation
@@ -88,7 +88,7 @@ export function Navbar({ scrolled }: NavbarProps) {
           </div>
         </motion.a>
 
-        {/* Center links */}
+        {/* ── Center links */}
         <div className="hide-mob" style={{ display: "flex", gap: 36 }}>
           {["Features", "How it Works", "Contact"].map((n) => (
             <a
@@ -101,7 +101,7 @@ export function Navbar({ scrolled }: NavbarProps) {
           ))}
         </div>
 
-        {/* Auth + burger */}
+        {/* ── Auth + burger */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <motion.a
             href="/login"
@@ -110,13 +110,14 @@ export function Navbar({ scrolled }: NavbarProps) {
             className="hide-mob"
             style={{
               padding: "9px 22px",
-              color: "#374151",
+              color: "var(--text-secondary)",
               fontWeight: 600,
               fontSize: 14,
               borderRadius: 12,
-              border: "1.5px solid #e5e7eb",
-              background: "white",
-              boxShadow: "0 1px 4px rgba(0,0,0,.06)",
+              border: "1.5px solid var(--border-card)",
+              background: "var(--glass-bg)",
+              backdropFilter: "blur(8px)",
+              transition: "all 0.25s ease",
             }}
           >
             Login
@@ -130,15 +131,15 @@ export function Navbar({ scrolled }: NavbarProps) {
             whileTap={{ scale: 0.97 }}
             style={{
               padding: "9px 22px",
-              background: "linear-gradient(135deg,#16a34a 0%,#0ea5e9 100%)",
+              background: "var(--grad-brand)",
               color: "white",
               fontWeight: 700,
               fontSize: 14,
               borderRadius: 12,
-              boxShadow: "0 4px 18px rgba(22,163,74,.35)",
+              boxShadow: "var(--shadow-md)",
             }}
           >
-            Sign Up Free
+            Get Started
           </motion.a>
           <button
             className="burger"
@@ -150,7 +151,7 @@ export function Navbar({ scrolled }: NavbarProps) {
               background: "transparent",
               border: "none",
               cursor: "pointer",
-              color: "#374151",
+              color: "var(--text-muted)",
             }}
           >
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -158,68 +159,72 @@ export function Navbar({ scrolled }: NavbarProps) {
         </div>
       </div>
 
-      {/* Mobile menu */}
-      {menuOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{
-            padding: "16px 24px 24px",
-            borderTop: "1px solid rgba(22,163,74,.1)",
-            background: "rgba(247,253,243,.98)",
-          }}
-        >
-          {["Features", "How it Works", "Contact"].map((n) => (
-            <a
-              key={n}
-              href={`#${n.toLowerCase().replace(/ /g, "-")}`}
-              onClick={() => setMenuOpen(false)}
-              style={{
-                display: "block",
-                padding: "12px 0",
-                color: "#374151",
-                fontWeight: 500,
-                borderBottom: "1px solid rgba(0,0,0,.05)",
-              }}
-            >
-              {n}
-            </a>
-          ))}
-          <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-            <a
-              href="/login"
-              style={{
-                flex: 1,
-                textAlign: "center",
-                padding: "10px",
-                border: "1.5px solid #e5e7eb",
-                borderRadius: 12,
-                color: "#374151",
-                fontWeight: 600,
-                fontSize: 14,
-                background: "white",
-              }}
-            >
-              Login
-            </a>
-            <a
-              href="/register"
-              style={{
-                flex: 1,
-                textAlign: "center",
-                padding: "10px",
-                borderRadius: 12,
-                color: "white",
-                fontWeight: 700,
-                fontSize: 14,
-                background: "linear-gradient(135deg,#16a34a,#0ea5e9)",
-              }}
-            >
-              Sign Up
-            </a>
-          </div>
-        </motion.div>
-      )}
+      {/* ── Mobile menu */}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            style={{
+              padding: "16px 24px 24px",
+              borderTop: "1px solid var(--border-card)",
+              background: "var(--bg-nav)",
+              backdropFilter: "blur(20px)",
+            }}
+          >
+            {["Features", "How it Works", "Contact"].map((n) => (
+              <a
+                key={n}
+                href={`#${n.toLowerCase().replace(/ /g, "-")}`}
+                onClick={() => setMenuOpen(false)}
+                style={{
+                  display: "block",
+                  padding: "12px 0",
+                  color: "var(--text-secondary)",
+                  fontWeight: 500,
+                  borderBottom: "1px solid var(--border-base)",
+                }}
+              >
+                {n}
+              </a>
+            ))}
+            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+              <a
+                href="/login"
+                style={{
+                  flex: 1,
+                  textAlign: "center",
+                  padding: "10px",
+                  border: "1.5px solid var(--border-card)",
+                  borderRadius: 12,
+                  color: "var(--text-secondary)",
+                  fontWeight: 600,
+                  fontSize: 14,
+                  background: "var(--glass-bg)",
+                }}
+              >
+                Login
+              </a>
+              <a
+                href="/register"
+                style={{
+                  flex: 1,
+                  textAlign: "center",
+                  padding: "10px",
+                  borderRadius: 12,
+                  color: "white",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  background: "var(--grad-brand)",
+                }}
+              >
+                Get Started
+              </a>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.nav>
   );
 }

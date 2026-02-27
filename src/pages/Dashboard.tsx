@@ -16,7 +16,7 @@ import {
   Download,
   Sprout,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PlantSelector } from "../components/PlantSelector";
 import { ReportModal } from "../components/ReportModal";
 import { ChartsView } from "../components/ChartsView";
@@ -31,11 +31,25 @@ export default function Dashboard() {
   const [showReport, setShowReport] = useState(false);
   const [showCharts, setShowCharts] = useState(false);
   const [showAlerts, setShowAlerts] = useState(false);
+  const [isDark, setIsDark] = useState(false);
 
   const toggleManualMode = useMutation(api.settings.toggleManualMode);
   const togglePump = useMutation(api.settings.togglePumpManual);
   const simulateReading = useMutation(api.readings.simulate);
   const exportData = useQuery(api.exports.exportToCSV);
+
+  // ── theme detection
+  useEffect(() => {
+    const check = () =>
+      setIsDark(document.body.classList.contains("theme-dark"));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
 
   const handleToggleMode = async () => {
     try {
@@ -68,12 +82,10 @@ export default function Dashboard() {
 
   const handleExport = () => {
     if (!exportData) return;
-
     const csvContent = [
       exportData.headers.join(","),
       ...exportData.rows.map((row) => row.join(",")),
     ].join("\n");
-
     const blob = new Blob(["\ufeff" + csvContent], {
       type: "text/csv;charset=utf-8;",
     });
@@ -84,6 +96,7 @@ export default function Dashboard() {
     toast.success("Data exported successfully");
   };
 
+  // ── loading state
   if (
     stats === undefined ||
     latestReading === undefined ||
@@ -91,10 +104,15 @@ export default function Dashboard() {
     user === undefined
   ) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div
+        className="flex items-center justify-center min-h-screen"
+        style={{ background: isDark ? "#070d09" : undefined }}
+      >
         <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-green-500 border-t-transparent"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-green-500 border-t-transparent" />
+          <p style={{ color: isDark ? "rgba(255,255,255,0.50)" : "#6b7280" }}>
+            Loading dashboard...
+          </p>
         </div>
       </div>
     );
@@ -105,17 +123,72 @@ export default function Dashboard() {
     ? settings?.pumpManualStatus || false
     : latestReading?.pumpStatus || false;
 
+  // ── tokens
+  const tk = isDark
+    ? {
+        pageBg: "var(--bg-page)",
+        cardBg: "rgba(255,255,255,0.04)",
+        cardBorder: "1px solid rgba(255,255,255,0.08)",
+        cardShadow: "none",
+        headTitle: "#e8f5e9",
+        headSub: "rgba(255,255,255,0.45)",
+        iconWrap: "rgba(255,255,255,0.08)",
+        iconBorder: "1px solid rgba(255,255,255,0.10)",
+        btnBg: "rgba(255,255,255,0.07)",
+        btnBorder: "1px solid rgba(255,255,255,0.10)",
+        btnIcon: "rgba(255,255,255,0.60)",
+        btnShadow: "none",
+        welcomeBg: "rgba(59,130,246,0.07)",
+        welcomeBorder: "1px solid rgba(59,130,246,0.18)",
+        welcomeIcon: "#60a5fa",
+        welcomeTitle: "#e8f5e9",
+        welcomeSub: "rgba(255,255,255,0.45)",
+        placeholderText: "rgba(255,255,255,0.30)",
+      }
+    : {
+        pageBg: "white",
+        cardBg: "white",
+        cardBorder: "none",
+        cardShadow: "0 4px 24px rgba(0,0,0,0.08)",
+        headTitle: "#111827",
+        headSub: "#6b7280",
+        iconWrap: "linear-gradient(135deg,#16a34a,#0d9488)",
+        iconBorder: "none",
+        btnBg: "white",
+        btnBorder: "none",
+        btnIcon: "#374151",
+        btnShadow: "0 4px 16px rgba(0,0,0,0.08)",
+        welcomeBg: "#eff6ff",
+        welcomeBorder: "1px solid #bfdbfe",
+        welcomeIcon: "#3b82f6",
+        welcomeTitle: "#111827",
+        welcomeSub: "#6b7280",
+        placeholderText: "#6b7280",
+      };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div
+      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8"
+      style={{ background: tk.pageBg, minHeight: "100vh" }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+          <div
+            className="w-12 h-12 rounded-xl flex items-center justify-center"
+            style={{
+              background: tk.iconWrap,
+              border: tk.iconBorder,
+              boxShadow: tk.cardShadow,
+            }}
+          >
             <img src="/images/logo.png" alt="AgriSense" className="w-8 h-8" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-sm text-gray-500">
+            <h1 className="text-2xl font-bold" style={{ color: tk.headTitle }}>
+              Dashboard
+            </h1>
+            <p className="text-sm" style={{ color: tk.headSub }}>
               Welcome back, {user?.name || "Farmer"}!
             </p>
           </div>
@@ -124,47 +197,77 @@ export default function Dashboard() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => setShowAlerts(true)}
-            className="p-3 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all relative"
+            className="p-3 rounded-xl transition-all relative"
+            style={{
+              background: tk.btnBg,
+              border: tk.btnBorder,
+              boxShadow: tk.btnShadow,
+            }}
           >
-            <Bell className="w-5 h-5 text-gray-700" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+            <Bell className="w-5 h-5" style={{ color: tk.btnIcon }} />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
           </button>
 
           <button
             onClick={() => setShowCharts(true)}
-            className="p-3 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all"
+            className="p-3 rounded-xl transition-all"
+            style={{
+              background: tk.btnBg,
+              border: tk.btnBorder,
+              boxShadow: tk.btnShadow,
+            }}
           >
-            <TrendingUp className="w-5 h-5 text-gray-700" />
+            <TrendingUp className="w-5 h-5" style={{ color: tk.btnIcon }} />
           </button>
         </div>
       </div>
 
       {/* Welcome Message if no data */}
       {!latestReading && (
-        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-8 text-center">
-          <Sprout className="w-16 h-16 text-blue-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        <div
+          className="rounded-2xl p-8 text-center"
+          style={{ background: tk.welcomeBg, border: tk.welcomeBorder }}
+        >
+          <Sprout
+            className="w-16 h-16 mx-auto mb-4"
+            style={{ color: tk.welcomeIcon }}
+          />
+          <h2
+            className="text-2xl font-bold mb-2"
+            style={{ color: tk.welcomeTitle }}
+          >
             Welcome to AgriSense!
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="mb-6" style={{ color: tk.welcomeSub }}>
             Get started by adding your first sensor device or simulating a
             reading.
           </p>
           <button
             onClick={handleSimulate}
-            className="px-6 py-3 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
+            className="px-6 py-3 text-white rounded-xl font-semibold transition-all"
+            style={{
+              background: "linear-gradient(135deg,#16a34a,#0d9488)",
+              boxShadow: "0 8px 24px rgba(22,163,74,0.28)",
+            }}
           >
             Simulate First Reading
           </button>
         </div>
       )}
 
-      {/* Rest of dashboard will be implemented later */}
+      {/* Rest of dashboard */}
       {latestReading && (
         <div className="text-center py-12">
-          <p className="text-gray-500">Dashboard content coming soon...</p>
+          <p style={{ color: tk.placeholderText }}>
+            Dashboard content coming soon...
+          </p>
         </div>
       )}
+
+      {/* Modals — logic untouched */}
+      {showReport && <ReportModal onClose={() => setShowReport(false)} />}
+      {showCharts && <ChartsView onClose={() => setShowCharts(false)} />}
+      {showAlerts && <AlertsPanel onClose={() => setShowAlerts(false)} />}
     </div>
   );
 }

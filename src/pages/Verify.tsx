@@ -1,8 +1,9 @@
 import { useMutation } from "convex/react";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../../convex/_generated/api";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, CheckCircle, RefreshCw, Inbox } from "lucide-react";
 import { AgriSenseLogo } from "../components/Logo";
 
@@ -12,13 +13,17 @@ const nav = (p: string) => {
 };
 
 export default function Verify() {
-  const verifyEmail = useMutation(api.users.verifyEmail);
-  const resendCode = useMutation(api.users.sendVerificationCode);
+  const verifyEmail = useMutation(api.auth.verifyEmailCode);
+  const resendCode = useMutation(api.auth.resendVerificationCode);
+  const { signOut } = useAuthActions();
+
   const [code, setCode] = useState(["", "", "", "", "", ""]);
+  const [codeError, setCodeError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(300);
   const [done, setDone] = useState(false);
+  const [isDark, setIsDark] = useState(false);
   const refs = useRef<(HTMLInputElement | null)[]>([]);
 
   const email = sessionStorage.getItem("verificationEmail") || "your email";
@@ -27,13 +32,27 @@ export default function Verify() {
   useEffect(() => {
     refs.current[0]?.focus();
   }, []);
+
   useEffect(() => {
     if (timeLeft <= 0) return;
     const t = setInterval(() => setTimeLeft((p) => p - 1), 1000);
     return () => clearInterval(t);
   }, [timeLeft]);
 
+  useEffect(() => {
+    const check = () =>
+      setIsDark(document.body.classList.contains("theme-dark"));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
   const handleChange = (i: number, val: string) => {
+    if (codeError) setCodeError("");
     if (val.length > 1) {
       const digits = val.replace(/\D/g, "").slice(0, 6);
       const nc = [...code];
@@ -63,10 +82,15 @@ export default function Verify() {
     try {
       await verifyEmail({ code: code.join("") });
       setDone(true);
-      toast.success("Email verified! Welcome to AgriSense 🌱");
+      sessionStorage.removeItem("verificationEmail");
       setTimeout(() => nav("/dashboard"), 2000);
-    } catch {
-      toast.error("Invalid or expired code — try again");
+    } catch (error: any) {
+      const msg = error?.message ?? "";
+      if (msg.includes("expired")) {
+        setCodeError("Code expired — request a new one below");
+      } else {
+        setCodeError("Invalid code — please try again");
+      }
       setCode(["", "", "", "", "", ""]);
       refs.current[0]?.focus();
       setLoading(false);
@@ -79,8 +103,8 @@ export default function Verify() {
       await resendCode();
       setTimeLeft(300);
       setCode(["", "", "", "", "", ""]);
+      setCodeError("");
       refs.current[0]?.focus();
-      toast.success("New code sent! Check your inbox 📧");
     } catch {
       toast.error("Failed to resend code");
     } finally {
@@ -88,16 +112,96 @@ export default function Verify() {
     }
   };
 
+  // ✅ لازم signOut الأول — لأن AuthenticatedRouter بيمنع الـ navigation
+  // لو اليوزر لسه authenticated ومش verified هيرجعه على Verify دايماً
+  const handleDifferentEmail = async () => {
+    sessionStorage.removeItem("verificationEmail");
+    await signOut();
+    nav("/register");
+  };
+
   const fmt = (s: number) =>
     `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+  const tk = isDark
+    ? {
+        doneBg: "linear-gradient(135deg,#070d09 0%,#0d1a10 55%,#080f18 100%)",
+        doneHead: "#e8f5e9",
+        doneSub: "rgba(255,255,255,0.45)",
+        panelBg: "linear-gradient(135deg,#070d09 0%,#0d1a10 50%,#080f18 100%)",
+        blob1Op: 0.06,
+        blob2Op: 0.05,
+        heading: "#e8f5e9",
+        subtext: "rgba(255,255,255,0.45)",
+        emailColor: "#4ade80",
+        backBtn: "rgba(255,255,255,0.40)",
+        backBtnHover: "rgba(255,255,255,0.85)",
+        mobileName: "#e8f5e9",
+        digitBg: "#0d1f10",
+        digitBgFilled: "rgba(74,222,128,0.10)",
+        digitBgError: "rgba(248,113,113,0.10)",
+        digitBorder: "#1a3020",
+        digitBorderFilled: "2.5px solid #22c55e",
+        digitBorderError: "2.5px solid #f87171",
+        digitColor: "#e8f5e9",
+        digitShadow: "0 1px 4px rgba(0,0,0,0.3)",
+        digitShadowFilled: "0 0 0 4px rgba(74,222,128,0.12)",
+        digitShadowError: "0 0 0 4px rgba(248,113,113,0.12)",
+        timerNormal: "rgba(255,255,255,0.35)",
+        progressBg: "rgba(255,255,255,0.08)",
+        resendBtn: "rgba(255,255,255,0.40)",
+        resendBtnHover: "rgba(255,255,255,0.85)",
+        resendHoverBg: "rgba(255,255,255,0.05)",
+        footerText: "rgba(255,255,255,0.30)",
+        footerLink: "#4ade80",
+        iconBg:
+          "linear-gradient(135deg,rgba(22,163,74,0.15),rgba(14,165,233,0.15))",
+        iconBorder: "2px solid rgba(22,163,74,0.25)",
+        iconShadow: "0 12px 32px rgba(22,163,74,0.10)",
+        errorColor: "#f87171",
+      }
+    : {
+        doneBg: "linear-gradient(135deg,#f0fdf4,#ffffff,#eff6ff)",
+        doneHead: "#111827",
+        doneSub: "#6b7280",
+        panelBg: "linear-gradient(135deg,#f0fdf4 0%,#ffffff 50%,#eff6ff 100%)",
+        blob1Op: 0.3,
+        blob2Op: 0.2,
+        heading: "#111827",
+        subtext: "#9ca3af",
+        emailColor: "#16a34a",
+        backBtn: "#6b7280",
+        backBtnHover: "#111827",
+        mobileName: "#111827",
+        digitBg: "white",
+        digitBgFilled: "rgba(22,163,74,0.07)",
+        digitBgError: "rgba(239,68,68,0.07)",
+        digitBorder: "#e5e7eb",
+        digitBorderFilled: "2.5px solid #16a34a",
+        digitBorderError: "2.5px solid #ef4444",
+        digitColor: "#0f172a",
+        digitShadow: "0 1px 4px rgba(0,0,0,0.06)",
+        digitShadowFilled: "0 0 0 4px rgba(22,163,74,0.10)",
+        digitShadowError: "0 0 0 4px rgba(239,68,68,0.10)",
+        timerNormal: "#9ca3af",
+        progressBg: "#f3f4f6",
+        resendBtn: "#6b7280",
+        resendBtnHover: "#111827",
+        resendHoverBg: "#f9fafb",
+        footerText: "#9ca3af",
+        footerLink: "#16a34a",
+        iconBg:
+          "linear-gradient(135deg,rgba(22,163,74,0.12),rgba(14,165,233,0.12))",
+        iconBorder: "2px solid rgba(22,163,74,0.2)",
+        iconShadow: "0 12px 32px rgba(22,163,74,0.12)",
+        errorColor: "#ef4444",
+      };
 
   if (done)
     return (
       <div
         className="min-h-screen flex items-center justify-center"
-        style={{
-          background: "linear-gradient(135deg,#f0fdf4,#ffffff,#eff6ff)",
-        }}
+        style={{ background: tk.doneBg }}
       >
         <motion.div
           initial={{ scale: 0.5, opacity: 0 }}
@@ -117,13 +221,21 @@ export default function Verify() {
             <CheckCircle className="w-14 h-14 text-white" />
           </motion.div>
           <h2
-            className="text-4xl font-black text-gray-900 mb-2"
-            style={{ fontFamily: "'Fraunces',Georgia,serif" }}
+            className="text-4xl font-black mb-2"
+            style={{
+              fontFamily: "'Fraunces',Georgia,serif",
+              color: tk.doneHead,
+            }}
           >
             Verified! 🎉
           </h2>
-          <p className="text-gray-500 mb-6">Redirecting to your dashboard...</p>
-          <div className="w-64 mx-auto h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <p className="mb-6" style={{ color: tk.doneSub }}>
+            Redirecting to your dashboard...
+          </p>
+          <div
+            className="w-64 mx-auto h-1.5 rounded-full overflow-hidden"
+            style={{ background: tk.progressBg }}
+          >
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: "100%" }}
@@ -138,7 +250,7 @@ export default function Verify() {
 
   return (
     <div className="min-h-screen flex">
-      {/* LEFT */}
+      {/* LEFT PANEL */}
       <div
         className="hidden lg:flex lg:w-[46%] flex-col justify-center p-14 relative overflow-hidden"
         style={{
@@ -162,7 +274,6 @@ export default function Verify() {
             }}
           />
         </div>
-
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -190,7 +301,6 @@ export default function Verify() {
             </div>
           </div>
         </motion.div>
-
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -229,7 +339,6 @@ export default function Verify() {
               ))}
             </div>
           </div>
-
           <h2
             className="font-black text-[40px] leading-[1.08] mb-4 text-white"
             style={{
@@ -253,7 +362,6 @@ export default function Verify() {
             We sent a 6-digit code to your email. Enter it on the right to
             activate your account.
           </p>
-
           <div className="space-y-3.5">
             {[
               ["1", "Check your inbox (and spam folder)"],
@@ -277,34 +385,35 @@ export default function Verify() {
         </motion.div>
       </div>
 
-      {/* RIGHT */}
+      {/* RIGHT PANEL */}
       <div
         className="flex-1 flex items-center justify-center p-6 lg:p-14 relative"
-        style={{
-          background:
-            "linear-gradient(135deg,#f0fdf4 0%,#ffffff 50%,#eff6ff 100%)",
-        }}
+        style={{ background: tk.panelBg, transition: "background 0.3s ease" }}
       >
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div
-            className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-30 blur-3xl"
+            className="absolute -top-32 -right-32 w-96 h-96 rounded-full blur-3xl"
             style={{
               background: "radial-gradient(circle,#bbf7d0,transparent)",
+              opacity: tk.blob1Op,
             }}
           />
           <div
-            className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full opacity-20 blur-3xl"
+            className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full blur-3xl"
             style={{
               background: "radial-gradient(circle,#bfdbfe,transparent)",
+              opacity: tk.blob2Op,
             }}
           />
         </div>
-
         <div className="lg:hidden absolute top-6 left-6 flex items-center gap-2">
           <AgriSenseLogo size={34} />
           <span
-            className="font-black text-gray-900 text-lg"
-            style={{ fontFamily: "'Fraunces',Georgia,serif" }}
+            className="font-black text-lg"
+            style={{
+              fontFamily: "'Fraunces',Georgia,serif",
+              color: tk.mobileName,
+            }}
           >
             AgriSense
           </span>
@@ -318,44 +427,51 @@ export default function Verify() {
         >
           <button
             onClick={() => nav("/register")}
-            className="flex items-center gap-1.5 text-gray-500 hover:text-gray-800 transition-colors mb-8 text-sm font-semibold"
+            className="flex items-center gap-1.5 transition-colors mb-8 text-sm font-semibold"
+            style={{ color: tk.backBtn }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.color = tk.backBtnHover)
+            }
+            onMouseLeave={(e) => (e.currentTarget.style.color = tk.backBtn)}
           >
             <ArrowLeft className="w-4 h-4" /> Back to Register
           </button>
 
-          {/* Icon */}
           <div className="flex justify-center mb-6">
             <motion.div
               animate={{ scale: [1, 1.04, 1] }}
               transition={{ duration: 3.5, repeat: Infinity }}
               className="w-20 h-20 rounded-3xl flex items-center justify-center"
               style={{
-                background:
-                  "linear-gradient(135deg,rgba(22,163,74,0.12),rgba(14,165,233,0.12))",
-                border: "2px solid rgba(22,163,74,0.2)",
-                boxShadow: "0 12px 32px rgba(22,163,74,0.12)",
+                background: tk.iconBg,
+                border: tk.iconBorder,
+                boxShadow: tk.iconShadow,
               }}
             >
-              <Inbox className="w-10 h-10 text-green-600" />
+              <Inbox className="w-10 h-10 text-green-500" />
             </motion.div>
           </div>
 
           <div className="text-center mb-8">
             <h1
-              className="text-[28px] font-black text-gray-900 mb-1.5"
-              style={{ letterSpacing: "-0.025em" }}
+              className="text-[28px] font-black mb-1.5"
+              style={{ letterSpacing: "-0.025em", color: tk.heading }}
             >
               Verify your email
             </h1>
-            <p className="text-gray-400 text-sm">We sent a 6-digit code to</p>
-            <p className="text-green-600 font-black text-sm mt-0.5 truncate">
+            <p className="text-sm" style={{ color: tk.subtext }}>
+              We sent a 6-digit code to
+            </p>
+            <p
+              className="font-black text-sm mt-0.5 truncate"
+              style={{ color: tk.emailColor }}
+            >
               {email}
             </p>
           </div>
 
           <form onSubmit={handleVerify}>
-            {/* OTP boxes */}
-            <div className="flex justify-center gap-2.5 mb-5">
+            <div className="flex justify-center gap-2.5 mb-2">
               {code.map((digit, i) => (
                 <motion.input
                   key={i}
@@ -373,19 +489,51 @@ export default function Verify() {
                   transition={{ delay: i * 0.06 }}
                   className="w-[52px] h-[58px] text-center text-[26px] font-black rounded-2xl outline-none transition-all"
                   style={{
-                    border: digit ? "2.5px solid #16a34a" : "2px solid #e5e7eb",
-                    background: digit ? "rgba(22,163,74,0.07)" : "white",
-                    boxShadow: digit
-                      ? "0 0 0 4px rgba(22,163,74,0.1)"
-                      : "0 1px 4px rgba(0,0,0,0.06)",
-                    color: "#0f172a",
+                    border: codeError
+                      ? tk.digitBorderError
+                      : digit
+                        ? tk.digitBorderFilled
+                        : `2px solid ${tk.digitBorder}`,
+                    background: codeError
+                      ? tk.digitBgError
+                      : digit
+                        ? tk.digitBgFilled
+                        : tk.digitBg,
+                    boxShadow: codeError
+                      ? tk.digitShadowError
+                      : digit
+                        ? tk.digitShadowFilled
+                        : tk.digitShadow,
+                    color: tk.digitColor,
                   }}
                 />
               ))}
             </div>
 
-            {/* Timer + progress */}
-            <div className="flex items-center justify-between text-xs font-semibold mb-2 text-gray-400">
+            <div className="flex justify-center mb-3" style={{ minHeight: 22 }}>
+              <AnimatePresence>
+                {codeError && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    style={{
+                      fontSize: 12,
+                      color: tk.errorColor,
+                      fontWeight: 600,
+                      textAlign: "center",
+                    }}
+                  >
+                    ⚠ {codeError}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div
+              className="flex items-center justify-between text-xs font-semibold mb-2"
+              style={{ color: tk.timerNormal }}
+            >
               <span>{filled}/6 entered</span>
               <span className={timeLeft < 60 ? "text-red-500 font-black" : ""}>
                 {timeLeft > 0
@@ -393,7 +541,10 @@ export default function Verify() {
                   : "⚠️ Code expired"}
               </span>
             </div>
-            <div className="w-full h-1.5 bg-gray-100 rounded-full mb-6 overflow-hidden">
+            <div
+              className="w-full h-1.5 rounded-full mb-6 overflow-hidden"
+              style={{ background: tk.progressBg }}
+            >
               <motion.div
                 className="h-full rounded-full transition-all duration-300"
                 style={{
@@ -430,7 +581,16 @@ export default function Verify() {
               type="button"
               onClick={handleResend}
               disabled={resendLoading || timeLeft > 0}
-              className="w-full py-3 flex items-center justify-center gap-2 text-sm font-bold text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-2xl transition-all disabled:opacity-40"
+              className="w-full py-3 flex items-center justify-center gap-2 text-sm font-bold rounded-2xl transition-all disabled:opacity-40"
+              style={{ color: tk.resendBtn }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = tk.resendBtnHover;
+                e.currentTarget.style.background = tk.resendHoverBg;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = tk.resendBtn;
+                e.currentTarget.style.background = "transparent";
+              }}
             >
               <RefreshCw
                 className={`w-4 h-4 ${resendLoading ? "animate-spin" : ""}`}
@@ -443,26 +603,15 @@ export default function Verify() {
             </button>
           </form>
 
-          <div
-            className="mt-7 p-4 rounded-2xl flex items-start gap-3"
-            style={{
-              background: "rgba(59,130,246,0.06)",
-              border: "1px solid rgba(59,130,246,0.14)",
-            }}
+          <p
+            className="text-center text-xs mt-5"
+            style={{ color: tk.footerText }}
           >
-            <span className="text-base flex-shrink-0 mt-0.5">💡</span>
-            <p className="text-xs text-blue-700 leading-relaxed">
-              <strong>Didn't receive the code?</strong> Check your spam/junk
-              folder. The code expires in 5 minutes — you can request a new one
-              after expiry.
-            </p>
-          </div>
-
-          <p className="text-center text-xs text-gray-400 mt-5">
             Wrong email?{" "}
             <button
-              onClick={() => nav("/register")}
-              className="text-green-600 font-bold hover:underline"
+              onClick={handleDifferentEmail}
+              className="font-bold hover:underline"
+              style={{ color: tk.footerLink }}
             >
               Use a different email
             </button>

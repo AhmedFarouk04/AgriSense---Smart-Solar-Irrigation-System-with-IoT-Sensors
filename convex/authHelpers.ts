@@ -15,7 +15,8 @@ export const requestPasswordReset = mutation({
       .first();
 
     if (!user) {
-      return { success: true, message: "If email exists, reset code sent" };
+      // ✅ بنرجع userExists: false عشان الـ frontend يعرف
+      return { success: false, userExists: false };
     }
 
     const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -30,6 +31,34 @@ export const requestPasswordReset = mutation({
       email: user.email!,
       code: resetCode,
     });
+
+    return { success: true, userExists: true };
+  },
+});
+
+// ✅ يتحقق من الكود فقط بدون ما يغير الباسورد — للـ Step 1 validation
+export const verifyResetCode = mutation({
+  args: {
+    email: v.string(),
+    code: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { email, code } = args;
+
+    const user = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("email"), email))
+      .first();
+
+    if (!user) throw new Error("User not found");
+
+    if (user.verificationCode !== code) {
+      throw new Error("Invalid verification code");
+    }
+
+    if (user.codeExpires && user.codeExpires < Date.now()) {
+      throw new Error("Verification code expired");
+    }
 
     return { success: true };
   },

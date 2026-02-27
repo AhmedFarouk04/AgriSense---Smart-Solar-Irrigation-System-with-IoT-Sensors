@@ -47,23 +47,21 @@ export default defineSchema({
   ...authTables,
   ...applicationTables,
 
-  // ✅ Override users table وأضف fields إضافية
   users: defineTable({
     name: v.optional(v.string()),
     email: v.optional(v.string()),
-    image: v.optional(v.string()), // تأكد أنها image وليس picture
+    image: v.optional(v.string()),
     phone: v.optional(v.string()),
     emailVerificationTime: v.optional(v.number()),
     phoneVerificationTime: v.optional(v.number()),
     isAnonymous: v.optional(v.boolean()),
 
-    // الحقول الخاصة بك (اجعلها اختيارية حالياً للتأكد من نجاح الدخول)
     role: v.optional(v.string()),
     farmArea: v.optional(v.number()),
     location: v.optional(v.string()),
     verificationCode: v.optional(v.string()),
     codeExpires: v.optional(v.number()),
   })
-    .index("email", ["email"]) // مطلوب من @convex-dev/auth
-    .index("phone", ["phone"]), // مطلوب من @convex-dev/auth
+    .index("email", ["email"])
+    .index("phone", ["phone"]),
 });
