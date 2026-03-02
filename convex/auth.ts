@@ -1,9 +1,10 @@
+// convex/auth.ts
 import { convexAuth, getAuthUserId } from "@convex-dev/auth/server";
 import { Password } from "@convex-dev/auth/providers/Password";
 import Google from "@auth/core/providers/google";
-import { query, mutation } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
@@ -22,15 +23,19 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   ],
 
   callbacks: {
-    // ✅ بعد ما الحساب يتعمل، نبعت الكود تلقائياً
     async afterUserCreatedOrUpdated(ctx, { userId, existingUserId }) {
-      // نبعت كود بس لما الحساب جديد (مش update)
+      console.log("🔵 [auth.ts] afterUserCreatedOrUpdated called", {
+        userId,
+        existingUserId,
+        timestamp: new Date().toISOString(),
+      });
+
+      const user = await ctx.db.get(userId);
+
       if (!existingUserId) {
-        const user = await ctx.db.get(userId);
-        // لو مش verified (emailVerificationTime = undefined)
         if (user?.email && !user?.emailVerificationTime) {
           const code = Math.floor(100000 + Math.random() * 900000).toString();
-          const expires = Date.now() + 5 * 60 * 1000; // 5 دقايق
+          const expires = Date.now() + 5 * 60 * 1000;
 
           await ctx.db.patch(userId, {
             verificationCode: code,
@@ -67,7 +72,6 @@ export const getUserRole = query({
   },
 });
 
-// ✅ mutation للـ verify
 export const verifyEmailCode = mutation({
   args: { code: v.string() },
   handler: async (ctx, args) => {
@@ -77,7 +81,6 @@ export const verifyEmailCode = mutation({
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("User not found");
 
-    // ✅ لو already verified نرجع success
     if (user.emailVerificationTime) {
       return { success: true };
     }
@@ -90,7 +93,6 @@ export const verifyEmailCode = mutation({
       throw new Error("Verification code expired");
     }
 
-    // ✅ كود صح → نحط timestamp في emailVerificationTime ونمسح الكود
     await ctx.db.patch(userId, {
       emailVerificationTime: Date.now(),
       verificationCode: undefined,
@@ -101,7 +103,6 @@ export const verifyEmailCode = mutation({
   },
 });
 
-// ✅ resend code
 export const resendVerificationCode = mutation({
   args: {},
   handler: async (ctx) => {
@@ -110,11 +111,7 @@ export const resendVerificationCode = mutation({
 
     const user = await ctx.db.get(userId);
     if (!user?.email) throw new Error("User not found");
-
-    // ✅ لو already verified منرسلش كود
-    if (user.emailVerificationTime) {
-      throw new Error("Email already verified");
-    }
+    if (user.emailVerificationTime) throw new Error("Email already verified");
 
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expires = Date.now() + 5 * 60 * 1000;
@@ -127,6 +124,37 @@ export const resendVerificationCode = mutation({
     await ctx.scheduler.runAfter(0, internal.email.sendVerificationEmail, {
       email: user.email,
       code,
+    });
+
+    return { success: true };
+  },
+});
+
+// ✅ دالة تغيير الباسورد - من غير withIndex
+export const changePassword = internalMutation({
+  args: {
+    userId: v.id("users"),
+    newPassword: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { userId, newPassword } = args;
+
+    // نجيب كل accounts المستخدم
+    const accounts = await ctx.db
+      .query("authAccounts")
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .collect();
+
+    // نلاقي account الباسورد
+    const passwordAccount = accounts.find((acc) => acc.provider === "password");
+
+    if (!passwordAccount) {
+      throw new Error("No password account found");
+    }
+
+    // Convex Auth هيتولى التشفير لوحده
+    await ctx.db.patch(passwordAccount._id, {
+      secret: newPassword,
     });
 
     return { success: true };

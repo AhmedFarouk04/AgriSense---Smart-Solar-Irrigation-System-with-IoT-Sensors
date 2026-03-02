@@ -112,8 +112,6 @@ export default function Verify() {
     }
   };
 
-  // ✅ لازم signOut الأول — لأن AuthenticatedRouter بيمنع الـ navigation
-  // لو اليوزر لسه authenticated ومش verified هيرجعه على Verify دايماً
   const handleDifferentEmail = async () => {
     sessionStorage.removeItem("verificationEmail");
     await signOut();
@@ -524,7 +522,7 @@ export default function Verify() {
                       textAlign: "center",
                     }}
                   >
-                    ⚠ {codeError}
+                    {codeError}
                   </motion.p>
                 )}
               </AnimatePresence>
@@ -580,7 +578,7 @@ export default function Verify() {
             <button
               type="button"
               onClick={handleResend}
-              disabled={resendLoading || timeLeft > 0}
+              disabled={resendLoading}
               className="w-full py-3 flex items-center justify-center gap-2 text-sm font-bold rounded-2xl transition-all disabled:opacity-40"
               style={{ color: tk.resendBtn }}
               onMouseEnter={(e) => {
@@ -595,11 +593,7 @@ export default function Verify() {
               <RefreshCw
                 className={`w-4 h-4 ${resendLoading ? "animate-spin" : ""}`}
               />
-              {resendLoading
-                ? "Sending..."
-                : timeLeft > 0
-                  ? `Resend in ${fmt(timeLeft)}`
-                  : "Resend Code"}
+              {resendLoading ? "Sending..." : "Resend Code"}
             </button>
           </form>
 

@@ -3,6 +3,32 @@ import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
 
+export const checkEmailExists = query({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("email"), args.email))
+      .first();
+
+    // ✅ فقط الحسابات المفعلة هي اللي تمنع التسجيل
+    return user !== null && user.emailVerificationTime !== undefined;
+  },
+});
+
+export const checkNameExists = query({
+  args: { name: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("name"), args.name))
+      .first();
+
+    // ✅ فقط الحسابات المفعلة هي اللي تمنع التسجيل
+    return user !== null && user.emailVerificationTime !== undefined;
+  },
+});
+
 export const updateUserProfile = mutation({
   args: {
     name: v.string(),
@@ -54,6 +80,20 @@ export const verifyEmail = mutation({
       emailVerificationTime: Date.now(),
       verificationCode: undefined,
       codeExpires: undefined,
+    });
+    return { success: true };
+  },
+});
+
+export const saveUserName = mutation({
+  args: {
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    await ctx.db.patch(userId, {
+      name: args.name,
     });
     return { success: true };
   },

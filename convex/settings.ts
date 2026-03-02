@@ -4,7 +4,6 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
 import { Doc } from "./_generated/dataModel";
 
-// الحصول على إعدادات المستخدم
 export const get = query({
   args: {},
   handler: async (ctx) => {
@@ -19,11 +18,9 @@ export const get = query({
       .first();
 
     if (!settings) {
-      // إرجاع إعدادات افتراضية بدون حفظها
       return null;
     }
 
-    // إضافة معلومات النبات
     const plant = settings.selectedPlantId
       ? await ctx.db.get(settings.selectedPlantId)
       : null;
@@ -32,7 +29,6 @@ export const get = query({
   },
 });
 
-// إنشاء إعدادات افتراضية
 export const createDefault = mutation({
   args: {},
   handler: async (ctx) => {
@@ -58,7 +54,6 @@ export const createDefault = mutation({
   },
 });
 
-// تحديث نوع النبات
 export const updatePlant = mutation({
   args: { plantId: v.optional(v.id("plants")) },
   handler: async (ctx, args) => {
@@ -86,14 +81,11 @@ export const updatePlant = mutation({
     await ctx.db.insert("events", {
       userId,
       type: "settings_change",
-      message: args.plantId
-        ? "تم تغيير نوع النبات"
-        : "تم إلغاء اختيار النبات",
+      message: args.plantId ? "تم تغيير نوع النبات" : "تم إلغاء اختيار النبات",
     });
   },
 });
 
-// تبديل الوضع اليدوي/التلقائي
 export const toggleManualMode = mutation({
   args: {},
   handler: async (ctx) => {
@@ -126,7 +118,6 @@ export const toggleManualMode = mutation({
   },
 });
 
-// التحكم اليدوي في المضخة
 export const togglePumpManual = mutation({
   args: {},
   handler: async (ctx) => {
@@ -154,9 +145,7 @@ export const togglePumpManual = mutation({
     await ctx.db.insert("events", {
       userId,
       type: newStatus ? "pump_on" : "pump_off",
-      message: newStatus
-        ? "تم تشغيل المضخة يدوياً"
-        : "تم إيقاف المضخة يدوياً",
+      message: newStatus ? "تم تشغيل المضخة يدوياً" : "تم إيقاف المضخة يدوياً",
     });
 
     return newStatus;

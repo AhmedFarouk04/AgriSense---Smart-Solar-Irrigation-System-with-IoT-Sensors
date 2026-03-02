@@ -2,6 +2,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { useMutation } from "convex/react";
 import {
   Mail,
   Lock,
@@ -14,6 +15,8 @@ import {
   Check,
 } from "lucide-react";
 import { AgriSenseLogo } from "../components/Logo";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 const nav = (p: string) => {
   window.history.pushState({}, "", p);
@@ -104,31 +107,16 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [gLoading, setGLoading] = useState(false);
   const [isDark, setIsDark] = useState(false);
-
-  // ✅ agreed state
   const [agreed, setAgreed] = useState(false);
   const [agreeError, setAgreeError] = useState(false);
 
-  useEffect(() => {
-    const check = () =>
-      setIsDark(document.body.classList.contains("theme-dark"));
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(document.body, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
-
-  const ps = {
-    length: form.password.length >= 8,
-    number: /\d/.test(form.password),
-    symbol: /[!@#$%^&*(),.?":{}|<>]/.test(form.password),
-    upper: /[A-Z]/.test(form.password),
-    lower: /[a-z]/.test(form.password),
+  // Validation functions
+  const validateEmailFormat = (val: string): string => {
+    if (!val.trim()) return "Email is required";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim()))
+      return "Please enter a valid email address";
+    return "";
   };
-  const psValid = Object.values(ps).every(Boolean);
 
   const validateName = (val: string): string => {
     if (!val.trim()) return "Full name is required";
@@ -143,13 +131,87 @@ export default function Register() {
     return "";
   };
 
-  const validateEmailFormat = (val: string): string => {
-    if (!val.trim()) return "Email is required";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim()))
-      return "Please enter a valid email address";
-    return "";
-  };
+  // Queries
+  // Queries
+  const emailExists = useQuery(
+    api.users.checkEmailExists,
+    form.email && validateEmailFormat(form.email) === ""
+      ? { email: form.email.trim().toLowerCase() }
+      : "skip",
+  ) as boolean | undefined;
 
+  const nameExists = useQuery(
+    api.users.checkNameExists,
+    form.name && validateName(form.name) === ""
+      ? { name: form.name.trim() }
+      : "skip",
+  ) as boolean | undefined;
+
+  // Loading states
+  const isCheckingEmail = !!(
+    form.email &&
+    validateEmailFormat(form.email) === "" &&
+    emailExists === undefined
+  );
+  const isCheckingName = !!(
+    form.name &&
+    validateName(form.name) === "" &&
+    nameExists === undefined
+  );
+  const isChecking = isCheckingEmail || isCheckingName;
+  // Effects
+  useEffect(() => {
+    if (emailExists === true) {
+      setErrors((prev) => ({
+        ...prev,
+        email: "This email is already registered . Please sign in instead.",
+      }));
+    } else if (
+      emailExists === false &&
+      errors.email ===
+        "This email is already registered . Please sign in instead."
+    ) {
+      setErrors((prev) => ({ ...prev, email: "" }));
+    }
+  }, [emailExists]);
+
+  useEffect(() => {
+    if (nameExists === true) {
+      setErrors((prev) => ({
+        ...prev,
+        name: "This full name is already taken . Please choose another.",
+      }));
+    } else if (
+      nameExists === false &&
+      errors.name === "This full name is already taken . Please choose another."
+    ) {
+      setErrors((prev) => ({ ...prev, name: "" }));
+    }
+  }, [nameExists]);
+
+  useEffect(() => {
+    const check = () =>
+      setIsDark(document.body.classList.contains("theme-dark"));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  // Password strength
+  const ps = {
+    length: form.password.length >= 8,
+    number: /\d/.test(form.password),
+    symbol: /[!@#$%^&*(),.?":{}|<>]/.test(form.password),
+    upper: /[A-Z]/.test(form.password),
+    lower: /[a-z]/.test(form.password),
+  };
+  const psValid = Object.values(ps).every(Boolean);
+
+  // Handlers
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -159,30 +221,64 @@ export default function Register() {
   };
 
   const handleEmailBlur = () => {
-    const err = validateEmailFormat(form.email);
-    if (err) setErrors((prev) => ({ ...prev, email: err }));
+    const formatErr = validateEmailFormat(form.email);
+    if (formatErr) {
+      setErrors((prev) => ({ ...prev, email: formatErr }));
+    } else {
+      setErrors((prev) => {
+        if (
+          prev.email ===
+          "This email is already registered . Please sign in instead."
+        ) {
+          return prev;
+        }
+        return { ...prev, email: "" };
+      });
+    }
   };
 
   const validateAll = (): boolean => {
     const newErrors = { name: "", email: "", password: "", confirm: "" };
     let valid = true;
 
-    // ✅ validate agreed first
     if (!agreed) {
       setAgreeError(true);
       valid = false;
     }
 
+    // Check format
     const nameErr = validateName(form.name);
     if (nameErr) {
       newErrors.name = nameErr;
       valid = false;
     }
+
     const emailErr = validateEmailFormat(form.email);
     if (emailErr) {
       newErrors.email = emailErr;
       valid = false;
     }
+
+    // If still checking, prevent submission
+    if (isChecking) {
+      toast.loading("Checking availability...", { id: "checking" });
+      setTimeout(() => toast.dismiss("checking"), 2000);
+      return false;
+    }
+
+    // Check existence (only for active accounts)
+    if (!nameErr && nameExists === true) {
+      newErrors.name =
+        "This full name is already taken . Please choose another.";
+      valid = false;
+    }
+    if (!emailErr && emailExists === true) {
+      newErrors.email =
+        "This email is already registered . Please sign in instead.";
+      valid = false;
+    }
+
+    // Password checks
     if (!form.password) {
       newErrors.password = "Password is required";
       valid = false;
@@ -197,14 +293,18 @@ export default function Register() {
       newErrors.confirm = "Passwords do not match";
       valid = false;
     }
+
     setErrors(newErrors);
     return valid;
   };
+
+  const saveUserName = useMutation(api.users.saveUserName);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateAll()) return;
     setLoading(true);
+
     try {
       await signIn("password", {
         email: form.email.trim().toLowerCase(),
@@ -220,16 +320,31 @@ export default function Register() {
 
       nav("/verify");
     } catch (error: any) {
-      const msg: string = error?.message ?? "";
+      console.error("Registration error:", error);
+
+      const msg = error?.message || error?.data || "";
+      const errorText = msg.toString().toLowerCase();
+
       if (
-        msg.includes("already") ||
-        msg.includes("exists") ||
-        msg.includes("AccountAlreadyExists")
+        errorText.includes("already") ||
+        errorText.includes("exists") ||
+        errorText.includes("accountalreadyexists") ||
+        errorText.includes("409") ||
+        errorText.includes("duplicate")
       ) {
         setErrors((prev) => ({
           ...prev,
-          email: "This email is already registered",
+          email: "This email is already registered. Please sign in instead.",
         }));
+
+        toast.error("Email already registered", {
+          description:
+            "This email is already registered. Would you like to sign in?",
+          action: {
+            label: "Sign In",
+            onClick: () => nav("/login"),
+          },
+        });
       } else {
         toast.error("Something went wrong. Please try again.");
       }
@@ -247,6 +362,7 @@ export default function Register() {
     }
   };
 
+  // Theme colors
   const tk = isDark
     ? {
         panelBg: "linear-gradient(135deg,#070d09 0%,#0d1a10 55%,#080f18 100%)",
@@ -314,7 +430,7 @@ export default function Register() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex" }}>
-      {/* LEFT PANEL */}
+      {/* Left side (static) */}
       <div
         className="hidden lg:flex lg:w-[46%] flex-col justify-between p-14 relative overflow-hidden"
         style={{
@@ -525,7 +641,7 @@ export default function Register() {
         </motion.div>
       </div>
 
-      {/* RIGHT PANEL */}
+      {/* Right side - form */}
       <div
         className="flex-1 flex items-center justify-center p-6 lg:p-14 relative overflow-hidden"
         style={{ background: tk.panelBg, transition: "background 0.3s ease" }}
@@ -624,7 +740,7 @@ export default function Register() {
             }}
             whileTap={{ scale: 0.985 }}
             onClick={handleGoogle}
-            disabled={gLoading || loading}
+            disabled={gLoading || loading || isChecking}
             style={{
               width: "100%",
               display: "flex",
@@ -641,7 +757,7 @@ export default function Register() {
               boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
               cursor: "pointer",
               marginBottom: 20,
-              opacity: gLoading || loading ? 0.5 : 1,
+              opacity: gLoading || loading || isChecking ? 0.5 : 1,
             }}
           >
             {gLoading ? (
@@ -694,7 +810,7 @@ export default function Register() {
             noValidate
             style={{ display: "flex", flexDirection: "column", gap: 16 }}
           >
-            {/* Full Name */}
+            {/* Full Name field */}
             <div>
               <label
                 style={{
@@ -725,12 +841,24 @@ export default function Register() {
                   autoComplete="name"
                   value={form.name}
                   onChange={handleChange}
-                  onBlur={() =>
-                    setErrors((prev) => ({
-                      ...prev,
-                      name: validateName(form.name),
-                    }))
-                  }
+                  onBlur={() => {
+                    const formatErr = validateName(form.name);
+
+                    if (formatErr) {
+                      // لو في خطأ صيغة، نعرضه
+                      setErrors((prev) => ({ ...prev, name: formatErr }));
+                    } else {
+                      setErrors((prev) => {
+                        if (nameExists === true) {
+                          return {
+                            ...prev,
+                            name: "This full name is already . Please choose another.",
+                          };
+                        }
+                        return { ...prev, name: "" };
+                      });
+                    }
+                  }}
                   style={inputBase("name")}
                   onFocus={(e) =>
                     (e.currentTarget.style.border = `2px solid ${errors.name ? tk.errorColor : tk.inputFocus}`)
@@ -748,7 +876,19 @@ export default function Register() {
                     fontWeight: 500,
                   }}
                 >
-                  ⚠ {errors.name}
+                  {errors.name}
+                </motion.p>
+              ) : isCheckingName ? (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  style={{
+                    fontSize: 12,
+                    color: tk.hintText,
+                    marginTop: 4,
+                  }}
+                >
+                  Checking availability...
                 </motion.p>
               ) : (
                 <p
@@ -757,7 +897,7 @@ export default function Register() {
               )}
             </div>
 
-            {/* Email */}
+            {/* Email field */}
             <div>
               <label
                 style={{
@@ -807,7 +947,19 @@ export default function Register() {
                     fontWeight: 500,
                   }}
                 >
-                  ⚠ {errors.email}
+                  {errors.email}
+                </motion.p>
+              ) : isCheckingEmail ? (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  style={{
+                    fontSize: 12,
+                    color: tk.hintText,
+                    marginTop: 4,
+                  }}
+                >
+                  Checking availability...
                 </motion.p>
               ) : (
                 <p style={{ fontSize: 12, color: tk.hintText, marginTop: 4 }}>
@@ -816,7 +968,7 @@ export default function Register() {
               )}
             </div>
 
-            {/* Password */}
+            {/* Password field */}
             <div>
               <label
                 style={{
@@ -931,12 +1083,12 @@ export default function Register() {
                     fontWeight: 500,
                   }}
                 >
-                  ⚠ {errors.password}
+                  {errors.password}
                 </motion.p>
               )}
             </div>
 
-            {/* Confirm Password */}
+            {/* Confirm Password field */}
             <div>
               <label
                 style={{
@@ -1009,12 +1161,12 @@ export default function Register() {
                     fontWeight: 500,
                   }}
                 >
-                  ⚠ {errors.confirm}
+                  {errors.confirm}
                 </motion.p>
               )}
             </div>
 
-            {/* ✅ Terms checkbox with manual validation */}
+            {/* Terms checkbox */}
             <div>
               <label
                 style={{
@@ -1067,17 +1219,17 @@ export default function Register() {
                     fontWeight: 500,
                   }}
                 >
-                  ⚠ You must agree to the Terms of Service
+                  You must agree to the Terms of Service
                 </motion.p>
               )}
             </div>
 
-            {/* Submit */}
+            {/* Submit button */}
             <motion.button
               whileHover={{ scale: 1.015 }}
               whileTap={{ scale: 0.985 }}
               type="submit"
-              disabled={loading || gLoading}
+              disabled={loading || gLoading || isChecking}
               style={{
                 width: "100%",
                 padding: "14px 16px",
@@ -1090,10 +1242,11 @@ export default function Register() {
                 justifyContent: "center",
                 gap: 8,
                 border: "none",
-                cursor: loading || gLoading ? "not-allowed" : "pointer",
+                cursor:
+                  loading || gLoading || isChecking ? "not-allowed" : "pointer",
                 background: "linear-gradient(135deg,#16a34a 0%,#0ea5e9 100%)",
                 boxShadow: "0 8px 24px rgba(22,163,74,0.28)",
-                opacity: loading || gLoading ? 0.5 : 1,
+                opacity: loading || gLoading || isChecking ? 0.5 : 1,
               }}
             >
               {loading ? (
@@ -1110,6 +1263,21 @@ export default function Register() {
                     }}
                   />{" "}
                   Creating Account...
+                </>
+              ) : isChecking ? (
+                <>
+                  <span
+                    style={{
+                      width: 16,
+                      height: 16,
+                      border: "2px solid rgba(255,255,255,0.5)",
+                      borderTopColor: "white",
+                      borderRadius: "50%",
+                      animation: "spin 0.7s linear infinite",
+                      display: "inline-block",
+                    }}
+                  />{" "}
+                  Checking...
                 </>
               ) : (
                 <>

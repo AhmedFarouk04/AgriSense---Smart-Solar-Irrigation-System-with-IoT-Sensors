@@ -48,7 +48,7 @@ export default defineSchema({
   ...applicationTables,
 
   users: defineTable({
-    name: v.optional(v.string()),
+    name: v.string(),
     email: v.optional(v.string()),
     image: v.optional(v.string()),
     phone: v.optional(v.string()),
@@ -63,5 +63,6 @@ export default defineSchema({
     codeExpires: v.optional(v.number()),
   })
     .index("email", ["email"])
+    .index("name", ["name"])
     .index("phone", ["phone"]),
 });

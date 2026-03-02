@@ -91,7 +91,6 @@ export default function ResetPassword() {
     if (step === 1) refs.current[0]?.focus();
   }, [step]);
 
-  // Resend cooldown timer
   useEffect(() => {
     if (resendCooldown <= 0) return;
     const t = setInterval(() => setResendCooldown((p) => p - 1), 1000);
@@ -164,7 +163,6 @@ export default function ResetPassword() {
     }
   };
 
-  // ✅ Resend code
   const handleResend = async () => {
     if (!email || resendCooldown > 0) return;
     setResendLoading(true);
@@ -172,7 +170,7 @@ export default function ResetPassword() {
       await requestReset({ email });
       setCodeDigits(["", "", "", "", "", ""]);
       setCodeError("");
-      setResendCooldown(60); // cooldown دقيقة
+      setResendCooldown(60);
       refs.current[0]?.focus();
     } catch {
       toast.error("Failed to resend code. Try again.");
@@ -676,7 +674,7 @@ export default function ResetPassword() {
                             textAlign: "center",
                           }}
                         >
-                          ⚠ {codeError}
+                          {codeError}
                         </motion.p>
                       )}
                     </AnimatePresence>
@@ -869,7 +867,7 @@ export default function ResetPassword() {
                           fontWeight: 500,
                         }}
                       >
-                        ⚠ {passError}
+                        {passError}
                       </motion.p>
                     )}
                   </div>
@@ -941,7 +939,7 @@ export default function ResetPassword() {
                           fontWeight: 500,
                         }}
                       >
-                        ⚠ {confirmError}
+                        {confirmError}
                       </motion.p>
                     )}
                   </div>

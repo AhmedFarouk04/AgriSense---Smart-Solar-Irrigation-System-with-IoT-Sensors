@@ -342,7 +342,7 @@ export default function ForgotPassword() {
                       fontWeight: 500,
                     }}
                   >
-                    ⚠ {emailError}
+                    {emailError}
                   </motion.p>
                 )}
               </div>

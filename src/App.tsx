@@ -12,19 +12,15 @@ import Verify from "./pages/Verify";
 
 const THEME = "theme-dark";
 
-// ✅ معرّف خارج App عشان TypeScript يشوفه
 function AuthenticatedRouter({ currentPath }: { currentPath: string }) {
   const user = useQuery(api.auth.loggedInUser);
 
-  // لسه loading
   if (user === undefined) return null;
 
-  // ✅ مش verified → اجباري على Verify
   if (!user?.emailVerificationTime) {
     return <Verify />;
   }
 
-  // ✅ verified → Dashboard
   return <Dashboard />;
 }
 

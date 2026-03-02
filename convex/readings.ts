@@ -4,7 +4,6 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
 import { api } from "./_generated/api";
 
-// الحصول على آخر قراءة
 export const getLatest = query({
   args: {},
   handler: async (ctx) => {
@@ -23,7 +22,6 @@ export const getLatest = query({
   },
 });
 
-// الحصول على آخر 50 قراءة للتقرير
 export const getHistory = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
@@ -40,7 +38,6 @@ export const getHistory = query({
   },
 });
 
-// إضافة قراءة جديدة (من المستشعر أو محاكاة)
 export const create = mutation({
   args: {
     moisture: v.number(),
@@ -53,7 +50,6 @@ export const create = mutation({
       throw new ConvexError("يجب تسجيل الدخول أولاً");
     }
 
-    // الحصول على الإعدادات
     const settings = await ctx.db
       .query("userSettings")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -62,15 +58,12 @@ export const create = mutation({
     let pumpStatus = false;
     let autoTriggered = false;
 
-    // إذا كان في الوضع اليدوي
     if (settings?.manualMode) {
       pumpStatus = settings.pumpManualStatus;
     } else {
-      // الوضع التلقائي - التحقق من الحاجة للري
       if (settings?.selectedPlantId) {
         const plant = await ctx.db.get(settings.selectedPlantId);
         if (plant) {
-          // تشغيل المضخة إذا كانت الرطوبة أقل من الحد الأدنى
           if (args.moisture < plant.minMoisture) {
             pumpStatus = true;
             autoTriggered = true;
@@ -83,7 +76,6 @@ export const create = mutation({
             });
           }
 
-          // تنبيهات الملوحة
           if (args.salinity > plant.maxSalinity) {
             await ctx.db.insert("events", {
               userId,
@@ -93,7 +85,6 @@ export const create = mutation({
             });
           }
 
-          // تنبيهات درجة الحرارة
           const tempDiff = Math.abs(args.temperature - plant.optimalTemp);
           if (tempDiff > 5) {
             await ctx.db.insert("events", {
@@ -121,7 +112,6 @@ export const create = mutation({
   },
 });
 
-// محاكاة قراءة (للتجربة)
 export const simulate = mutation({
   args: {},
   handler: async (ctx): Promise<any> => {
@@ -130,7 +120,6 @@ export const simulate = mutation({
       throw new ConvexError("يجب تسجيل الدخول أولاً");
     }
 
-    // توليد قراءات عشوائية
     const moisture = Math.floor(Math.random() * 40) + 40; // 40-80%
     const salinity = Math.random() * 3 + 1; // 1-4
     const temperature = Math.floor(Math.random() * 15) + 15; // 15-30°C
@@ -143,7 +132,6 @@ export const simulate = mutation({
   },
 });
 
-// الحصول على إحصائيات
 export const getStats = query({
   args: {},
   handler: async (ctx) => {

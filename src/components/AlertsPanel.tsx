@@ -16,14 +16,14 @@ export function AlertsPanel({ onClose }: AlertsPanelProps) {
     return null;
   }
 
-  // تصنيف الأحداث
   const alerts = events.filter((e) => e.type === "alert");
-  const pumpEvents = events.filter((e) => e.type === "pump_on" || e.type === "pump_off");
+  const pumpEvents = events.filter(
+    (e) => e.type === "pump_on" || e.type === "pump_off",
+  );
   const settingsEvents = events.filter(
-    (e) => e.type === "settings_change" || e.type === "mode_change"
+    (e) => e.type === "settings_change" || e.type === "mode_change",
   );
 
-  // التحقق من التنبيهات النشطة
   const activeAlerts = [];
   if (settings.plant && latestReading) {
     if (latestReading.moisture < settings.plant.minMoisture) {
@@ -47,7 +47,9 @@ export function AlertsPanel({ onClose }: AlertsPanelProps) {
         detail: `الحد الأقصى المسموح: ${settings.plant.maxSalinity}`,
       });
     }
-    const tempDiff = Math.abs(latestReading.temperature - settings.plant.optimalTemp);
+    const tempDiff = Math.abs(
+      latestReading.temperature - settings.plant.optimalTemp,
+    );
     if (tempDiff > 5) {
       activeAlerts.push({
         type: "warning",
@@ -77,9 +79,9 @@ export function AlertsPanel({ onClose }: AlertsPanelProps) {
             </button>
           </div>
 
-          {/* Alerts Content */}
+          {}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {/* التنبيهات النشطة */}
+            {}
             <div>
               <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <AlertTriangle className="w-6 h-6 text-red-500" />
@@ -113,20 +115,26 @@ export function AlertsPanel({ onClose }: AlertsPanelProps) {
                     >
                       <AlertTriangle
                         className={`w-6 h-6 flex-shrink-0 ${
-                          alert.type === "danger" ? "text-red-500" : "text-yellow-500"
+                          alert.type === "danger"
+                            ? "text-red-500"
+                            : "text-yellow-500"
                         }`}
                       />
                       <div className="flex-1">
                         <p
                           className={`font-semibold ${
-                            alert.type === "danger" ? "text-red-900" : "text-yellow-900"
+                            alert.type === "danger"
+                              ? "text-red-900"
+                              : "text-yellow-900"
                           }`}
                         >
                           {alert.message}
                         </p>
                         <p
                           className={`text-sm mt-1 ${
-                            alert.type === "danger" ? "text-red-700" : "text-yellow-700"
+                            alert.type === "danger"
+                              ? "text-red-700"
+                              : "text-yellow-700"
                           }`}
                         >
                           {alert.detail}
@@ -145,7 +153,9 @@ export function AlertsPanel({ onClose }: AlertsPanelProps) {
                 سجل التنبيهات السابقة
               </h3>
               {alerts.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">لا توجد تنبيهات مسجلة</p>
+                <p className="text-gray-500 text-center py-4">
+                  لا توجد تنبيهات مسجلة
+                </p>
               ) : (
                 <div className="space-y-2">
                   {alerts.slice(0, 10).map((event) => (
@@ -155,9 +165,13 @@ export function AlertsPanel({ onClose }: AlertsPanelProps) {
                     >
                       <AlertTriangle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900">{event.message}</p>
+                        <p className="font-medium text-gray-900">
+                          {event.message}
+                        </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          {new Date(event._creationTime).toLocaleString("ar-EG")}
+                          {new Date(event._creationTime).toLocaleString(
+                            "ar-EG",
+                          )}
                         </p>
                       </div>
                     </div>
@@ -185,13 +199,19 @@ export function AlertsPanel({ onClose }: AlertsPanelProps) {
                     >
                       <div
                         className={`w-3 h-3 rounded-full flex-shrink-0 mt-1.5 ${
-                          event.type === "pump_on" ? "bg-teal-500" : "bg-gray-400"
+                          event.type === "pump_on"
+                            ? "bg-teal-500"
+                            : "bg-gray-400"
                         }`}
                       />
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900">{event.message}</p>
+                        <p className="font-medium text-gray-900">
+                          {event.message}
+                        </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          {new Date(event._creationTime).toLocaleString("ar-EG")}
+                          {new Date(event._creationTime).toLocaleString(
+                            "ar-EG",
+                          )}
                         </p>
                       </div>
                     </div>

@@ -1,7 +1,17 @@
+"use node";
 import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
+import nodemailer from "nodemailer";
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
 export const sendVerificationEmail = internalAction({
   args: {
@@ -11,15 +21,18 @@ export const sendVerificationEmail = internalAction({
   handler: async (_ctx, args) => {
     const { email, code } = args;
 
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({
-        from: "AgriSense <onboarding@resend.dev>",
-        to: [email],
+    console.log("🔵 Starting email send process via SMTP");
+    console.log("📧 Email:", email);
+    console.log("🔑 Code:", code);
+    console.log("📧 Using email account:", process.env.EMAIL_USER);
+    console.log("📧 Email account exists:", !!process.env.EMAIL_USER);
+    console.log("🔑 Password exists:", !!process.env.EMAIL_PASS);
+
+    try {
+      // إعداد البريد الإلكتروني
+      const mailOptions = {
+        from: `"AgriSense" <${process.env.EMAIL_USER}>`,
+        to: email,
         subject: "Verify your AgriSense account",
         html: `
           <!DOCTYPE html>
@@ -49,21 +62,31 @@ export const sendVerificationEmail = internalAction({
             </body>
           </html>
         `,
-      }),
-    });
+      };
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("Resend error:", error);
-      throw new Error("Failed to send email");
+      const info = await transporter.sendMail(mailOptions);
+
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      const err = error as any;
+
+      // تفاصيل أكثر عن الخطأ
+      if (err.code === "EAUTH") {
+        console.error(
+          "❌ Authentication failed - check EMAIL_USER and EMAIL_PASS",
+        );
+      } else if (err.code === "ESOCKET") {
+      } else if (err.code === "ECONNREFUSED") {
+      }
+
+      throw new Error(
+        `Failed to send email: ${err.message || "Unknown error"}`,
+      );
     }
-
-    return { success: true };
   },
 });
 
 export const sendPasswordResetEmail = internalAction({
-  // ✅ كان action خطأ
   args: {
     email: v.string(),
     code: v.string(),
@@ -71,15 +94,10 @@ export const sendPasswordResetEmail = internalAction({
   handler: async (_ctx, args) => {
     const { email, code } = args;
 
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({
-        from: "AgriSense <onboarding@resend.dev>",
-        to: [email],
+    try {
+      const mailOptions = {
+        from: `"AgriSense" <${process.env.EMAIL_USER}>`,
+        to: email,
         subject: "Reset your AgriSense password",
         html: `
           <!DOCTYPE html>
@@ -109,15 +127,17 @@ export const sendPasswordResetEmail = internalAction({
             </body>
           </html>
         `,
-      }),
-    });
+      };
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("Resend error:", error);
-      throw new Error("Failed to send email");
+      console.log("📨 Sending password reset email...");
+      const info = await transporter.sendMail(mailOptions);
+
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      const err = error as any;
+      throw new Error(
+        `Failed to send email: ${err.message || "Unknown error"}`,
+      );
     }
-
-    return { success: true };
   },
 });

@@ -1,7 +1,6 @@
 import { query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
-// الحصول على جميع الأحداث للتقرير
 export const list = query({
   args: {},
   handler: async (ctx) => {

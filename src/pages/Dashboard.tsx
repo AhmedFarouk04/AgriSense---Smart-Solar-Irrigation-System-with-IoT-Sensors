@@ -38,7 +38,6 @@ export default function Dashboard() {
   const simulateReading = useMutation(api.readings.simulate);
   const exportData = useQuery(api.exports.exportToCSV);
 
-  // ── theme detection
   useEffect(() => {
     const check = () =>
       setIsDark(document.body.classList.contains("theme-dark"));
@@ -96,7 +95,6 @@ export default function Dashboard() {
     toast.success("Data exported successfully");
   };
 
-  // ── loading state
   if (
     stats === undefined ||
     latestReading === undefined ||
@@ -123,7 +121,6 @@ export default function Dashboard() {
     ? settings?.pumpManualStatus || false
     : latestReading?.pumpStatus || false;
 
-  // ── tokens
   const tk = isDark
     ? {
         pageBg: "var(--bg-page)",

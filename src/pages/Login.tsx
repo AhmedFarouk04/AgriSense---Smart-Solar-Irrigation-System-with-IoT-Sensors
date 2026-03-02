@@ -159,7 +159,6 @@ export default function Login() {
         mobileName: "#111827",
       };
 
-  // Helper: border color based on error / focus state
   const borderColor = (field: "email" | "password", focused = false) => {
     if (errors[field]) return "#ef4444";
     return focused ? tk.inputFocus : tk.inputBorder;
@@ -167,7 +166,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex">
-      {/* ===== LEFT PANEL ===== */}
+      {}
       <div
         className="hidden lg:flex lg:w-[46%] flex-col justify-between p-14 relative overflow-hidden"
         style={{
@@ -429,11 +428,8 @@ export default function Login() {
                   style={{ color: tk.iconColor }}
                 />
                 <input
-                  // ✅ type="text" بدل "email" يمنع browser suggestion box
                   type="text"
-                  // ✅ autoComplete="username" — القيمة الصحيحة لإيميل الـ login
                   autoComplete="username"
-                  // ✅ inputMode="email" يظهر keyboard إيميل على الموبايل
                   inputMode="email"
                   value={email}
                   onChange={(e) => {
@@ -482,7 +478,6 @@ export default function Login() {
                 />
                 <input
                   type={showPass ? "text" : "password"}
-                  // ✅ autoComplete="current-password" — يخلي البراوزر يعرف ده password field صح
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => {

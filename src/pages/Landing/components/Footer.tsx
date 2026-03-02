@@ -213,21 +213,8 @@ export function Footer({ isDark }: FooterProps) {
           ))}
         </div>
 
-        {/* ── Newsletter strip */}
-        <div
-        // style={{
-        //   background: "rgba(255,255,255,0.05)",
-        //   border: "1px solid rgba(255,255,255,0.08)",
-        //   borderRadius: 20,
-        //   padding: "28px 32px",
-        //   marginBottom: 40,
-        //   display: "flex",
-        //   flexWrap: "wrap",
-        //   alignItems: "center",
-        //   justifyContent: "space-between",
-        //   gap: 16,
-        // }}
-        >
+        {/*  Newsletter strip */}
+        <div>
           <div>
             <div
               style={{

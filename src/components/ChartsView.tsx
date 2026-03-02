@@ -26,7 +26,6 @@ export function ChartsView({ onClose }: ChartsViewProps) {
     return null;
   }
 
-  // تحويل البيانات لتنسيق Recharts
   const chartData = readings
     .slice()
     .reverse()
@@ -68,7 +67,9 @@ export function ChartsView({ onClose }: ChartsViewProps) {
             {chartData.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <p>لا توجد بيانات كافية لعرض الرسوم البيانية</p>
-                <p className="text-sm mt-2">أضف المزيد من القراءات لرؤية التحليلات</p>
+                <p className="text-sm mt-2">
+                  أضف المزيد من القراءات لرؤية التحليلات
+                </p>
               </div>
             ) : (
               <>
@@ -80,9 +81,23 @@ export function ChartsView({ onClose }: ChartsViewProps) {
                   <ResponsiveContainer width="100%" height={300}>
                     <AreaChart data={chartData}>
                       <defs>
-                        <linearGradient id="colorMoisture" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} />
-                          <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                        <linearGradient
+                          id="colorMoisture"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#3B82F6"
+                            stopOpacity={0.8}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#3B82F6"
+                            stopOpacity={0}
+                          />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" />

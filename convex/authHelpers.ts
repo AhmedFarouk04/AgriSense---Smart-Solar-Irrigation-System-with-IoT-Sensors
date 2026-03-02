@@ -1,3 +1,4 @@
+// convex/authHelpers.ts
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
@@ -15,7 +16,6 @@ export const requestPasswordReset = mutation({
       .first();
 
     if (!user) {
-      // ✅ بنرجع userExists: false عشان الـ frontend يعرف
       return { success: false, userExists: false };
     }
 
@@ -36,7 +36,6 @@ export const requestPasswordReset = mutation({
   },
 });
 
-// ✅ يتحقق من الكود فقط بدون ما يغير الباسورد — للـ Step 1 validation
 export const verifyResetCode = mutation({
   args: {
     email: v.string(),
@@ -51,19 +50,17 @@ export const verifyResetCode = mutation({
       .first();
 
     if (!user) throw new Error("User not found");
-
-    if (user.verificationCode !== code) {
+    if (user.verificationCode !== code)
       throw new Error("Invalid verification code");
-    }
-
-    if (user.codeExpires && user.codeExpires < Date.now()) {
+    if (user.codeExpires && user.codeExpires < Date.now())
       throw new Error("Verification code expired");
-    }
 
     return { success: true };
   },
 });
 
+// ✅ resetPassword النهائي
+// ✅ resetPassword - يستدعي action مش mutation
 export const resetPassword = mutation({
   args: {
     email: v.string(),
@@ -79,20 +76,43 @@ export const resetPassword = mutation({
       .first();
 
     if (!user) throw new Error("User not found");
+    if (user.verificationCode !== code) throw new Error("Invalid code");
+    if (user.codeExpires && user.codeExpires < Date.now())
+      throw new Error("Code expired");
 
-    if (user.verificationCode !== code) {
-      throw new Error("Invalid verification code");
-    }
-
-    if (user.codeExpires && user.codeExpires < Date.now()) {
-      throw new Error("Verification code expired");
-    }
-
+    // مسح الكود
     await ctx.db.patch(user._id, {
       verificationCode: undefined,
       codeExpires: undefined,
     });
 
+    // ✅ امسح كل الـ sessions بتاعت المستخدم
+    // ✅ امسح الـ sessions أولاً
+    const sessions = await ctx.db
+      .query("authSessions")
+      .filter((q) => q.eq(q.field("userId"), user._id))
+      .collect();
+
+    for (const session of sessions) {
+      // امسح الـ refresh tokens المرتبطة بالـ session دي
+      const tokens = await ctx.db
+        .query("authRefreshTokens")
+        .filter((q) => q.eq(q.field("sessionId"), session._id))
+        .collect();
+
+      for (const token of tokens) {
+        await ctx.db.delete(token._id);
+      }
+
+      await ctx.db.delete(session._id);
+    }
+    // تحديث الباسورد
+    await ctx.scheduler.runAfter(0, internal.password.updatePassword, {
+      userId: user._id,
+      newPassword: newPassword,
+    });
+
+    console.log("✅ [authHelpers] Password reset + sessions cleared");
     return { success: true };
   },
 });

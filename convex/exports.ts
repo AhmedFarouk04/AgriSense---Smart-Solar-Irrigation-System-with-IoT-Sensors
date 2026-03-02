@@ -1,7 +1,6 @@
 import { query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
-// تصدير البيانات بصيغة CSV
 export const exportToCSV = query({
   args: {},
   handler: async (ctx) => {
@@ -16,8 +15,13 @@ export const exportToCSV = query({
       .order("desc")
       .take(1000);
 
-    // تحويل البيانات إلى CSV
-    const headers = ["التاريخ والوقت", "الرطوبة %", "الملوحة", "الحرارة °C", "حالة المضخة"];
+    const headers = [
+      "التاريخ والوقت",
+      "الرطوبة %",
+      "الملوحة",
+      "الحرارة °C",
+      "حالة المضخة",
+    ];
     const rows = readings.map((r) => [
       new Date(r._creationTime).toLocaleString("ar-EG"),
       r.moisture,
