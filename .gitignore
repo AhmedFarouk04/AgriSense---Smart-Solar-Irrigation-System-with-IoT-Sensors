@@ -35,7 +35,7 @@ yarn-error.log*
 .DS_Store
 
 # Convex
-convex/_generated/
+
 convex/README.md
 !convex/_generated/server.d.ts
 !convex/_generated/api.d.ts
