@@ -129,34 +129,3 @@ export const resendVerificationCode = mutation({
     return { success: true };
   },
 });
-
-// ✅ دالة تغيير الباسورد - من غير withIndex
-export const changePassword = internalMutation({
-  args: {
-    userId: v.id("users"),
-    newPassword: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const { userId, newPassword } = args;
-
-    // نجيب كل accounts المستخدم
-    const accounts = await ctx.db
-      .query("authAccounts")
-      .filter((q) => q.eq(q.field("userId"), userId))
-      .collect();
-
-    // نلاقي account الباسورد
-    const passwordAccount = accounts.find((acc) => acc.provider === "password");
-
-    if (!passwordAccount) {
-      throw new Error("No password account found");
-    }
-
-    // Convex Auth هيتولى التشفير لوحده
-    await ctx.db.patch(passwordAccount._id, {
-      secret: newPassword,
-    });
-
-    return { success: true };
-  },
-});

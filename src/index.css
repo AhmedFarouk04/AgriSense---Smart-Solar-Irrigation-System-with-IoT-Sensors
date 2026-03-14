@@ -2,16 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+:root,
+.theme-dark {
+  --bg-page: #070d09;
+  --text-primary: #e8f5e9;
   --color-light: #ffffff;
   --color-dark: #171717;
   --primary-green: #16a34a;
   --primary-blue: #0ea5e9;
   --primary-orange: #f59e0b;
-}
-
-.accent-text {
-  @apply text-slate-600;
 }
 
 body {
@@ -22,11 +21,14 @@ body {
     "Segoe UI",
     Roboto,
     sans-serif;
-  color: var(--color-dark);
-  background: var(--color-light);
+  color: var(--text-primary);
+  background: var(--bg-page);
 }
 
-/* Auth styles */
+.accent-text {
+  @apply text-slate-600;
+}
+
 .auth-input-field {
   @apply w-full px-4 py-3 rounded-container bg-white border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow shadow-sm hover:shadow;
 }
@@ -35,7 +37,6 @@ body {
   @apply w-full px-4 py-3 rounded bg-primary text-white font-semibold hover:bg-primary-hover transition-colors shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
-/* Animations for Landing Page */
 @keyframes blob {
   0% {
     transform: translate(0px, 0px) scale(1);
@@ -54,11 +55,9 @@ body {
 .animate-blob {
   animation: blob 7s infinite;
 }
-
 .animation-delay-2000 {
   animation-delay: 2s;
 }
-
 .animation-delay-4000 {
   animation-delay: 4s;
 }

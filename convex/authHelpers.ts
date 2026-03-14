@@ -80,39 +80,33 @@ export const resetPassword = mutation({
     if (user.codeExpires && user.codeExpires < Date.now())
       throw new Error("Code expired");
 
-    // مسح الكود
+    // ✅ امسح الكود
     await ctx.db.patch(user._id, {
       verificationCode: undefined,
       codeExpires: undefined,
     });
 
-    // ✅ امسح كل الـ sessions بتاعت المستخدم
-    // ✅ امسح الـ sessions أولاً
+    // ✅ امسح الـ sessions
     const sessions = await ctx.db
       .query("authSessions")
       .filter((q) => q.eq(q.field("userId"), user._id))
       .collect();
 
     for (const session of sessions) {
-      // امسح الـ refresh tokens المرتبطة بالـ session دي
       const tokens = await ctx.db
         .query("authRefreshTokens")
         .filter((q) => q.eq(q.field("sessionId"), session._id))
         .collect();
-
-      for (const token of tokens) {
-        await ctx.db.delete(token._id);
-      }
-
+      for (const token of tokens) await ctx.db.delete(token._id);
       await ctx.db.delete(session._id);
     }
-    // تحديث الباسورد
+
+    // ✅ الحل الصح: استخدم signIn مع createAccount flow
     await ctx.scheduler.runAfter(0, internal.password.updatePassword, {
       userId: user._id,
-      newPassword: newPassword,
+      newPassword,
     });
 
-    console.log("✅ [authHelpers] Password reset + sessions cleared");
     return { success: true };
   },
 });

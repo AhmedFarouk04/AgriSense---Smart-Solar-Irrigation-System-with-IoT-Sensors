@@ -9,8 +9,30 @@ import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Verify from "./pages/Verify";
+import AddZone from "./pages/AddZone";
+import DevicesList from "./pages/DevicesList";
+import DeviceDetails from "./pages/DeviceDetails";
+import DeviceSettings from "./pages/DeviceSettings";
+import Reports from "./pages/Reports";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
+import Notifications from "./pages/Notifications";
+import Help from "./pages/Help";
 
 const THEME = "theme-dark";
+
+const FARMER_ROUTES = [
+  "/dashboard",
+  "/add-zone",
+  "/devices",
+  "/device",
+  "/device-settings",
+  "/reports",
+  "/profile",
+  "/settings",
+  "/notifications",
+  "/help",
+];
 
 function AuthenticatedRouter({ currentPath }: { currentPath: string }) {
   const user = useQuery(api.auth.loggedInUser);
@@ -20,6 +42,16 @@ function AuthenticatedRouter({ currentPath }: { currentPath: string }) {
   if (!user?.emailVerificationTime) {
     return <Verify />;
   }
+
+  if (currentPath === "/add-zone") return <AddZone />;
+  if (currentPath === "/devices") return <DevicesList />;
+  if (currentPath.startsWith("/device-settings")) return <DeviceSettings />;
+  if (currentPath.startsWith("/device")) return <DeviceDetails />;
+  if (currentPath === "/reports") return <Reports />;
+  if (currentPath === "/profile") return <Profile />;
+  if (currentPath === "/settings") return <Settings />;
+  if (currentPath === "/notifications") return <Notifications />;
+  if (currentPath === "/help") return <Help />;
 
   return <Dashboard />;
 }
@@ -48,6 +80,14 @@ export default function App() {
     };
   }, []);
 
+  const unauthPublicRoutes = [
+    "/login",
+    "/register",
+    "/forgot-password",
+    "/reset-password",
+    "/verify",
+  ];
+
   return (
     <div className="min-h-screen flex flex-col" dir="ltr">
       <Toaster position="top-center" richColors />
@@ -58,13 +98,7 @@ export default function App() {
         {currentPath === "/forgot-password" && <ForgotPassword />}
         {currentPath === "/reset-password" && <ResetPassword />}
         {currentPath === "/verify" && <Verify />}
-        {![
-          "/login",
-          "/register",
-          "/forgot-password",
-          "/reset-password",
-          "/verify",
-        ].includes(currentPath) && <Landing />}
+        {!unauthPublicRoutes.includes(currentPath) && <Landing />}
       </Unauthenticated>
 
       <Authenticated>

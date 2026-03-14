@@ -14,6 +14,16 @@ const applicationTables = {
     description: v.string(),
   }).index("by_name", ["name"]),
 
+  devices: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    firebaseUrl: v.string(),
+    firebaseSecret: v.string(),
+    plantId: v.optional(v.id("plants")),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_user", ["userId"]),
+
   userSettings: defineTable({
     userId: v.id("users"),
     selectedPlantId: v.optional(v.id("plants")),
@@ -28,19 +38,27 @@ const applicationTables = {
 
   readings: defineTable({
     userId: v.id("users"),
+    deviceId: v.id("devices"),
     moisture: v.number(),
-    salinity: v.number(),
     temperature: v.number(),
+    flowRate: v.number(),
     pumpStatus: v.boolean(),
-    autoTriggered: v.boolean(),
-  }).index("by_user", ["userId"]),
+    timestamp: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_device", ["deviceId"])
+    .index("by_device_timestamp", ["deviceId", "timestamp"]),
 
   events: defineTable({
     userId: v.id("users"),
+    deviceId: v.optional(v.id("devices")),
     type: v.string(),
     message: v.string(),
     data: v.optional(v.any()),
-  }).index("by_user", ["userId"]),
+    timestamp: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_device", ["deviceId"]),
 };
 
 export default defineSchema({
@@ -55,7 +73,6 @@ export default defineSchema({
     emailVerificationTime: v.optional(v.number()),
     phoneVerificationTime: v.optional(v.number()),
     isAnonymous: v.optional(v.boolean()),
-
     role: v.optional(v.string()),
     farmArea: v.optional(v.number()),
     location: v.optional(v.string()),
