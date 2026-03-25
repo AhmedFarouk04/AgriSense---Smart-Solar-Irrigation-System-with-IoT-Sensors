@@ -1,20 +1,17 @@
 import { useQuery, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Droplets,
   Thermometer,
   Wind,
   Power,
-  Plus,
-  ChevronDown,
   Wifi,
   WifiOff,
   Clock,
   Activity,
   AlertCircle,
-  Leaf,
 } from "lucide-react";
 import {
   LineChart,
@@ -31,10 +28,26 @@ import { Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
 import { AgriSenseLogo } from "../components/Logo";
 
+// ✅ استدعاء المكونات المنفصلة
+import { CustomTooltip } from "../components/dashboard/CustomTooltip";
+import { LiveCard } from "../components/dashboard/LiveCard";
+import { EmptyState } from "../components/dashboard/EmptyState";
+import { DeviceSelector } from "../components/dashboard/DeviceSelector";
+
 const nav = (p: string) => {
   window.history.pushState({}, "", p);
   window.dispatchEvent(new Event("popstate"));
 };
+
+const PARTICLES = [
+  { x: 8, y: 22, size: 7, color: "var(--particle-1)", delay: 0 },
+  { x: 85, y: 15, size: 5, color: "var(--particle-2)", delay: 0.8 },
+  { x: 6, y: 70, size: 6, color: "var(--particle-3)", delay: 1.5 },
+  { x: 92, y: 65, size: 8, color: "var(--particle-1)", delay: 0.4 },
+  { x: 50, y: 90, size: 5, color: "var(--particle-2)", delay: 2 },
+  { x: 20, y: 85, size: 4, color: "var(--particle-1)", delay: 1.2 },
+  { x: 75, y: 40, size: 6, color: "var(--particle-3)", delay: 1.8 },
+];
 
 function getMoistureStatus(v: number) {
   if (v < 30) return { label: "Dry", color: "#f87171" };
@@ -70,514 +83,6 @@ function timeAgo(ts: number) {
   if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
   return `${h}h ago`;
-}
-
-function GaugeRing({
-  value,
-  max,
-  color,
-  size = 72,
-}: {
-  value: number;
-  max: number;
-  color: string;
-  size?: number;
-}) {
-  const r = size / 2 - 6;
-  const circ = 2 * Math.PI * r;
-  const dash = Math.min(value / max, 1) * circ;
-  return (
-    <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        stroke="rgba(255,255,255,0.06)"
-        strokeWidth={5}
-      />
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        stroke={color}
-        strokeWidth={5}
-        strokeLinecap="round"
-        strokeDasharray={`${dash} ${circ}`}
-        style={{ transition: "stroke-dasharray 0.8s ease" }}
-      />
-    </svg>
-  );
-}
-
-function LiveCard({
-  icon,
-  label,
-  value,
-  unit,
-  status,
-  color,
-  max,
-  delay,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  unit: string;
-  status: { label: string; color: string };
-  color: string;
-  max: number;
-  delay: number;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.5 }}
-      style={{
-        background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.07)",
-        borderRadius: 20,
-        padding: "20px 22px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: -30,
-          right: -30,
-          width: 90,
-          height: 90,
-          borderRadius: "50%",
-          background: `radial-gradient(circle, ${color}18, transparent 70%)`,
-          pointerEvents: "none",
-        }}
-      />
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-        }}
-      >
-        <div
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: 12,
-            background: `${color}18`,
-            border: `1px solid ${color}30`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color,
-          }}
-        >
-          {icon}
-        </div>
-        <GaugeRing value={value} max={max} color={color} size={52} />
-      </div>
-      <div>
-        <div
-          style={{
-            fontSize: 11,
-            color: "rgba(255,255,255,0.4)",
-            fontWeight: 600,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            marginBottom: 4,
-          }}
-        >
-          {label}
-        </div>
-        <div
-          style={{
-            fontSize: 28,
-            fontWeight: 800,
-            color: "#e8f5e9",
-            lineHeight: 1,
-            letterSpacing: "-0.02em",
-          }}
-        >
-          {value.toFixed(1)}
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 500,
-              color: "rgba(255,255,255,0.4)",
-              marginLeft: 3,
-            }}
-          >
-            {unit}
-          </span>
-        </div>
-      </div>
-      <div
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 5,
-          padding: "3px 10px",
-          borderRadius: 99,
-          background: `${status.color}15`,
-          border: `1px solid ${status.color}30`,
-          width: "fit-content",
-        }}
-      >
-        <div
-          style={{
-            width: 5,
-            height: 5,
-            borderRadius: "50%",
-            background: status.color,
-          }}
-        />
-        <span style={{ fontSize: 11, fontWeight: 600, color: status.color }}>
-          {status.label}
-        </span>
-      </div>
-    </motion.div>
-  );
-}
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div
-      style={{
-        background: "#0f1f12",
-        border: "1px solid rgba(255,255,255,0.1)",
-        borderRadius: 10,
-        padding: "8px 14px",
-        fontSize: 12,
-      }}
-    >
-      <div style={{ color: "rgba(255,255,255,0.5)", marginBottom: 4 }}>
-        {label}
-      </div>
-      {payload.map((p: any) => (
-        <div key={p.name} style={{ color: p.color, fontWeight: 600 }}>
-          {p.name}: {Number(p.value).toFixed(1)} {p.unit || ""}
-        </div>
-      ))}
-    </div>
-  );
-};
-
-function EmptyState() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        minHeight: "70vh",
-        textAlign: "center",
-        padding: "40px 24px",
-      }}
-    >
-      <motion.div
-        animate={{ y: [0, -12, 0] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        style={{ marginBottom: 36 }}
-      >
-        <div
-          style={{
-            width: 140,
-            height: 140,
-            borderRadius: "50%",
-            background: "rgba(74,222,128,0.07)",
-            border: "1px solid rgba(74,222,128,0.15)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            margin: "0 auto",
-            position: "relative",
-          }}
-        >
-          <div
-            style={{
-              width: 100,
-              height: 100,
-              borderRadius: "50%",
-              background: "rgba(74,222,128,0.1)",
-              border: "1px solid rgba(74,222,128,0.25)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Leaf size={44} color="#4ade80" />
-          </div>
-          <div
-            style={{
-              position: "absolute",
-              top: 8,
-              right: 12,
-              width: 28,
-              height: 28,
-              borderRadius: "50%",
-              background: "#fbbf24",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 14,
-              fontWeight: 800,
-              color: "#000",
-            }}
-          >
-            ?
-          </div>
-        </div>
-      </motion.div>
-      <h2
-        style={{
-          fontSize: 28,
-          fontWeight: 800,
-          color: "#e8f5e9",
-          marginBottom: 12,
-          letterSpacing: "-0.025em",
-        }}
-      >
-        Welcome! Let's get your farm online 🌱
-      </h2>
-      <p
-        style={{
-          color: "rgba(255,255,255,0.45)",
-          fontSize: 15,
-          marginBottom: 32,
-          maxWidth: 380,
-        }}
-      >
-        Add your first zone to start monitoring soil moisture, temperature, and
-        water flow in real-time.
-      </p>
-      <motion.button
-        whileHover={{
-          scale: 1.04,
-          boxShadow: "0 8px 32px rgba(22,163,74,0.35)",
-        }}
-        whileTap={{ scale: 0.97 }}
-        onClick={() => nav("/add-zone")}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "14px 32px",
-          background: "linear-gradient(135deg,#16a34a,#0ea5e9)",
-          color: "white",
-          borderRadius: 16,
-          fontWeight: 700,
-          fontSize: 15,
-          border: "none",
-          cursor: "pointer",
-          marginBottom: 48,
-        }}
-      >
-        <Plus size={18} /> Add Your First Zone
-      </motion.button>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3,1fr)",
-          gap: 14,
-          maxWidth: 560,
-        }}
-      >
-        {[
-          {
-            icon: "💧",
-            title: "Live Soil Data",
-            desc: "Monitor moisture & temperature in real-time",
-          },
-          {
-            icon: "⚡",
-            title: "Pump Control",
-            desc: "Turn irrigation on/off from anywhere",
-          },
-          {
-            icon: "📊",
-            title: "Usage History",
-            desc: "Track water usage over time with charts",
-          },
-        ].map((h, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 + i * 0.1 }}
-            style={{
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.07)",
-              borderRadius: 16,
-              padding: "18px 16px",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontSize: 24, marginBottom: 8 }}>{h.icon}</div>
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: "#e8f5e9",
-                marginBottom: 4,
-              }}
-            >
-              {h.title}
-            </div>
-            <div
-              style={{
-                fontSize: 12,
-                color: "rgba(255,255,255,0.38)",
-                lineHeight: 1.5,
-              }}
-            >
-              {h.desc}
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    </motion.div>
-  );
-}
-
-function DeviceSelector({
-  devices,
-  selectedId,
-  onSelect,
-}: {
-  devices: any[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const selected = devices.find((d) => d._id === selectedId);
-  return (
-    <div style={{ position: "relative" }}>
-      <button
-        onClick={() => setOpen(!open)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "8px 14px",
-          background: "rgba(255,255,255,0.05)",
-          border: "1px solid rgba(255,255,255,0.1)",
-          borderRadius: 12,
-          color: "#e8f5e9",
-          fontWeight: 600,
-          fontSize: 14,
-          cursor: "pointer",
-          minWidth: 160,
-          justifyContent: "space-between",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <div
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: "50%",
-              background: selected?.isActive ? "#4ade80" : "#6b7280",
-            }}
-          />
-          {selected?.name ?? "Select Zone"}
-        </div>
-        <ChevronDown size={14} style={{ opacity: 0.5 }} />
-      </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            style={{
-              position: "absolute",
-              top: "calc(100% + 6px)",
-              left: 0,
-              right: 0,
-              background: "#0d1a10",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: 12,
-              overflow: "hidden",
-              zIndex: 50,
-              minWidth: 180,
-            }}
-          >
-            {devices.map((d) => (
-              <button
-                key={d._id}
-                onClick={() => {
-                  onSelect(d._id);
-                  setOpen(false);
-                }}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "10px 14px",
-                  background:
-                    d._id === selectedId
-                      ? "rgba(74,222,128,0.08)"
-                      : "transparent",
-                  border: "none",
-                  color: "#e8f5e9",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  textAlign: "left",
-                }}
-              >
-                <div
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    background: d.isActive ? "#4ade80" : "#6b7280",
-                    flexShrink: 0,
-                  }}
-                />
-                {d.name}
-              </button>
-            ))}
-            <button
-              onClick={() => {
-                nav("/add-zone");
-                setOpen(false);
-              }}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "10px 14px",
-                background: "transparent",
-                border: "none",
-                borderTop: "1px solid rgba(255,255,255,0.06)",
-                color: "#4ade80",
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              <Plus size={13} /> Add Zone
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
 }
 
 function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
@@ -759,6 +264,7 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
           max={10}
           delay={0.16}
         />
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1150,6 +656,13 @@ export default function Dashboard() {
   const devices = useQuery(api.devices.getDevices);
   const user = useQuery(api.auth.loggedInUser);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const h = () => setScrolled(window.scrollY > 24);
+    window.addEventListener("scroll", h, { passive: true });
+    return () => window.removeEventListener("scroll", h);
+  }, []);
 
   useEffect(() => {
     if (devices?.length && !selectedDeviceId)
@@ -1164,26 +677,72 @@ export default function Dashboard() {
     <div
       style={{
         minHeight: "100vh",
-        background:
-          "radial-gradient(ellipse 100% 80% at 50% -5%, #0f2b18 0%, #0b1e24 40%, #070d09 70%)",
-        color: "#e8f5e9",
-        fontFamily: "'DM Sans', system-ui, sans-serif",
+        background: `radial-gradient(ellipse 120% 60% at 50% 0%, #162e1a 0%, #0d2318 30%, transparent 60%), radial-gradient(ellipse 80% 60% at 0% 50%, rgba(15,43,24,0.9) 0%, transparent 60%), radial-gradient(ellipse 80% 60% at 100% 50%, rgba(11,30,36,0.7) 0%, transparent 60%), radial-gradient(ellipse 100% 50% at 50% 100%, rgba(15,43,24,0.5) 0%, transparent 60%), #070d09`,
+        color: "var(--text-primary)",
+        fontFamily: "var(--font-body)",
       }}
     >
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-      `}</style>
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      >
+        <div
+          className="grid-pattern"
+          style={{ position: "absolute", inset: 0, opacity: 0.6 }}
+        />
+        {[640, 900, 1160].map((d, i) => (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              width: d,
+              height: d,
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%,-60%)",
+              border: `1px ${i === 0 ? "solid" : "dashed"} var(--border-base)`,
+              borderRadius: "50%",
+            }}
+          />
+        ))}
+        {PARTICLES.map((p, i) => (
+          <motion.div
+            key={i}
+            animate={{ y: [0, -18, 0], opacity: [0.25, 0.7, 0.25] }}
+            transition={{
+              duration: 5 + p.delay,
+              repeat: Infinity,
+              delay: p.delay,
+            }}
+            style={{
+              position: "absolute",
+              left: `${p.x}%`,
+              top: `${p.y}%`,
+              width: p.size,
+              height: p.size,
+              borderRadius: "50%",
+              background: p.color,
+            }}
+          />
+        ))}
+      </div>
 
       <header
         style={{
           position: "sticky",
           top: 0,
-          zIndex: 50,
-          background: "rgba(7,13,9,0.88)",
-          backdropFilter: "blur(24px)",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-          padding: "12px 24px",
+          zIndex: 100,
+          background: scrolled ? "rgba(7,13,9,0.85)" : "transparent",
+          backdropFilter: scrolled ? "blur(32px)" : "none",
+          WebkitBackdropFilter: scrolled ? "blur(32px)" : "none",
+          borderBottom: `1px solid ${scrolled ? "var(--border-base)" : "transparent"}`,
+          boxShadow: scrolled ? "var(--shadow-sm)" : "none",
+          transition: "all 0.35s ease",
+          padding: "10px 24px",
         }}
       >
         <div
@@ -1196,81 +755,80 @@ export default function Dashboard() {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <a
+            <motion.a
               href="/dashboard"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                textDecoration: "none",
-              }}
+              whileHover={{ scale: 1.02 }}
+              style={{ display: "flex", alignItems: "center", gap: 11 }}
             >
               <motion.div
                 whileHover={{ rotate: [0, -7, 7, 0] }}
                 transition={{ duration: 0.5 }}
                 style={{
-                  padding: 7,
-                  borderRadius: 14,
-                  background: "rgba(255,255,255,0.07)",
-                  border: "1px solid rgba(255,255,255,0.12)",
+                  filter: "drop-shadow(0 4px 14px rgba(22,163,74,.30))",
                   flexShrink: 0,
-                  filter: "drop-shadow(0 4px 14px rgba(22,163,74,.25))",
                 }}
               >
-                <AgriSenseLogo size={32} />
+                <AgriSenseLogo size={38} />
               </motion.div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <div
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  lineHeight: 1,
+                  gap: 3,
+                }}
+              >
+                <span
+                  className="fd grad-text"
                   style={{
-                    fontSize: 18,
+                    fontSize: 21,
                     fontWeight: 900,
                     letterSpacing: "-0.025em",
-                    background:
-                      "linear-gradient(135deg,#4ade80 0%,#38bdf8 50%,#fbbf24 100%)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
                   }}
                 >
                   AgriSense
-                </div>
-                <div
+                </span>
+                <span
                   style={{
-                    fontSize: 9,
-                    fontWeight: 700,
+                    fontSize: 10,
+                    fontWeight: 600,
                     letterSpacing: "0.14em",
                     textTransform: "uppercase",
-                    color: "rgba(255,255,255,0.28)",
+                    color: "var(--text-faint)",
                   }}
                 >
                   Smart Solar Irrigation
-                </div>
+                </span>
               </div>
-            </a>
+            </motion.a>
 
             <div
               style={{
-                width: 1,
-                height: 32,
-                background: "rgba(255,255,255,0.08)",
-              }}
-            />
-
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "rgba(255,255,255,0.75)",
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: 8,
-                padding: "5px 12px",
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
-                gap: 6,
+                gap: 8,
+                background: "var(--badge-bg)",
+                border: "1px solid var(--badge-border)",
+                color: "var(--badge-color)",
+                padding: "7px 18px",
+                borderRadius: "var(--r-full)",
+                fontSize: 14,
+                fontWeight: 600,
+                backdropFilter: "blur(12px)",
+                boxShadow: "var(--shadow-sm)",
               }}
             >
-              {greeting},{" "}
-              <span style={{ color: "#4ade80", fontWeight: 800 }}>
+              <span className="bdot" />
+              <span style={{ color: "rgba(255,255,255,0.65)" }}>
+                {greeting},
+              </span>{" "}
+              <span
+                style={{
+                  color: "var(--brand-500)",
+                  fontWeight: 800,
+                  fontSize: 15,
+                }}
+              >
                 {user?.name?.split(" ")[0] ?? "Farmer"}
               </span>{" "}
               👋
@@ -1286,30 +844,32 @@ export default function Dashboard() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <button
+            <motion.button
+              whileHover={{ scale: 1.05 }}
               onClick={() => nav("/notifications")}
               style={{
                 width: 36,
                 height: 36,
                 borderRadius: 10,
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.08)",
+                background: "var(--glass-bg)",
+                border: "1px solid var(--border-card)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: "pointer",
-                color: "rgba(255,255,255,0.5)",
+                color: "var(--text-muted)",
               }}
             >
               <AlertCircle size={16} />
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
               onClick={() => nav("/profile")}
               style={{
                 width: 36,
                 height: 36,
                 borderRadius: 10,
-                background: "linear-gradient(135deg,#16a34a,#0ea5e9)",
+                background: "var(--grad-brand)",
                 border: "none",
                 display: "flex",
                 alignItems: "center",
@@ -1321,12 +881,20 @@ export default function Dashboard() {
               }}
             >
               {user?.name?.[0]?.toUpperCase() ?? "U"}
-            </button>
+            </motion.button>
           </div>
         </div>
       </header>
 
-      <main style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px" }}>
+      <main
+        style={{
+          maxWidth: 1200,
+          margin: "0 auto",
+          padding: "28px 24px",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
         {devices === undefined ? (
           <div
             style={{
@@ -1352,6 +920,7 @@ export default function Dashboard() {
           <DashboardContent deviceId={selectedDeviceId as Id<"devices">} />
         ) : null}
       </main>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(74,222,128,0.4); } 70% { box-shadow: 0 0 0 6px rgba(74,222,128,0); } 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); } }`}</style>
     </div>
   );
 }

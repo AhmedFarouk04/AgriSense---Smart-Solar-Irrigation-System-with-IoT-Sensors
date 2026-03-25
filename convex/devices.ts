@@ -1,7 +1,6 @@
 import { mutation, query, action } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { api } from "./_generated/api";
 
 export const addDevice = mutation({
   args: {
@@ -9,6 +8,8 @@ export const addDevice = mutation({
     firebaseUrl: v.string(),
     firebaseSecret: v.string(),
     plantId: v.optional(v.id("plants")),
+    areaM2: v.optional(v.number()),
+    notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -18,33 +19,30 @@ export const addDevice = mutation({
     const trimmedUrl = args.firebaseUrl.trim().replace(/\/$/, "");
     const trimmedSecret = args.firebaseSecret.trim();
 
-    if (!trimmedName || trimmedName.length < 2 || trimmedName.length > 50) {
+    if (!trimmedName || trimmedName.length < 2 || trimmedName.length > 50)
       throw new Error("Zone name must be between 2 and 50 characters");
-    }
 
     if (
       !trimmedUrl.startsWith("https://") ||
       !trimmedUrl.includes("firebasedatabase.app")
-    ) {
+    )
       throw new Error("Invalid Firebase URL");
-    }
 
-    if (!trimmedSecret || trimmedSecret.length < 10) {
+    if (!trimmedSecret || trimmedSecret.length < 10)
       throw new Error("Invalid Firebase secret");
-    }
 
     const existing = await ctx.db
       .query("devices")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
-    const nameExists = existing.some(
-      (d) => d.name.toLowerCase() === trimmedName.toLowerCase(),
-    );
-    if (nameExists) throw new Error("A zone with this name already exists");
+    if (
+      existing.some((d) => d.name.toLowerCase() === trimmedName.toLowerCase())
+    )
+      throw new Error("A zone with this name already exists");
 
-    const urlExists = existing.some((d) => d.firebaseUrl === trimmedUrl);
-    if (urlExists) throw new Error("This Firebase database is already linked");
+    if (existing.some((d) => d.firebaseUrl === trimmedUrl))
+      throw new Error("This Firebase database is already linked");
 
     const deviceId = await ctx.db.insert("devices", {
       userId,
@@ -54,6 +52,8 @@ export const addDevice = mutation({
       plantId: args.plantId,
       isActive: true,
       createdAt: Date.now(),
+      areaM2: args.areaM2,
+      notes: args.notes,
     });
 
     await ctx.db.insert("events", {
@@ -103,6 +103,13 @@ export const updateDevice = mutation({
     name: v.optional(v.string()),
     plantId: v.optional(v.id("plants")),
     isActive: v.optional(v.boolean()),
+    // ✅ per-device thresholds
+    customMinMoisture: v.optional(v.number()),
+    customMaxMoisture: v.optional(v.number()),
+    customOptimalTemp: v.optional(v.number()),
+    // ✅ per-device info
+    areaM2: v.optional(v.number()),
+    notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -116,14 +123,21 @@ export const updateDevice = mutation({
 
     if (args.name !== undefined) {
       const trimmed = args.name.trim();
-      if (!trimmed || trimmed.length < 2 || trimmed.length > 50) {
+      if (!trimmed || trimmed.length < 2 || trimmed.length > 50)
         throw new Error("Zone name must be between 2 and 50 characters");
-      }
       patch.name = trimmed;
     }
 
     if (args.plantId !== undefined) patch.plantId = args.plantId;
     if (args.isActive !== undefined) patch.isActive = args.isActive;
+    if (args.customMinMoisture !== undefined)
+      patch.customMinMoisture = args.customMinMoisture;
+    if (args.customMaxMoisture !== undefined)
+      patch.customMaxMoisture = args.customMaxMoisture;
+    if (args.customOptimalTemp !== undefined)
+      patch.customOptimalTemp = args.customOptimalTemp;
+    if (args.areaM2 !== undefined) patch.areaM2 = args.areaM2;
+    if (args.notes !== undefined) patch.notes = args.notes;
 
     await ctx.db.patch(args.deviceId, patch);
     return { success: true };
@@ -144,19 +158,13 @@ export const deleteDevice = mutation({
       .query("readings")
       .withIndex("by_device", (q) => q.eq("deviceId", args.deviceId))
       .collect();
-
-    for (const r of readings) {
-      await ctx.db.delete(r._id);
-    }
+    for (const r of readings) await ctx.db.delete(r._id);
 
     const events = await ctx.db
       .query("events")
       .withIndex("by_device", (q) => q.eq("deviceId", args.deviceId))
       .collect();
-
-    for (const e of events) {
-      await ctx.db.delete(e._id);
-    }
+    for (const e of events) await ctx.db.delete(e._id);
 
     await ctx.db.delete(args.deviceId);
     return { success: true };
@@ -175,21 +183,19 @@ export const testConnection = action({
     try {
       const res = await fetch(`${url}/sensor/moisture.json?auth=${secret}`);
 
-      if (!res.ok) {
+      if (!res.ok)
         return {
           success: false,
           error: "Connection failed. Check your URL and secret.",
         };
-      }
 
       const data = await res.json();
 
-      if (data === null) {
+      if (data === null)
         return {
           success: true,
           warning: "Connected but no sensor data found yet.",
         };
-      }
 
       return { success: true };
     } catch {

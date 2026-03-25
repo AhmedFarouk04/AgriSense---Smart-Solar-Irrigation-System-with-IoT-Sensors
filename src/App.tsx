@@ -2,6 +2,8 @@ import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { Toaster } from "sonner";
 import { useEffect, useState } from "react";
+
+// Pages
 import Dashboard from "./pages/Dashboard";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -11,7 +13,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Verify from "./pages/Verify";
 import AddZone from "./pages/AddZone";
 import DevicesList from "./pages/DevicesList";
-import DeviceDetails from "./pages/DeviceDetails";
+import DeviceDetails from "./pages/DeviceDetails"; // ✅ ضفنا الـ Import
 import DeviceSettings from "./pages/DeviceSettings";
 import Reports from "./pages/Reports";
 import Profile from "./pages/Profile";
@@ -21,32 +23,25 @@ import Help from "./pages/Help";
 
 const THEME = "theme-dark";
 
-const FARMER_ROUTES = [
-  "/dashboard",
-  "/add-zone",
-  "/devices",
-  "/device",
-  "/device-settings",
-  "/reports",
-  "/profile",
-  "/settings",
-  "/notifications",
-  "/help",
-];
-
 function AuthenticatedRouter({ currentPath }: { currentPath: string }) {
   const user = useQuery(api.auth.loggedInUser);
 
   if (user === undefined) return null;
+  if (!user?.emailVerificationTime) return <Verify />;
 
-  if (!user?.emailVerificationTime) {
-    return <Verify />;
-  }
+  const searchParams = new URLSearchParams(window.location.search);
+  const deviceId = searchParams.get("id");
 
   if (currentPath === "/add-zone") return <AddZone />;
   if (currentPath === "/devices") return <DevicesList />;
-  if (currentPath.startsWith("/device-settings")) return <DeviceSettings />;
-  if (currentPath.startsWith("/device")) return <DeviceDetails />;
+
+  // ✅ ضفنا مسار صفحة تفاصيل الجهاز
+  if (currentPath.startsWith("/device-details"))
+    return <DeviceDetails deviceId={deviceId} />;
+
+  if (currentPath.startsWith("/device-settings"))
+    return <DeviceSettings deviceId={deviceId} />;
+
   if (currentPath === "/reports") return <Reports />;
   if (currentPath === "/profile") return <Profile />;
   if (currentPath === "/settings") return <Settings />;

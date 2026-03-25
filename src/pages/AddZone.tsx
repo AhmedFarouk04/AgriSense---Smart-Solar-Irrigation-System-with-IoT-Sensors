@@ -15,6 +15,7 @@ import {
   Tag,
   Loader2,
 } from "lucide-react";
+import { AgriSenseLogo } from "../components/Logo";
 
 const nav = (p: string) => {
   window.history.pushState({}, "", p);
@@ -22,8 +23,17 @@ const nav = (p: string) => {
 };
 
 type Step = 1 | 2 | 3;
-
 const STEP_LABELS = ["Zone Info", "Firebase Setup", "Confirm"];
+
+const PARTICLES = [
+  { x: 8, y: 22, size: 7, color: "var(--particle-1)", delay: 0 },
+  { x: 85, y: 15, size: 5, color: "var(--particle-2)", delay: 0.8 },
+  { x: 6, y: 70, size: 6, color: "var(--particle-3)", delay: 1.5 },
+  { x: 92, y: 65, size: 8, color: "var(--particle-1)", delay: 0.4 },
+  { x: 50, y: 90, size: 5, color: "var(--particle-2)", delay: 2 },
+  { x: 20, y: 85, size: 4, color: "var(--particle-1)", delay: 1.2 },
+  { x: 75, y: 40, size: 6, color: "var(--particle-3)", delay: 1.8 },
+];
 
 function StepBar({ current }: { current: Step }) {
   return (
@@ -62,16 +72,17 @@ function StepBar({ current }: { current: Step }) {
                   height: 34,
                   borderRadius: "50%",
                   background: done
-                    ? "#16a34a"
+                    ? "var(--brand-600)"
                     : active
-                      ? "linear-gradient(135deg,#16a34a,#0ea5e9)"
+                      ? "var(--grad-brand)"
                       : "rgba(255,255,255,0.06)",
-                  border: `2px solid ${done ? "#16a34a" : active ? "#4ade80" : "rgba(255,255,255,0.1)"}`,
+                  border: `2px solid ${done ? "var(--brand-600)" : active ? "var(--brand-500)" : "rgba(255,255,255,0.1)"}`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   transition: "all 0.3s",
                   flexShrink: 0,
+                  boxShadow: active ? "0 0 16px rgba(74,222,128,0.3)" : "none",
                 }}
               >
                 {done ? (
@@ -93,7 +104,7 @@ function StepBar({ current }: { current: Step }) {
                   fontSize: 11,
                   fontWeight: 600,
                   color: active
-                    ? "#4ade80"
+                    ? "var(--brand-500)"
                     : done
                       ? "rgba(255,255,255,0.6)"
                       : "rgba(255,255,255,0.25)",
@@ -108,7 +119,7 @@ function StepBar({ current }: { current: Step }) {
                 style={{
                   flex: 1,
                   height: 1,
-                  background: done ? "#16a34a" : "rgba(255,255,255,0.08)",
+                  background: done ? "var(--brand-600)" : "var(--border-base)",
                   margin: "0 8px",
                   marginBottom: 22,
                   transition: "background 0.3s",
@@ -144,7 +155,6 @@ function InputField({
   disabled?: boolean;
 }) {
   const [focused, setFocused] = useState(false);
-
   return (
     <div>
       <label
@@ -152,7 +162,7 @@ function InputField({
           display: "block",
           fontSize: 13,
           fontWeight: 700,
-          color: "rgba(255,255,255,0.7)",
+          color: "var(--text-secondary)",
           marginBottom: 8,
         }}
       >
@@ -165,7 +175,7 @@ function InputField({
             left: 14,
             top: "50%",
             transform: "translateY(-50%)",
-            color: focused ? "#4ade80" : "rgba(255,255,255,0.25)",
+            color: focused ? "var(--brand-500)" : "var(--text-faint)",
             transition: "color 0.2s",
             pointerEvents: "none",
           }}
@@ -183,15 +193,16 @@ function InputField({
           style={{
             width: "100%",
             padding: "13px 14px 13px 42px",
-            background: "rgba(255,255,255,0.04)",
-            border: `1.5px solid ${error ? "#f87171" : focused ? "#4ade80" : "rgba(255,255,255,0.1)"}`,
+            background: "var(--glass-bg)",
+            border: `1.5px solid ${error ? "#f87171" : focused ? "var(--brand-500)" : "var(--border-card)"}`,
             borderRadius: 14,
-            color: "#e8f5e9",
+            color: "var(--text-primary)",
             fontSize: 14,
             fontWeight: 500,
             outline: "none",
             transition: "border 0.2s",
             opacity: disabled ? 0.5 : 1,
+            boxShadow: focused ? "0 0 0 3px rgba(74,222,128,0.08)" : "none",
           }}
         />
       </div>
@@ -210,9 +221,7 @@ function InputField({
         </motion.p>
       )}
       {hint && !error && (
-        <p
-          style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", marginTop: 5 }}
-        >
+        <p style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 5 }}>
           {hint}
         </p>
       )}
@@ -221,9 +230,10 @@ function InputField({
 }
 
 export default function AddZone() {
-  const plants = useQuery(api.plants.getPlants);
+  const plants = useQuery(api.Plants.getPlants);
   const addDevice = useMutation(api.devices.addDevice);
   const testConnection = useAction(api.devices.testConnection);
+  const [scrolled, setScrolled] = useState(false);
 
   const [step, setStep] = useState<Step>(1);
   const [name, setName] = useState("");
@@ -255,9 +265,8 @@ export default function AddZone() {
     else if (
       !url.startsWith("https://") ||
       !url.includes("firebasedatabase.app")
-    ) {
+    )
       e.firebaseUrl = "Must be a valid Firebase Realtime Database URL";
-    }
     if (!secret) e.firebaseSecret = "Firebase secret is required";
     else if (secret.length < 10) e.firebaseSecret = "Secret seems too short";
     setErrors(e);
@@ -316,56 +325,155 @@ export default function AddZone() {
     <div
       style={{
         minHeight: "100vh",
-        background: "#070d09",
-        color: "#e8f5e9",
-        fontFamily: "'DM Sans', system-ui, sans-serif",
+        background: `
+        radial-gradient(ellipse 120% 60% at 50% 0%, #162e1a 0%, #0d2318 30%, transparent 60%),
+        radial-gradient(ellipse 80% 60% at 0% 50%, rgba(15,43,24,0.9) 0%, transparent 60%),
+        radial-gradient(ellipse 80% 60% at 100% 50%, rgba(11,30,36,0.7) 0%, transparent 60%),
+        radial-gradient(ellipse 100% 50% at 50% 100%, rgba(15,43,24,0.5) 0%, transparent 60%),
+        #070d09
+      `,
+        color: "var(--text-primary)",
+        fontFamily: "var(--font-body)",
         display: "flex",
         flexDirection: "column",
       }}
     >
+      {/* ── Background decorations */}
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      >
+        <div
+          className="grid-pattern"
+          style={{ position: "absolute", inset: 0, opacity: 0.4 }}
+        />
+        {[640, 900].map((d, i) => (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              width: d,
+              height: d,
+              top: "30%",
+              left: "50%",
+              transform: "translate(-50%,-50%)",
+              border: `1px ${i === 0 ? "solid" : "dashed"} var(--border-base)`,
+              borderRadius: "50%",
+            }}
+          />
+        ))}
+        {PARTICLES.map((p, i) => (
+          <motion.div
+            key={i}
+            animate={{ y: [0, -18, 0], opacity: [0.25, 0.7, 0.25] }}
+            transition={{
+              duration: 5 + p.delay,
+              repeat: Infinity,
+              delay: p.delay,
+            }}
+            style={{
+              position: "absolute",
+              left: `${p.x}%`,
+              top: `${p.y}%`,
+              width: p.size,
+              height: p.size,
+              borderRadius: "50%",
+              background: p.color,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* ── Header */}
       <header
         style={{
           position: "sticky",
           top: 0,
           zIndex: 50,
-          background: "rgba(7,13,9,0.9)",
-          backdropFilter: "blur(20px)",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-          padding: "14px 24px",
+          // ✅ شفاف في الأول، solid لما يسكرول
+          background: scrolled ? "rgba(7,13,9,0.85)" : "transparent",
+          backdropFilter: scrolled ? "blur(24px)" : "none",
+          WebkitBackdropFilter: scrolled ? "blur(24px)" : "none",
+          borderBottom: `1px solid ${scrolled ? "var(--border-base)" : "transparent"}`,
+          boxShadow: scrolled ? "var(--shadow-sm)" : "none",
+          transition: "all 0.35s ease", // ✅ smooth
+          padding: "12px 24px",
           display: "flex",
           alignItems: "center",
-          gap: 14,
+          justifyContent: "space-between",
         }}
       >
-        <button
-          onClick={() =>
-            step === 1 ? nav("/dashboard") : setStep((s) => (s - 1) as Step)
-          }
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: "rgba(255,255,255,0.05)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            color: "rgba(255,255,255,0.6)",
-          }}
-        >
-          <ArrowLeft size={16} />
-        </button>
-        <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: "#e8f5e9" }}>
-            Add Zone
-          </div>
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>
-            Connect a new sensor zone
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() =>
+              step === 1 ? nav("/dashboard") : setStep((s) => (s - 1) as Step)
+            }
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: "var(--glass-bg)",
+              border: "1px solid var(--border-card)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              color: "var(--text-muted)",
+            }}
+          >
+            <ArrowLeft size={16} />
+          </motion.button>
+          <div>
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 700,
+                color: "var(--text-primary)",
+              }}
+            >
+              Add Zone
+            </div>
+            <div
+              style={{
+                fontSize: 11,
+                color: "var(--text-faint)",
+                letterSpacing: "0.04em",
+              }}
+            >
+              Connect a new sensor zone
+            </div>
           </div>
         </div>
+
+        {/* Logo */}
+        <motion.a
+          href="/dashboard"
+          whileHover={{ scale: 1.02 }}
+          style={{ display: "flex", alignItems: "center", gap: 10 }}
+        >
+          <motion.div
+            whileHover={{ rotate: [0, -7, 7, 0] }}
+            transition={{ duration: 0.5 }}
+            style={{ filter: "drop-shadow(0 4px 14px rgba(22,163,74,.30))" }}
+          >
+            <AgriSenseLogo size={34} />
+          </motion.div>
+          <span
+            className="fd grad-text"
+            style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.025em" }}
+          >
+            AgriSense
+          </span>
+        </motion.a>
       </header>
 
+      {/* ── Main */}
       <main
         style={{
           flex: 1,
@@ -373,10 +481,12 @@ export default function AddZone() {
           alignItems: "flex-start",
           justifyContent: "center",
           padding: "40px 24px",
+          position: "relative",
+          zIndex: 1,
         }}
       >
         <motion.div
-          style={{ width: "100%", maxWidth: 480 }}
+          style={{ width: "100%", maxWidth: 500 }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
@@ -385,10 +495,12 @@ export default function AddZone() {
 
           <div
             style={{
-              background: "rgba(255,255,255,0.02)",
-              border: "1px solid rgba(255,255,255,0.07)",
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid var(--border-card)",
               borderRadius: 24,
               padding: "32px",
+              backdropFilter: "blur(20px)",
+              boxShadow: "var(--shadow-md)",
             }}
           >
             <AnimatePresence mode="wait">
@@ -404,15 +516,16 @@ export default function AddZone() {
                   <div>
                     <h2
                       style={{
-                        fontSize: 20,
+                        fontSize: 22,
                         fontWeight: 800,
-                        color: "#e8f5e9",
+                        color: "var(--text-primary)",
                         marginBottom: 6,
+                        letterSpacing: "-0.02em",
                       }}
                     >
                       Name your zone
                     </h2>
-                    <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>
+                    <p style={{ fontSize: 14, color: "var(--text-muted)" }}>
                       Give this sensor zone a descriptive name so you can
                       identify it easily.
                     </p>
@@ -437,7 +550,7 @@ export default function AddZone() {
                         display: "block",
                         fontSize: 13,
                         fontWeight: 700,
-                        color: "rgba(255,255,255,0.7)",
+                        color: "var(--text-secondary)",
                         marginBottom: 8,
                       }}
                     >
@@ -451,7 +564,7 @@ export default function AddZone() {
                           left: 14,
                           top: "50%",
                           transform: "translateY(-50%)",
-                          color: "rgba(255,255,255,0.25)",
+                          color: "var(--text-faint)",
                           pointerEvents: "none",
                         }}
                       />
@@ -461,10 +574,12 @@ export default function AddZone() {
                         style={{
                           width: "100%",
                           padding: "13px 14px 13px 42px",
-                          background: "rgba(255,255,255,0.04)",
-                          border: "1.5px solid rgba(255,255,255,0.1)",
+                          background: "var(--glass-bg)",
+                          border: "1.5px solid var(--border-card)",
                           borderRadius: 14,
-                          color: plantId ? "#e8f5e9" : "rgba(255,255,255,0.3)",
+                          color: plantId
+                            ? "var(--text-primary)"
+                            : "var(--text-faint)",
                           fontSize: 14,
                           fontWeight: 500,
                           outline: "none",
@@ -473,21 +588,27 @@ export default function AddZone() {
                         }}
                       >
                         <option value="">No crop selected</option>
-                        {(plants ?? []).map((p) => (
-                          <option
-                            key={p._id}
-                            value={p._id}
-                            style={{ background: "#0f1f12" }}
-                          >
-                            {p.name} — {p.nameAr}
-                          </option>
-                        ))}
+                        {(plants ?? []).map(
+                          (p: {
+                            _id: string;
+                            name: string;
+                            nameAr: string;
+                          }) => (
+                            <option
+                              key={p._id}
+                              value={p._id}
+                              style={{ background: "#0f1f12" }}
+                            >
+                              {p.name} — {p.nameAr}
+                            </option>
+                          ),
+                        )}
                       </select>
                     </div>
                     <p
                       style={{
                         fontSize: 12,
-                        color: "rgba(255,255,255,0.3)",
+                        color: "var(--text-faint)",
                         marginTop: 5,
                       }}
                     >
@@ -509,15 +630,16 @@ export default function AddZone() {
                   <div>
                     <h2
                       style={{
-                        fontSize: 20,
+                        fontSize: 22,
                         fontWeight: 800,
-                        color: "#e8f5e9",
+                        color: "var(--text-primary)",
                         marginBottom: 6,
+                        letterSpacing: "-0.02em",
                       }}
                     >
                       Firebase connection
                     </h2>
-                    <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>
+                    <p style={{ fontSize: 14, color: "var(--text-muted)" }}>
                       Enter your Firebase Realtime Database credentials to link
                       your sensor device.
                     </p>
@@ -568,16 +690,22 @@ export default function AddZone() {
                     error={errors.firebaseSecret}
                   />
 
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={handleTestConnection}
                     disabled={testing}
                     style={{
                       width: "100%",
                       padding: "12px",
-                      background: "rgba(56,189,248,0.08)",
-                      border: "1px solid rgba(56,189,248,0.2)",
+                      background:
+                        testResult === "ok"
+                          ? "rgba(74,222,128,0.08)"
+                          : testResult === "fail"
+                            ? "rgba(248,113,113,0.08)"
+                            : "rgba(56,189,248,0.08)",
+                      border: `1px solid ${testResult === "ok" ? "rgba(74,222,128,0.25)" : testResult === "fail" ? "rgba(248,113,113,0.25)" : "rgba(56,189,248,0.2)"}`,
                       borderRadius: 12,
-                      color: "#7dd3fc",
                       fontSize: 14,
                       fontWeight: 600,
                       cursor: testing ? "not-allowed" : "pointer",
@@ -587,6 +715,12 @@ export default function AddZone() {
                       gap: 8,
                       opacity: testing ? 0.7 : 1,
                       transition: "all 0.2s",
+                      color:
+                        testResult === "ok"
+                          ? "#4ade80"
+                          : testResult === "fail"
+                            ? "#f87171"
+                            : "#7dd3fc",
                     }}
                   >
                     {testing ? (
@@ -600,7 +734,7 @@ export default function AddZone() {
                     ) : testResult === "ok" ? (
                       <>
                         <Wifi size={15} color="#4ade80" />
-                        <span style={{ color: "#4ade80" }}>Connected ✓</span>
+                        <span>Connected ✓</span>
                       </>
                     ) : testResult === "warn" ? (
                       <>
@@ -611,17 +745,15 @@ export default function AddZone() {
                       </>
                     ) : testResult === "fail" ? (
                       <>
-                        <WifiOff size={15} color="#f87171" />
-                        <span style={{ color: "#f87171" }}>
-                          Connection failed — retry
-                        </span>
+                        <WifiOff size={15} />
+                        <span>Connection failed — retry</span>
                       </>
                     ) : (
                       <>
                         <Wifi size={15} /> Test Connection
                       </>
                     )}
-                  </button>
+                  </motion.button>
                 </motion.div>
               )}
 
@@ -637,15 +769,16 @@ export default function AddZone() {
                   <div>
                     <h2
                       style={{
-                        fontSize: 20,
+                        fontSize: 22,
                         fontWeight: 800,
-                        color: "#e8f5e9",
+                        color: "var(--text-primary)",
                         marginBottom: 6,
+                        letterSpacing: "-0.02em",
                       }}
                     >
                       Confirm & save
                     </h2>
-                    <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>
+                    <p style={{ fontSize: 14, color: "var(--text-muted)" }}>
                       Review your zone details before saving.
                     </p>
                   </div>
@@ -669,7 +802,7 @@ export default function AddZone() {
                       {
                         label: "Crop Type",
                         value: plantId
-                          ? ((plants ?? []).find((p) => p._id === plantId)
+                          ? ((plants ?? []).find((p: any) => p._id === plantId)
                               ?.name ?? "—")
                           : "None selected",
                       },
@@ -681,15 +814,15 @@ export default function AddZone() {
                           justifyContent: "space-between",
                           alignItems: "center",
                           padding: "12px 16px",
-                          background: "rgba(255,255,255,0.03)",
-                          border: "1px solid rgba(255,255,255,0.06)",
+                          background: "var(--glass-bg)",
+                          border: "1px solid var(--border-base)",
                           borderRadius: 12,
                         }}
                       >
                         <span
                           style={{
                             fontSize: 13,
-                            color: "rgba(255,255,255,0.4)",
+                            color: "var(--text-muted)",
                             fontWeight: 500,
                           }}
                         >
@@ -698,7 +831,7 @@ export default function AddZone() {
                         <span
                           style={{
                             fontSize: 13,
-                            color: "#e8f5e9",
+                            color: "var(--text-primary)",
                             fontWeight: 600,
                             maxWidth: 220,
                             overflow: "hidden",
@@ -716,10 +849,10 @@ export default function AddZone() {
                     style={{
                       padding: "12px 16px",
                       background: "rgba(74,222,128,0.06)",
-                      border: "1px solid rgba(74,222,128,0.15)",
+                      border: "1px solid var(--badge-border)",
                       borderRadius: 12,
                       fontSize: 13,
-                      color: "rgba(134,239,172,0.8)",
+                      color: "var(--badge-color)",
                       lineHeight: 1.6,
                     }}
                   >
@@ -737,10 +870,10 @@ export default function AddZone() {
                   style={{
                     flex: 1,
                     padding: "13px",
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.1)",
+                    background: "var(--glass-bg)",
+                    border: "1px solid var(--border-card)",
                     borderRadius: 14,
-                    color: "rgba(255,255,255,0.6)",
+                    color: "var(--text-muted)",
                     fontSize: 14,
                     fontWeight: 600,
                     cursor: "pointer",
@@ -749,16 +882,18 @@ export default function AddZone() {
                   Back
                 </button>
               )}
-
               {step < 3 ? (
                 <motion.button
-                  whileHover={{ scale: 1.015 }}
+                  whileHover={{
+                    scale: 1.015,
+                    boxShadow: "0 8px 28px rgba(22,163,74,0.3)",
+                  }}
                   whileTap={{ scale: 0.985 }}
                   onClick={handleNext}
                   style={{
                     flex: 1,
                     padding: "13px",
-                    background: "linear-gradient(135deg,#16a34a,#0ea5e9)",
+                    background: "var(--grad-brand)",
                     border: "none",
                     borderRadius: 14,
                     color: "white",
@@ -785,7 +920,7 @@ export default function AddZone() {
                   style={{
                     flex: 1,
                     padding: "13px",
-                    background: "linear-gradient(135deg,#16a34a,#0ea5e9)",
+                    background: "var(--grad-brand)",
                     border: "none",
                     borderRadius: 14,
                     color: "white",

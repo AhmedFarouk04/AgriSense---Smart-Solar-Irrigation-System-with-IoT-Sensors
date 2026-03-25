@@ -68,7 +68,18 @@ export const logPumpEvent = internalMutation({
     });
   },
 });
-
+export const getReadings7d = query({
+  args: { deviceId: v.id("devices") },
+  handler: async (ctx, args) => {
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return await ctx.db
+      .query("readings")
+      .withIndex("by_device_timestamp", (q) =>
+        q.eq("deviceId", args.deviceId).gte("timestamp", sevenDaysAgo),
+      )
+      .collect();
+  },
+});
 export const fetchAndSaveReadingInternal = internalAction({
   args: { deviceId: v.id("devices") },
   handler: async (ctx, args) => {

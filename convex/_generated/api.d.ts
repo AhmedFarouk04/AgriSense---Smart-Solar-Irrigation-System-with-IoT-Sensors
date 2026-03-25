@@ -8,15 +8,17 @@
  * @module
  */
 
+import type * as Plants from "../Plants.js";
 import type * as auth from "../auth.js";
 import type * as authHelpers from "../authHelpers.js";
 import type * as devices from "../devices.js";
 import type * as email from "../email.js";
+import type * as events from "../events.js";
 import type * as http from "../http.js";
 import type * as password from "../password.js";
 import type * as passwordMutations from "../passwordMutations.js";
-import type * as plants from "../plants.js";
 import type * as readings from "../readings.js";
+import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
 
 import type {
@@ -26,15 +28,17 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  Plants: typeof Plants;
   auth: typeof auth;
   authHelpers: typeof authHelpers;
   devices: typeof devices;
   email: typeof email;
+  events: typeof events;
   http: typeof http;
   password: typeof password;
   passwordMutations: typeof passwordMutations;
-  plants: typeof plants;
   readings: typeof readings;
+  userSettings: typeof userSettings;
   users: typeof users;
 }>;
 

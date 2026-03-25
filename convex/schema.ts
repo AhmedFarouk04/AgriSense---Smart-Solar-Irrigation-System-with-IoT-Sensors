@@ -22,18 +22,23 @@ const applicationTables = {
     plantId: v.optional(v.id("plants")),
     isActive: v.boolean(),
     createdAt: v.number(),
+    // ✅ per-device thresholds
+    customMinMoisture: v.optional(v.number()),
+    customMaxMoisture: v.optional(v.number()),
+    customOptimalTemp: v.optional(v.number()),
+    // ✅ per-device info
+    areaM2: v.optional(v.number()),
+    notes: v.optional(v.string()),
   }).index("by_user", ["userId"]),
 
   userSettings: defineTable({
     userId: v.id("users"),
-    selectedPlantId: v.optional(v.id("plants")),
+    // ✅ global settings فقط
     manualMode: v.boolean(),
     pumpManualStatus: v.boolean(),
-    customMinMoisture: v.optional(v.number()),
-    customMaxMoisture: v.optional(v.number()),
-    customMinSalinity: v.optional(v.number()),
-    customMaxSalinity: v.optional(v.number()),
-    customOptimalTemp: v.optional(v.number()),
+    theme: v.optional(v.string()),
+    language: v.optional(v.string()),
+    notificationsEnabled: v.optional(v.boolean()),
   }).index("by_user", ["userId"]),
 
   readings: defineTable({
@@ -74,7 +79,9 @@ export default defineSchema({
     phoneVerificationTime: v.optional(v.number()),
     isAnonymous: v.optional(v.boolean()),
     role: v.optional(v.string()),
+    farmName: v.optional(v.string()),
     farmArea: v.optional(v.number()),
+    farmAreaUnit: v.optional(v.string()),
     location: v.optional(v.string()),
     verificationCode: v.optional(v.string()),
     codeExpires: v.optional(v.number()),
