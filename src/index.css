@@ -63,3 +63,141 @@ body {
 .animation-delay-4000 {
   animation-delay: 4s;
 }
+/* Responsive Grid Utilities */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+/* Mobile Screens (Phones) */
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr; /* كارت واحد في الصف */
+  }
+  .charts-grid {
+    grid-template-columns: 1fr; /* رسم بياني واحد في الصف */
+  }
+  .stats-grid {
+    grid-template-columns: 1fr; /* إحصائية واحدة في الصف */
+  }
+
+  /* تصغير الهيدر في الموبايل */
+  .header-actions {
+    gap: 8px !important;
+  }
+  .hide-on-mobile {
+    display: none !important;
+  }
+}
+
+/* Tablet Screens */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr); /* كارتين في الصف */
+  }
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+/* Responsive Utilities */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+/* Mobile Screens (Phones) */
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .header-actions {
+    gap: 8px !important;
+  }
+  .hide-on-mobile {
+    display: none !important;
+  }
+}
+
+/* Tablet Screens */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+/* =========================================
+   Landing Page Responsive Utilities
+========================================= */
+
+/* Footer Grid Default (Desktop) */
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 48px;
+}
+
+/* Hide Burger Menu on Desktop */
+.burger-btn {
+  display: none !important;
+}
+
+/* Mobile & Tablet Styles */
+@media (max-width: 768px) {
+  /* إخفاء العناصر اللي مش محتاجينها في الموبايل */
+  .hide-mob {
+    display: none !important;
+  }
+
+  /* إظهار زرار القائمة الجانبية في الموبايل */
+  .burger-btn {
+    display: flex !important;
+  }
+
+  /* تحويل الفوتر لعمود واحد بدل 4 */
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  /* توسيط الحقوق في الفوتر على الموبايل */
+  .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+    justify-content: center;
+  }
+}

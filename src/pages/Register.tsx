@@ -643,7 +643,7 @@ export default function Register() {
 
       {/* Right side - form */}
       <div
-        className="flex-1 flex items-center justify-center p-6 lg:p-14 relative overflow-hidden"
+        className="flex-1 flex items-center justify-center p-6 pt-20 lg:pt-14 lg:p-14 relative overflow-hidden"
         style={{ background: tk.panelBg, transition: "background 0.3s ease" }}
       >
         <div
@@ -845,7 +845,6 @@ export default function Register() {
                     const formatErr = validateName(form.name);
 
                     if (formatErr) {
-                      // لو في خطأ صيغة، نعرضه
                       setErrors((prev) => ({ ...prev, name: formatErr }));
                     } else {
                       setErrors((prev) => {

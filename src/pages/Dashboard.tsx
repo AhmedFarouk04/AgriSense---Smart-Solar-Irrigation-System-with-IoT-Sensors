@@ -1,7 +1,8 @@
 import { useQuery, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useState, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
+import { AreaChart, Area, ReferenceLine } from "recharts";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Droplets,
   Thermometer,
@@ -12,6 +13,14 @@ import {
   Clock,
   Activity,
   AlertCircle,
+  BarChart2,
+  LogOut,
+  User as UserIcon,
+  ChevronDown,
+  Settings as SettingsIcon,
+  HelpCircle,
+  PlusCircle,
+  ListIcon,
 } from "lucide-react";
 import {
   LineChart,
@@ -27,8 +36,7 @@ import {
 import { Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
 import { AgriSenseLogo } from "../components/Logo";
-
-// ✅ استدعاء المكونات المنفصلة
+import { useAuthActions } from "@convex-dev/auth/react";
 import { CustomTooltip } from "../components/dashboard/CustomTooltip";
 import { LiveCard } from "../components/dashboard/LiveCard";
 import { EmptyState } from "../components/dashboard/EmptyState";
@@ -49,12 +57,11 @@ const PARTICLES = [
   { x: 75, y: 40, size: 6, color: "var(--particle-3)", delay: 1.8 },
 ];
 
-function getMoistureStatus(v: number) {
-  if (v < 30) return { label: "Dry", color: "#f87171" };
-  if (v < 70) return { label: "Good", color: "#4ade80" };
+function getMoistureStatus(v: number, min: number = 30, max: number = 70) {
+  if (v < min) return { label: "Dry", color: "#f87171" };
+  if (v <= max) return { label: "Good", color: "#4ade80" };
   return { label: "Wet", color: "#60a5fa" };
 }
-
 function getTempStatus(v: number) {
   if (v < 15) return { label: "Cold", color: "#60a5fa" };
   if (v < 35) return { label: "Normal", color: "#4ade80" };
@@ -69,9 +76,9 @@ function getFlowStatus(v: number) {
 
 function fmt(ts: number) {
   return new Date(ts).toLocaleTimeString("en-US", {
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
-    hour12: false,
+    hour12: true,
   });
 }
 
@@ -88,6 +95,7 @@ function timeAgo(ts: number) {
 function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
   const latest = useQuery(api.readings.getLatestReading, { deviceId });
   const readings24h = useQuery(api.readings.getReadings24h, { deviceId });
+  const deviceDetails = useQuery(api.devices.getDevice, { deviceId });
   const fetchReading = useAction(api.readings.fetchAndSaveReading);
   const controlPump = useAction(api.readings.controlPump);
   const [pumpLoading, setPumpLoading] = useState(false);
@@ -125,7 +133,11 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
     flow: r.flowRate,
   }));
 
-  if (latest === undefined || readings24h === undefined) {
+  if (
+    latest === undefined ||
+    readings24h === undefined ||
+    deviceDetails === undefined
+  ) {
     return (
       <div
         style={{
@@ -164,20 +176,13 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
         <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 15 }}>
           Waiting for sensor data...
         </p>
-        <p
-          style={{
-            color: "rgba(255,255,255,0.25)",
-            fontSize: 13,
-            marginTop: 6,
-          }}
-        >
-          Make sure your device is powered on and connected.
-        </p>
       </motion.div>
     );
   }
 
-  const mStatus = getMoistureStatus(latest.moisture);
+  const minMoist = deviceDetails.customMinMoisture ?? 30;
+  const maxMoist = deviceDetails.customMaxMoisture ?? 70;
+  const mStatus = getMoistureStatus(latest.moisture, minMoist, maxMoist);
   const tStatus = getTempStatus(latest.temperature);
   const fStatus = getFlowStatus(latest.flowRate);
   const avgFlow = readings24h?.length
@@ -186,6 +191,7 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* ── Header: Live Status ── */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -227,13 +233,9 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
         </div>
       </motion.div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4,1fr)",
-          gap: 14,
-        }}
-      >
+      {/* ── Main KPIs & Pump Control ── */}
+      {/* ✅ استخدام الكلاس بدل الستايل المباشر */}
+      <div className="dashboard-grid">
         <LiveCard
           icon={<Droplets size={18} />}
           label="Soil Moisture"
@@ -283,19 +285,6 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
         >
           <div
             style={{
-              position: "absolute",
-              top: -30,
-              right: -30,
-              width: 90,
-              height: 90,
-              borderRadius: "50%",
-              background: latest.pumpStatus
-                ? "radial-gradient(circle,rgba(74,222,128,0.15),transparent 70%)"
-                : "radial-gradient(circle,rgba(107,114,128,0.1),transparent 70%)",
-            }}
-          />
-          <div
-            style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "flex-start",
@@ -309,14 +298,26 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                 background: latest.pumpStatus
                   ? "rgba(74,222,128,0.15)"
                   : "rgba(107,114,128,0.1)",
-                border: `1px solid ${latest.pumpStatus ? "rgba(74,222,128,0.3)" : "rgba(107,114,128,0.2)"}`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 color: latest.pumpStatus ? "#4ade80" : "#6b7280",
               }}
             >
-              <Power size={18} />
+              {pumpLoading ? (
+                <div
+                  style={{
+                    width: 14,
+                    height: 14,
+                    border: "2px solid rgba(255,255,255,0.3)",
+                    borderTopColor: "white",
+                    borderRadius: "50%",
+                    animation: "spin 0.8s linear infinite",
+                  }}
+                />
+              ) : (
+                <Power size={18} />
+              )}
             </div>
             <div
               style={{
@@ -353,119 +354,82 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                 fontSize: 11,
                 color: "rgba(255,255,255,0.4)",
                 fontWeight: 600,
-                letterSpacing: "0.08em",
                 textTransform: "uppercase",
                 marginBottom: 4,
               }}
             >
               Pump Control
             </div>
-            <div
-              style={{
-                fontSize: 28,
-                fontWeight: 800,
-                color: "#e8f5e9",
-                lineHeight: 1,
-                letterSpacing: "-0.02em",
-              }}
-            >
+            <div style={{ fontSize: 28, fontWeight: 800, color: "#e8f5e9" }}>
               {latest.pumpStatus ? "ON" : "OFF"}
             </div>
-          </div>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              padding: "3px 10px",
-              borderRadius: 99,
-              background: latest.pumpStatus
-                ? "rgba(74,222,128,0.12)"
-                : "rgba(107,114,128,0.1)",
-              border: `1px solid ${latest.pumpStatus ? "rgba(74,222,128,0.25)" : "rgba(107,114,128,0.2)"}`,
-              width: "fit-content",
-            }}
-          >
-            <div
-              style={{
-                width: 5,
-                height: 5,
-                borderRadius: "50%",
-                background: latest.pumpStatus ? "#4ade80" : "#6b7280",
-              }}
-            />
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: latest.pumpStatus ? "#4ade80" : "#6b7280",
-              }}
-            >
-              {latest.pumpStatus ? "Running" : "Idle"}
-            </span>
           </div>
         </motion.div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        {[
-          {
-            title: "Soil Moisture",
-            subtitle: "24-hour trend (%)",
-            dataKey: "moisture",
-            color: "#38bdf8",
-            unit: "%",
-          },
-          {
-            title: "Temperature",
-            subtitle: "24-hour readings (°C)",
-            dataKey: "temperature",
-            color: "#fbbf24",
-            unit: "°C",
-          },
-        ].map((chart, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 + i * 0.1 }}
-            style={{
-              background: "rgba(255,255,255,0.02)",
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: 20,
-              padding: "20px",
-            }}
-          >
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#e8f5e9" }}>
-                {chart.title}
+      {/* ── Charts Section ── */}
+      {chartData.length === 0 ? (
+        <div
+          style={{
+            height: 200,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(255,255,255,0.02)",
+            border: "1px solid rgba(255,255,255,0.06)",
+            borderRadius: 20,
+          }}
+        >
+          <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 13 }}>
+            Waiting for enough data to generate charts...
+          </span>
+        </div>
+      ) : (
+        <>
+          {/* ✅ استخدام الكلاس للرسوم البيانية */}
+          <div className="charts-grid">
+            {/* Moisture Chart */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              style={{
+                background: "rgba(255,255,255,0.02)",
+                border: "1px solid rgba(255,255,255,0.06)",
+                borderRadius: 20,
+                padding: "20px",
+              }}
+            >
+              <div style={{ marginBottom: 16 }}>
+                <div
+                  style={{ fontSize: 14, fontWeight: 700, color: "#e8f5e9" }}
+                >
+                  Soil Moisture
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "rgba(255,255,255,0.35)",
+                    marginTop: 2,
+                  }}
+                >
+                  24-hour trend (%)
+                </div>
               </div>
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "rgba(255,255,255,0.35)",
-                  marginTop: 2,
-                }}
-              >
-                {chart.subtitle}
-              </div>
-            </div>
-            {chartData.length === 0 ? (
-              <div
-                style={{
-                  height: 140,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 13 }}>
-                  No data yet
-                </span>
-              </div>
-            ) : (
               <ResponsiveContainer width="100%" height={140}>
-                <LineChart data={chartData}>
+                <AreaChart data={chartData} syncId="dashboardCharts">
+                  <defs>
+                    <linearGradient
+                      id="colorMoisture"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
                     stroke="rgba(255,255,255,0.04)"
@@ -475,7 +439,82 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                     tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
                     tickLine={false}
                     axisLine={false}
-                    interval="preserveStartEnd"
+                    minTickGap={30}
+                  />
+                  <YAxis
+                    tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={28}
+                    domain={[0, 100]}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <ReferenceLine
+                    y={minMoist}
+                    stroke="#f87171"
+                    strokeDasharray="3 3"
+                    opacity={0.5}
+                  />
+                  <ReferenceLine
+                    y={maxMoist}
+                    stroke="#60a5fa"
+                    strokeDasharray="3 3"
+                    opacity={0.5}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="moisture"
+                    stroke="#38bdf8"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorMoisture)"
+                    name="Moisture"
+                    unit="%"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </motion.div>
+
+            {/* Temperature Chart */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              style={{
+                background: "rgba(255,255,255,0.02)",
+                border: "1px solid rgba(255,255,255,0.06)",
+                borderRadius: 20,
+                padding: "20px",
+              }}
+            >
+              <div style={{ marginBottom: 16 }}>
+                <div
+                  style={{ fontSize: 14, fontWeight: 700, color: "#e8f5e9" }}
+                >
+                  Temperature
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "rgba(255,255,255,0.35)",
+                    marginTop: 2,
+                  }}
+                >
+                  24-hour readings (°C)
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={140}>
+                <LineChart data={chartData} syncId="dashboardCharts">
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(255,255,255,0.04)"
+                  />
+                  <XAxis
+                    dataKey="time"
+                    tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
+                    tickLine={false}
+                    axisLine={false}
+                    minTickGap={30}
                   />
                   <YAxis
                     tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
@@ -486,101 +525,79 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                   <Tooltip content={<CustomTooltip />} />
                   <Line
                     type="monotone"
-                    dataKey={chart.dataKey}
-                    stroke={chart.color}
+                    dataKey="temperature"
+                    stroke="#fbbf24"
                     strokeWidth={2}
                     dot={false}
-                    name={chart.title}
-                    unit={chart.unit}
+                    name="Temperature"
+                    unit="°C"
                   />
                 </LineChart>
               </ResponsiveContainer>
-            )}
+            </motion.div>
+          </div>
+
+          {/* Flow Rate Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            style={{
+              background: "rgba(255,255,255,0.02)",
+              border: "1px solid rgba(255,255,255,0.06)",
+              borderRadius: 20,
+              padding: "20px",
+            }}
+          >
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#e8f5e9" }}>
+                Water Flow Rate
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={120}>
+              <BarChart data={chartData} syncId="dashboardCharts">
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="rgba(255,255,255,0.04)"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="time"
+                  tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={false}
+                  minTickGap={30}
+                />
+                <YAxis
+                  tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={28}
+                />
+                <Tooltip
+                  content={<CustomTooltip />}
+                  cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                />
+                <Bar
+                  dataKey="flow"
+                  fill="#34d399"
+                  radius={[3, 3, 0, 0]}
+                  name="Flow"
+                  unit=" L/min"
+                />
+              </BarChart>
+            </ResponsiveContainer>
           </motion.div>
-        ))}
-      </div>
+        </>
+      )}
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        style={{
-          background: "rgba(255,255,255,0.02)",
-          border: "1px solid rgba(255,255,255,0.06)",
-          borderRadius: 20,
-          padding: "20px",
-        }}
-      >
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#e8f5e9" }}>
-            Water Flow Rate
-          </div>
-          <div
-            style={{
-              fontSize: 12,
-              color: "rgba(255,255,255,0.35)",
-              marginTop: 2,
-            }}
-          >
-            24-hour flow rate (L/min)
-          </div>
-        </div>
-        {chartData.length === 0 ? (
-          <div
-            style={{
-              height: 120,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 13 }}>
-              No data yet
-            </span>
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height={120}>
-            <BarChart data={chartData}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="rgba(255,255,255,0.04)"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="time"
-                tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
-                tickLine={false}
-                axisLine={false}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
-                tickLine={false}
-                axisLine={false}
-                width={28}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar
-                dataKey="flow"
-                fill="#34d399"
-                radius={[3, 3, 0, 0]}
-                name="Flow"
-                unit=" L/min"
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-      </motion.div>
-
+      {/* ── Quick Stats ── */}
+      {/* ✅ استخدام الكلاس للبطاقات */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.35 }}
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3,1fr)",
-          gap: 14,
-        }}
+        className="stats-grid"
       >
         {[
           {
@@ -655,8 +672,31 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
 export default function Dashboard() {
   const devices = useQuery(api.devices.getDevices);
   const user = useQuery(api.auth.loggedInUser);
+  const events = useQuery(api.users.getEvents);
+
+  const { signOut } = useAuthActions();
+
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  const [lastViewed, setLastViewed] = useState(() =>
+    parseInt(localStorage.getItem("lastViewedNotifications") || "0"),
+  );
+
+  useEffect(() => {
+    const handleViewed = () => {
+      setLastViewed(
+        parseInt(localStorage.getItem("lastViewedNotifications") || "0"),
+      );
+    };
+
+    window.addEventListener("notifications_viewed", handleViewed);
+
+    return () => {
+      window.removeEventListener("notifications_viewed", handleViewed);
+    };
+  }, []);
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 24);
@@ -672,6 +712,12 @@ export default function Dashboard() {
   const hour = new Date().getHours();
   const greeting =
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
+  const unreadCount = (events ?? []).filter(
+    (e: any) =>
+      (e.type === "alert" || e.type === "low_moisture") &&
+      e.timestamp > lastViewed,
+  ).length;
 
   return (
     <div
@@ -757,34 +803,20 @@ export default function Dashboard() {
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <motion.a
               href="/dashboard"
-              whileHover={{ scale: 1.02 }}
               style={{ display: "flex", alignItems: "center", gap: 11 }}
             >
-              <motion.div
-                whileHover={{ rotate: [0, -7, 7, 0] }}
-                transition={{ duration: 0.5 }}
-                style={{
-                  filter: "drop-shadow(0 4px 14px rgba(22,163,74,.30))",
-                  flexShrink: 0,
-                }}
-              >
-                <AgriSenseLogo size={38} />
-              </motion.div>
+              <AgriSenseLogo size={38} />
               <div
+                className="hide-on-mobile" // ✅ إخفاء الاسم في الموبايل
                 style={{
                   display: "flex",
                   flexDirection: "column",
                   lineHeight: 1,
-                  gap: 3,
                 }}
               >
                 <span
                   className="fd grad-text"
-                  style={{
-                    fontSize: 21,
-                    fontWeight: 900,
-                    letterSpacing: "-0.025em",
-                  }}
+                  style={{ fontSize: 21, fontWeight: 900 }}
                 >
                   AgriSense
                 </span>
@@ -792,8 +824,6 @@ export default function Dashboard() {
                   style={{
                     fontSize: 10,
                     fontWeight: 600,
-                    letterSpacing: "0.14em",
-                    textTransform: "uppercase",
                     color: "var(--text-faint)",
                   }}
                 >
@@ -803,32 +833,22 @@ export default function Dashboard() {
             </motion.a>
 
             <div
+              className="hide-on-mobile" // ✅ إخفاء الترحيب في الموبايل عشان نوفر مساحة
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 8,
                 background: "var(--badge-bg)",
-                border: "1px solid var(--badge-border)",
-                color: "var(--badge-color)",
                 padding: "7px 18px",
                 borderRadius: "var(--r-full)",
                 fontSize: 14,
                 fontWeight: 600,
-                backdropFilter: "blur(12px)",
-                boxShadow: "var(--shadow-sm)",
               }}
             >
-              <span className="bdot" />
               <span style={{ color: "rgba(255,255,255,0.65)" }}>
                 {greeting},
-              </span>{" "}
-              <span
-                style={{
-                  color: "var(--brand-500)",
-                  fontWeight: 800,
-                  fontSize: 15,
-                }}
-              >
+              </span>
+              <span style={{ color: "var(--brand-500)", fontWeight: 800 }}>
                 {user?.name?.split(" ")[0] ?? "Farmer"}
               </span>{" "}
               👋
@@ -843,7 +863,34 @@ export default function Dashboard() {
             )}
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div
+            className="header-actions"
+            style={{ display: "flex", alignItems: "center", gap: 10 }}
+          >
+            {/* Reports */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              onClick={() => nav("/reports")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "0 14px",
+                height: 36,
+                borderRadius: 10,
+                background: "rgba(74,222,128,0.1)",
+                border: "1px solid rgba(74,222,128,0.2)",
+                cursor: "pointer",
+                color: "#4ade80",
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              <BarChart2 size={16} />{" "}
+              <span className="hide-on-mobile">Reports</span>
+            </motion.button>
+
+            {/* Notifications */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               onClick={() => nav("/notifications")}
@@ -858,30 +905,199 @@ export default function Dashboard() {
                 justifyContent: "center",
                 cursor: "pointer",
                 color: "var(--text-muted)",
+                position: "relative",
               }}
             >
               <AlertCircle size={16} />
+              {unreadCount > 0 && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  style={{
+                    position: "absolute",
+                    top: -6,
+                    right: -6,
+                    background: "#ef4444",
+                    color: "white",
+                    fontSize: 10,
+                    fontWeight: "bold",
+                    minWidth: 18,
+                    height: 18,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 99,
+                    border: "2px solid #070d09",
+                  }}
+                >
+                  {unreadCount > 9 ? "+9" : unreadCount}
+                </motion.span>
+              )}
             </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              onClick={() => nav("/profile")}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: "var(--grad-brand)",
-                border: "none",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                color: "white",
-                fontWeight: 700,
-                fontSize: 13,
-              }}
-            >
-              {user?.name?.[0]?.toUpperCase() ?? "U"}
-            </motion.button>
+
+            {/* User Dropdown */}
+            <div style={{ position: "relative" }}>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                style={{
+                  height: 36,
+                  padding: "0 10px",
+                  borderRadius: 10,
+                  background: "var(--grad-brand)",
+                  border: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  cursor: "pointer",
+                  color: "white",
+                  fontWeight: 700,
+                  fontSize: 13,
+                }}
+              >
+                {user?.name?.[0]?.toUpperCase() ?? "U"}
+                <ChevronDown
+                  size={14}
+                  style={{
+                    opacity: 0.7,
+                    transform: userMenuOpen ? "rotate(180deg)" : "none",
+                    transition: "0.2s",
+                  }}
+                />
+              </motion.button>
+
+              <AnimatePresence>
+                {userMenuOpen && (
+                  <>
+                    <div
+                      style={{ position: "fixed", inset: 0, zIndex: 190 }}
+                      onClick={() => setUserMenuOpen(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      style={{
+                        position: "absolute",
+                        top: "100%",
+                        right: 0,
+                        marginTop: 10,
+                        background: "#0f1f12",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        borderRadius: 12,
+                        padding: 6,
+                        minWidth: 180,
+                        zIndex: 200,
+                        boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+                      }}
+                    >
+                      <button
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          nav("/profile");
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px",
+                          background: "transparent",
+                          border: "none",
+                          color: "white",
+                          textAlign: "left",
+                          cursor: "pointer",
+                          fontSize: 13,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          borderRadius: 8,
+                        }}
+                      >
+                        <UserIcon size={14} /> My Profile
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          nav("/settings");
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px",
+                          background: "transparent",
+                          border: "none",
+                          color: "white",
+                          textAlign: "left",
+                          cursor: "pointer",
+                          fontSize: 13,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          borderRadius: 8,
+                        }}
+                      >
+                        <SettingsIcon size={14} /> Settings
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          nav("/help");
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px",
+                          background: "transparent",
+                          border: "none",
+                          color: "white",
+                          textAlign: "left",
+                          cursor: "pointer",
+                          fontSize: 13,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          borderRadius: 8,
+                        }}
+                      >
+                        <HelpCircle size={14} /> Help & Support
+                      </button>
+
+                      <div
+                        style={{
+                          height: 1,
+                          background: "rgba(255,255,255,0.05)",
+                          margin: "4px 0",
+                        }}
+                      />
+                      <button
+                        onClick={async () => {
+                          try {
+                            await signOut();
+                            nav("/");
+                          } catch (error) {
+                            toast.error("Logout failed");
+                          }
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px",
+                          background: "transparent",
+                          border: "none",
+                          color: "#f87171",
+                          textAlign: "left",
+                          cursor: "pointer",
+                          fontSize: 13,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          borderRadius: 8,
+                        }}
+                      >
+                        <LogOut size={14} /> Logout
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </header>

@@ -15,6 +15,7 @@ import {
   Leaf,
   Trash2,
   MoreVertical,
+  Activity, // ✅ ضفنا الكلمة دي هنا
 } from "lucide-react";
 import { AgriSenseLogo } from "../components/Logo";
 
@@ -71,13 +72,8 @@ export default function DevicesList() {
     <div
       style={{
         minHeight: "100vh",
-        background: `
-        radial-gradient(ellipse 120% 60% at 50% 0%, #162e1a 0%, #0d2318 30%, transparent 60%),
-        radial-gradient(ellipse 80% 60% at 0% 50%, rgba(15,43,24,0.9) 0%, transparent 60%),
-        radial-gradient(ellipse 80% 60% at 100% 50%, rgba(11,30,36,0.7) 0%, transparent 60%),
-        radial-gradient(ellipse 100% 50% at 50% 100%, rgba(15,43,24,0.5) 0%, transparent 60%),
-        #070d09
-      `,
+        // ✅ الخلفية المتدرجة الخضراء الفخمة
+        background: `radial-gradient(ellipse 120% 60% at 50% 0%, #162e1a 0%, #0d2318 30%, transparent 60%), radial-gradient(ellipse 80% 60% at 0% 50%, rgba(15,43,24,0.9) 0%, transparent 60%), radial-gradient(ellipse 80% 60% at 100% 50%, rgba(11,30,36,0.7) 0%, transparent 60%), radial-gradient(ellipse 100% 50% at 50% 100%, rgba(15,43,24,0.5) 0%, transparent 60%), #070d09`,
         color: "var(--text-primary)",
         fontFamily: "var(--font-body)",
       }}
@@ -451,9 +447,10 @@ export default function DevicesList() {
                               boxShadow: "var(--shadow-md)",
                             }}
                           >
+                            {/* ✅ تم تحديث الرابط ليوجهك لـ DeviceDetails */}
                             <button
                               onClick={() => {
-                                nav(`/dashboard`);
+                                nav(`/device-details?id=${device._id}`);
                                 setOpenMenu(null);
                               }}
                               style={{
@@ -471,7 +468,7 @@ export default function DevicesList() {
                                 gap: 8,
                               }}
                             >
-                              <Wifi size={13} /> View Dashboard
+                              <Activity size={13} /> Details & Live
                             </button>
                             <button
                               onClick={() => {
@@ -639,7 +636,8 @@ export default function DevicesList() {
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => nav("/dashboard")}
+                      // ✅ تم تحديث الرابط ليوجهك لـ DeviceDetails
+                      onClick={() => nav(`/device-details?id=${device._id}`)}
                       style={{
                         flex: 1,
                         padding: "9px",
@@ -656,7 +654,7 @@ export default function DevicesList() {
                         gap: 6,
                       }}
                     >
-                      <Wifi size={13} /> Monitor
+                      <Activity size={13} /> Monitor
                     </motion.button>
                     <motion.button
                       whileHover={{ scale: 1.02 }}

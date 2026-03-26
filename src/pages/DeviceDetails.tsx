@@ -44,11 +44,18 @@ function getMoistureStatus(v: number, min = 30, max = 70) {
   return { label: "Wet", color: "#60a5fa" };
 }
 
+// ✅ دالة حالة تدفق المياه اللي كانت ناقصة
+function getFlowStatus(v: number) {
+  if (v === 0) return { label: "Stopped", color: "#6b7280" };
+  if (v < 2) return { label: "Low", color: "#fbbf24" };
+  return { label: "Flowing", color: "#4ade80" };
+}
+
 function fmt(ts: number) {
   return new Date(ts).toLocaleTimeString("en-US", {
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
-    hour12: false,
+    hour12: true,
   });
 }
 
@@ -154,8 +161,7 @@ export default function DeviceDetails({
     <div
       style={{
         minHeight: "100vh",
-        background:
-          "radial-gradient(ellipse 100% 80% at 50% -5%, #0f2b18 0%, #0b1e24 40%, #070d09 70%)",
+        background: `radial-gradient(ellipse 120% 60% at 50% 0%, #162e1a 0%, #0d2318 30%, transparent 60%), radial-gradient(ellipse 80% 60% at 0% 50%, rgba(15,43,24,0.9) 0%, transparent 60%), radial-gradient(ellipse 80% 60% at 100% 50%, rgba(11,30,36,0.7) 0%, transparent 60%), radial-gradient(ellipse 100% 50% at 50% 100%, rgba(15,43,24,0.5) 0%, transparent 60%), #070d09`,
         color: "var(--text-primary)",
         fontFamily: "var(--font-body)",
       }}
@@ -188,7 +194,7 @@ export default function DeviceDetails({
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => nav("/dashboard")}
+              onClick={() => nav("/devices")}
               style={{
                 width: 36,
                 height: 36,
@@ -316,7 +322,7 @@ export default function DeviceDetails({
         </div>
 
         <AnimatePresence mode="wait">
-          {/*  TAB: LIVE & CONTROL */}
+          {/* TAB: LIVE & CONTROL */}
           {activeTab === "live" && latest && (
             <motion.div
               key="live"
@@ -350,11 +356,23 @@ export default function DeviceDetails({
                 delay={0.1}
               />
 
+              {/* ✅ إرجاع كارت الـ Water Flow المستقل */}
+              <LiveCard
+                icon={<Wind size={18} />}
+                label="Water Flow"
+                value={latest.flowRate}
+                unit="L/min"
+                status={getFlowStatus(latest.flowRate)}
+                color="#34d399"
+                max={10}
+                delay={0.16}
+              />
+
               {/* Pump Control Card */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
+                transition={{ delay: 0.24 }}
                 style={{
                   background: "rgba(255,255,255,0.03)",
                   border: `1px solid ${latest.pumpStatus ? "rgba(74,222,128,0.25)" : "rgba(255,255,255,0.07)"}`,
@@ -391,7 +409,20 @@ export default function DeviceDetails({
                         color: latest.pumpStatus ? "#4ade80" : "#6b7280",
                       }}
                     >
-                      <Power size={20} />
+                      {pumpLoading ? (
+                        <div
+                          style={{
+                            width: 16,
+                            height: 16,
+                            border: "2px solid rgba(255,255,255,0.3)",
+                            borderTopColor: "white",
+                            borderRadius: "50%",
+                            animation: "spin 0.8s linear infinite",
+                          }}
+                        />
+                      ) : (
+                        <Power size={20} />
+                      )}
                     </div>
                     <div>
                       <div
@@ -461,17 +492,14 @@ export default function DeviceDetails({
                     gap: 8,
                   }}
                 >
-                  <Activity size={14} color="var(--brand-500)" /> Current flow
-                  rate:{" "}
-                  <strong style={{ color: "white" }}>
-                    {latest.flowRate} L/min
-                  </strong>
+                  <Activity size={14} color="var(--brand-500)" /> Toggle to
+                  remotely control your pump.
                 </div>
               </motion.div>
             </motion.div>
           )}
 
-          {/*  TAB: TRENDS */}
+          {/* TAB: TRENDS */}
           {activeTab === "trends" && (
             <motion.div
               key="trends"
@@ -527,12 +555,13 @@ export default function DeviceDetails({
                       strokeDasharray="3 3"
                       stroke="rgba(255,255,255,0.04)"
                     />
+                    {/* ✅ منع تداخل الوقت */}
                     <XAxis
                       dataKey="time"
                       tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
                       tickLine={false}
                       axisLine={false}
-                      interval="preserveStartEnd"
+                      minTickGap={30}
                     />
                     <YAxis
                       tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
@@ -581,7 +610,7 @@ export default function DeviceDetails({
             </motion.div>
           )}
 
-          {/*  TAB: ALERTS (Placeholder for now until events are fully wired) */}
+          {/* TAB: ALERTS */}
           {activeTab === "alerts" && (
             <motion.div
               key="alerts"

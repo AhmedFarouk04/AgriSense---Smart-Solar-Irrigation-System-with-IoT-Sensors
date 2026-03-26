@@ -46,15 +46,8 @@ export function Footer({ isDark }: FooterProps) {
           zIndex: 1,
         }}
       >
-        <div
-          className="footer-g"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "2fr 1fr 1fr 1fr",
-            gap: 48,
-            marginBottom: 56,
-          }}
-        >
+        {/* ✅ تم إزالة الـ inline grid واستخدام الكلاس للـ Responsive */}
+        <div className="footer-grid" style={{ marginBottom: 56 }}>
           {/* ── Brand */}
           <div>
             <div
@@ -149,6 +142,7 @@ export function Footer({ isDark }: FooterProps) {
                     fontWeight: 500,
                     border: "1px solid rgba(255,255,255,0.08)",
                     transition: "all .2s",
+                    textDecoration: "none",
                   }}
                   onMouseEnter={(e) => {
                     (e.currentTarget as HTMLElement).style.background =
@@ -184,7 +178,7 @@ export function Footer({ isDark }: FooterProps) {
               >
                 {col.title}
               </h4>
-              <ul style={{ listStyle: "none" }}>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
                 {col.links.map((link, j) => (
                   <li key={j} style={{ marginBottom: 11 }}>
                     <a
@@ -194,6 +188,7 @@ export function Footer({ isDark }: FooterProps) {
                         color: "rgba(255,255,255,0.38)",
                         fontWeight: 500,
                         transition: "color .2s",
+                        textDecoration: "none",
                       }}
                       onMouseEnter={(e) =>
                         ((e.target as HTMLElement).style.color =
@@ -213,23 +208,10 @@ export function Footer({ isDark }: FooterProps) {
           ))}
         </div>
 
-        {/*  Newsletter strip */}
-        <div>
-          <div>
-            <div
-              style={{
-                fontWeight: 700,
-                fontSize: 15,
-                color: "rgba(255,255,255,0.85)",
-                marginBottom: 4,
-              }}
-            ></div>
-          </div>
-          <div style={{ display: "flex", gap: 10 }}></div>
-        </div>
-
         {/* ── Bottom bar */}
+        {/* ✅ استخدام الكلاس للـ Responsive */}
         <div
+          className="footer-bottom"
           style={{
             borderTop: "1px solid rgba(255,255,255,0.06)",
             paddingTop: 24,

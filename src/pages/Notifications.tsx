@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
   Bell,
@@ -11,6 +11,9 @@ import {
   Wifi,
   AlertTriangle,
   Info,
+  Trash2,
+  CheckCircle2,
+  Zap,
 } from "lucide-react";
 import { AgriSenseLogo } from "../components/Logo";
 
@@ -20,22 +23,10 @@ const nav = (p: string) => {
 };
 
 const PARTICLES = [
-  { x: 8, y: 22, size: 7, color: "var(--particle-1)", delay: 0 },
-  { x: 85, y: 15, size: 5, color: "var(--particle-2)", delay: 0.8 },
-  { x: 92, y: 65, size: 8, color: "var(--particle-1)", delay: 0.4 },
-  { x: 75, y: 40, size: 6, color: "var(--particle-3)", delay: 1.8 },
+  { x: 10, y: 20, size: 6, color: "var(--particle-1)", delay: 0 },
+  { x: 80, y: 15, size: 4, color: "var(--particle-2)", delay: 1 },
+  { x: 90, y: 70, size: 7, color: "var(--particle-1)", delay: 0.5 },
 ];
-
-type AppEvent = {
-  _id: string;
-  _creationTime: number;
-  userId: string;
-  deviceId?: string;
-  type: string;
-  message: string;
-  data?: any;
-  timestamp: number;
-};
 
 function timeAgo(ts: number) {
   const diff = Date.now() - ts;
@@ -49,59 +40,60 @@ function timeAgo(ts: number) {
 }
 
 function getEventStyle(type: string) {
-  switch (type) {
-    case "pump_control":
-      return {
-        icon: <Power size={16} />,
-        color: "#4ade80",
-        bg: "rgba(74,222,128,0.1)",
-        border: "rgba(74,222,128,0.2)",
-      };
-    case "device_added":
-      return {
-        icon: <Plus size={16} />,
-        color: "#38bdf8",
-        bg: "rgba(56,189,248,0.1)",
-        border: "rgba(56,189,248,0.2)",
-      };
-    case "low_moisture":
-      return {
-        icon: <Droplets size={16} />,
-        color: "#f87171",
-        bg: "rgba(248,113,113,0.1)",
-        border: "rgba(248,113,113,0.2)",
-      };
-    case "connection_error":
-      return {
-        icon: <Wifi size={16} />,
-        color: "#fbbf24",
-        bg: "rgba(251,191,36,0.1)",
-        border: "rgba(251,191,36,0.2)",
-      };
-    case "alert":
-      return {
-        icon: <AlertTriangle size={16} />,
-        color: "#fbbf24",
-        bg: "rgba(251,191,36,0.1)",
-        border: "rgba(251,191,36,0.2)",
-      };
-    default:
-      return {
-        icon: <Info size={16} />,
-        color: "#a3a3a3",
-        bg: "rgba(163,163,163,0.08)",
-        border: "rgba(163,163,163,0.15)",
-      };
-  }
+  const styles: Record<string, any> = {
+    pump_control: {
+      icon: <Power size={16} />,
+      color: "#4ade80",
+      bg: "rgba(74,222,128,0.1)",
+      border: "rgba(74,222,128,0.2)",
+    },
+    device_added: {
+      icon: <Plus size={16} />,
+      color: "#38bdf8",
+      bg: "rgba(56,189,248,0.1)",
+      border: "rgba(56,189,248,0.2)",
+    },
+    low_moisture: {
+      icon: <Droplets size={16} />,
+      color: "#f87171",
+      bg: "rgba(248,113,113,0.1)",
+      border: "rgba(248,113,113,0.2)",
+    },
+    critical_alert: {
+      icon: <Zap size={16} />,
+      color: "#ef4444",
+      bg: "rgba(239,68,68,0.15)",
+      border: "rgba(239,68,68,0.3)",
+    },
+    connection_error: {
+      icon: <Wifi size={16} />,
+      color: "#fbbf24",
+      bg: "rgba(251,191,36,0.1)",
+      border: "rgba(251,191,36,0.2)",
+    },
+    default: {
+      icon: <Info size={16} />,
+      color: "#a3a3a3",
+      bg: "rgba(163,163,163,0.08)",
+      border: "rgba(163,163,163,0.15)",
+    },
+  };
+  return styles[type] || styles.default;
 }
 
 export default function Notifications() {
   const events = useQuery(api.users.getEvents);
   const devices = useQuery(api.devices.getDevices);
+  const clearEvents = useMutation(api.users.clearEvents);
   const [scrolled, setScrolled] = useState(false);
-  const [filter, setFilter] = useState<
-    "all" | "pump_control" | "device_added" | "alert"
-  >("all");
+  const [filter, setFilter] = useState("all");
+
+  useEffect(() => {
+    if (events && events.length > 0) {
+      localStorage.setItem("lastViewedNotifications", Date.now().toString());
+      window.dispatchEvent(new Event("notifications_viewed"));
+    }
+  }, [events]);
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 24);
@@ -109,67 +101,65 @@ export default function Notifications() {
     return () => window.removeEventListener("scroll", h);
   }, []);
 
-  const filtered = ((events ?? []) as AppEvent[]).filter((e: AppEvent) =>
-    filter === "all" ? true : e.type === filter,
-  );
-
   const deviceMap = Object.fromEntries(
     (devices ?? []).map((d) => [d._id, d.name]),
   );
 
-  const grouped = filtered.reduce(
-    (acc: Record<string, AppEvent[]>, event: AppEvent) => {
-      const date = new Date(event.timestamp).toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "short",
-        day: "numeric",
-      });
-      if (!acc[date]) acc[date] = [];
-      acc[date].push(event);
-      return acc;
-    },
-    {},
-  );
+  const filtered = (events ?? []).filter((e: any) => {
+    if (filter === "all") return true;
+    if (filter === "pump_control") return e.type === "pump_control";
+    if (filter === "device_added") return e.type === "device_added";
+
+    if (filter === "alert") {
+      return (
+        e.type === "alert" ||
+        e.type === "low_moisture" ||
+        e.type.includes("error")
+      );
+    }
+
+    return e.type === filter;
+  });
+
+  const grouped = filtered.reduce((acc: any, event: any) => {
+    const date = new Date(event.timestamp).toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+    });
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(event);
+    return acc;
+  }, {});
 
   return (
     <div
       style={{
         minHeight: "100vh",
-        background: `
-        radial-gradient(ellipse 120% 60% at 50% 0%, #162e1a 0%, #0d2318 30%, transparent 60%),
-        radial-gradient(ellipse 80% 60% at 0% 50%, rgba(15,43,24,0.9) 0%, transparent 60%),
-        radial-gradient(ellipse 80% 60% at 100% 50%, rgba(11,30,36,0.7) 0%, transparent 60%),
-        radial-gradient(ellipse 100% 50% at 50% 100%, rgba(15,43,24,0.5) 0%, transparent 60%),
-        #070d09
-      `,
+        // ✅ التعديل هنا: إرجاع الخلفية المتدرجة
+        background: `radial-gradient(ellipse 120% 60% at 50% 0%, #162e1a 0%, #0d2318 30%, transparent 60%), radial-gradient(ellipse 80% 60% at 0% 50%, rgba(15,43,24,0.9) 0%, transparent 60%), radial-gradient(ellipse 80% 60% at 100% 50%, rgba(11,30,36,0.7) 0%, transparent 60%), radial-gradient(ellipse 100% 50% at 50% 100%, rgba(15,43,24,0.5) 0%, transparent 60%), #070d09`,
         color: "var(--text-primary)",
         fontFamily: "var(--font-body)",
       }}
     >
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-
-      {/* Background */}
+      {/* Background Decor */}
       <div
         style={{
           position: "fixed",
           inset: 0,
-          pointerEvents: "none",
           zIndex: 0,
+          pointerEvents: "none",
         }}
       >
         <div
           className="grid-pattern"
-          style={{ position: "absolute", inset: 0, opacity: 0.4 }}
+          style={{ position: "absolute", inset: 0, opacity: 0.3 }}
         />
         {PARTICLES.map((p, i) => (
           <motion.div
             key={i}
-            animate={{ y: [0, -18, 0], opacity: [0.25, 0.7, 0.25] }}
-            transition={{
-              duration: 5 + p.delay,
-              repeat: Infinity,
-              delay: p.delay,
-            }}
+            animate={{ y: [0, -15, 0], opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 5, repeat: Infinity, delay: p.delay }}
             style={{
               position: "absolute",
               left: `${p.x}%`,
@@ -183,332 +173,286 @@ export default function Notifications() {
         ))}
       </div>
 
-      {/* Header */}
       <header
         style={{
           position: "sticky",
           top: 0,
           zIndex: 100,
-          background: scrolled ? "rgba(7,13,9,0.85)" : "transparent",
-          backdropFilter: scrolled ? "blur(32px)" : "none",
-          WebkitBackdropFilter: scrolled ? "blur(32px)" : "none",
-          borderBottom: `1px solid ${scrolled ? "var(--border-base)" : "transparent"}`,
-          transition: "all 0.35s ease",
+          background: scrolled ? "rgba(7,13,9,0.8)" : "transparent",
+          backdropFilter: "blur(20px)",
+          borderBottom: `1px solid ${scrolled ? "rgba(255,255,255,0.1)" : "transparent"}`,
           padding: "12px 24px",
+          transition: "0.3s",
         }}
       >
         <div
           style={{
-            maxWidth: 1280,
+            maxWidth: 800,
             margin: "0 auto",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button
               onClick={() => nav("/dashboard")}
               style={{
                 width: 36,
                 height: 36,
                 borderRadius: 10,
-                background: "var(--glass-bg)",
-                border: "1px solid var(--border-card)",
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "white",
+                cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                cursor: "pointer",
-                color: "var(--text-muted)",
               }}
             >
               <ArrowLeft size={16} />
-            </motion.button>
-            <div>
-              <div
-                style={{
-                  fontSize: 16,
-                  fontWeight: 700,
-                  color: "var(--text-primary)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <Bell size={15} style={{ color: "var(--brand-500)" }} />
-                Notifications
-              </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: "var(--text-faint)",
-                  letterSpacing: "0.04em",
-                }}
-              >
-                {filtered.length} event{filtered.length !== 1 ? "s" : ""}
-              </div>
-            </div>
-          </div>
-          <motion.a
-            href="/dashboard"
-            whileHover={{ scale: 1.02 }}
-            style={{ display: "flex", alignItems: "center", gap: 10 }}
-          >
-            <AgriSenseLogo size={34} />
-            <span
-              className="fd grad-text"
-              style={{ fontSize: 18, fontWeight: 900 }}
+            </button>
+            <h1
+              style={{
+                fontSize: 18,
+                fontWeight: 800,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
             >
-              AgriSense
-            </span>
-          </motion.a>
+              {" "}
+              <Bell size={18} color="#4ade80" /> Notifications{" "}
+            </h1>
+          </div>
+          <button
+            onClick={() => clearEvents()}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "#f87171",
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              opacity: events?.length ? 1 : 0.3,
+            }}
+          >
+            <Trash2 size={14} /> Clear All
+          </button>
         </div>
       </header>
 
       <main
         style={{
-          maxWidth: 720,
+          maxWidth: 700,
           margin: "0 auto",
-          padding: "32px 24px",
+          padding: "30px 24px",
           position: "relative",
           zIndex: 1,
         }}
       >
-        {/* Filter tabs */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
+        {/* Filters */}
+        <div
           style={{
             display: "flex",
-            gap: 8,
-            marginBottom: 28,
-            flexWrap: "wrap",
+            gap: 10,
+            marginBottom: 30,
+            overflowX: "auto",
+            paddingBottom: 10,
           }}
         >
           {[
-            { key: "all", label: "All" },
-            { key: "pump_control", label: "💧 Pump" },
-            { key: "device_added", label: "➕ Zones" },
-            { key: "alert", label: "⚠️ Alerts" },
+            { id: "all", label: "All Activity" },
+            { id: "alert", label: "Alerts", icon: <AlertTriangle size={14} /> },
+            {
+              id: "pump_control",
+              label: "Pump Logs",
+              icon: <Power size={14} />,
+            },
           ].map((f) => (
             <button
-              key={f.key}
-              onClick={() => setFilter(f.key as any)}
+              key={f.id}
+              onClick={() => setFilter(f.id)}
               style={{
-                padding: "7px 16px",
-                borderRadius: "var(--r-full)",
-                border: `1px solid ${filter === f.key ? "var(--brand-500)" : "var(--border-card)"}`,
+                whiteSpace: "nowrap",
+                padding: "8px 16px",
+                borderRadius: 12,
+                border:
+                  filter === f.id
+                    ? "1px solid #4ade80"
+                    : "1px solid rgba(255,255,255,0.1)",
                 background:
-                  filter === f.key
-                    ? "rgba(74,222,128,0.12)"
-                    : "var(--glass-bg)",
-                color:
-                  filter === f.key ? "var(--brand-500)" : "var(--text-muted)",
+                  filter === f.id
+                    ? "rgba(74,222,128,0.1)"
+                    : "rgba(255,255,255,0.03)",
+                color: filter === f.id ? "#4ade80" : "rgba(255,255,255,0.5)",
+                cursor: "pointer",
                 fontSize: 13,
                 fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.2s",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                transition: "0.2s",
               }}
             >
-              {f.label}
+              {f.icon} {f.label}
             </button>
           ))}
-        </motion.div>
+        </div>
 
-        {/* Loading */}
-        {events === undefined && (
+        {events === undefined ? (
           <div
             style={{
               display: "flex",
               justifyContent: "center",
-              padding: "80px 0",
+              padding: "60px",
             }}
           >
             <div
               style={{
-                width: 32,
-                height: 32,
+                width: 30,
+                height: 30,
                 border: "3px solid rgba(255,255,255,0.1)",
                 borderTopColor: "#4ade80",
                 borderRadius: "50%",
-                animation: "spin 0.8s linear infinite",
+                animation: "spin 1s linear infinite",
               }}
             />
           </div>
-        )}
-
-        {/* Empty */}
-        {events !== undefined && filtered.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            style={{ textAlign: "center", padding: "80px 24px" }}
-          >
-            <div style={{ fontSize: 56, marginBottom: 16 }}>🔔</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "100px 20px" }}>
             <div
               style={{
-                fontSize: 18,
-                fontWeight: 700,
-                color: "var(--text-primary)",
-                marginBottom: 8,
+                width: 80,
+                height: 80,
+                background: "rgba(74,222,128,0.05)",
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 20px",
               }}
             >
-              No notifications yet
+              <CheckCircle2 size={40} color="rgba(74,222,128,0.2)" />
             </div>
-            <div style={{ fontSize: 14, color: "var(--text-muted)" }}>
-              Events like pump controls and zone additions will appear here.
-            </div>
-          </motion.div>
-        )}
-
-        {/* Events grouped by date */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-          {Object.entries(grouped).map(([date, evts], gi) => (
-            <motion.div
-              key={date}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: gi * 0.05 }}
-            >
-              {/* Date divider */}
-              <div
+            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
+              All caught up!
+            </h2>
+            <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>
+              No new notifications in this category.
+            </p>
+          </div>
+        ) : (
+          Object.entries(grouped).map(([date, evs]: any) => (
+            <div key={date} style={{ marginBottom: 32 }}>
+              <h3
                 style={{
                   fontSize: 11,
-                  fontWeight: 700,
-                  color: "var(--text-faint)",
-                  letterSpacing: "0.08em",
+                  fontWeight: 800,
+                  color: "rgba(255,255,255,0.3)",
                   textTransform: "uppercase",
-                  marginBottom: 12,
+                  letterSpacing: "0.1em",
+                  marginBottom: 16,
                   display: "flex",
                   alignItems: "center",
                   gap: 10,
                 }}
               >
+                {date}{" "}
                 <div
                   style={{
                     flex: 1,
                     height: 1,
-                    background: "var(--border-base)",
+                    background: "rgba(255,255,255,0.05)",
                   }}
                 />
-                {date}
-                <div
-                  style={{
-                    flex: 1,
-                    height: 1,
-                    background: "var(--border-base)",
-                  }}
-                />
-              </div>
-
-              {/* Events */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {(evts as AppEvent[]).map((event: AppEvent, i: number) => {
-                  const evStyle = getEventStyle(event.type);
+              </h3>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 12 }}
+              >
+                {evs.map((e: any) => {
+                  const s = getEventStyle(e.type);
                   return (
                     <motion.div
-                      key={event._id}
-                      initial={{ opacity: 0, x: -16 }}
+                      initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.04 }}
+                      key={e._id}
                       style={{
                         display: "flex",
-                        alignItems: "flex-start",
-                        gap: 14,
-                        padding: "14px 16px",
-                        background: "rgba(255,255,255,0.03)",
-                        border: `1px solid ${evStyle.border}`,
-                        borderRadius: 14,
-                        backdropFilter: "blur(8px)",
+                        gap: 16,
+                        padding: "16px",
+                        background: "rgba(255,255,255,0.02)",
+                        border: `1px solid ${s.border}`,
+                        borderRadius: 16,
                       }}
                     >
-                      {/* Icon */}
                       <div
                         style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 10,
-                          flexShrink: 0,
-                          background: evStyle.bg,
-                          border: `1px solid ${evStyle.border}`,
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          background: s.bg,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          color: evStyle.color,
+                          color: s.color,
+                          flexShrink: 0,
                         }}
                       >
-                        {evStyle.icon}
+                        {s.icon}
                       </div>
-
-                      {/* Content */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
+                      <div style={{ flex: 1 }}>
+                        <p
                           style={{
                             fontSize: 14,
                             fontWeight: 600,
-                            color: "var(--text-primary)",
-                            marginBottom: 4,
+                            marginBottom: 6,
+                            color: "rgba(255,255,255,0.9)",
                           }}
                         >
-                          {event.message}
-                        </div>
+                          {e.message}
+                        </p>
                         <div
                           style={{
                             display: "flex",
                             alignItems: "center",
-                            gap: 8,
-                            flexWrap: "wrap",
+                            gap: 10,
                           }}
                         >
-                          {event.deviceId && deviceMap[event.deviceId] && (
+                          {e.deviceId && (
                             <span
                               style={{
-                                fontSize: 11,
-                                color: "var(--brand-500)",
-                                fontWeight: 600,
-                                background: "rgba(74,222,128,0.08)",
+                                fontSize: 10,
+                                background: "rgba(74,222,128,0.1)",
+                                color: "#4ade80",
                                 padding: "2px 8px",
-                                borderRadius: 99,
-                                border: "1px solid rgba(74,222,128,0.15)",
+                                borderRadius: 6,
+                                fontWeight: 700,
                               }}
                             >
-                              📍 {deviceMap[event.deviceId]}
+                              📍 {deviceMap[e.deviceId]}
                             </span>
                           )}
                           <span
-                            style={{ fontSize: 11, color: "var(--text-faint)" }}
+                            style={{
+                              fontSize: 11,
+                              color: "rgba(255,255,255,0.3)",
+                            }}
                           >
-                            {timeAgo(event.timestamp)}
+                            {timeAgo(e.timestamp)}
                           </span>
                         </div>
-                      </div>
-
-                      {/* Type badge */}
-                      <div
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          color: evStyle.color,
-                          background: evStyle.bg,
-                          border: `1px solid ${evStyle.border}`,
-                          padding: "3px 8px",
-                          borderRadius: 99,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.06em",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {event.type.replace(/_/g, " ")}
                       </div>
                     </motion.div>
                   );
                 })}
               </div>
-            </motion.div>
-          ))}
-        </div>
+            </div>
+          ))
+        )}
       </main>
     </div>
   );

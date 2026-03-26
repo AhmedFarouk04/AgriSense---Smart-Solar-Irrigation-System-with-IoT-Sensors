@@ -44,7 +44,12 @@ export function Navbar({ scrolled, isDark }: NavbarProps) {
         <motion.a
           href="/"
           whileHover={{ scale: 1.02 }}
-          style={{ display: "flex", alignItems: "center", gap: 11 }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 11,
+            textDecoration: "none",
+          }}
         >
           <motion.div
             whileHover={{ rotate: [0, -7, 7, 0] }}
@@ -88,21 +93,28 @@ export function Navbar({ scrolled, isDark }: NavbarProps) {
           </div>
         </motion.a>
 
-        {/* ── Center links */}
+        {/* ── Center links (Hidden on Mobile) */}
         <div className="hide-mob" style={{ display: "flex", gap: 36 }}>
           {["Features", "How it Works", "Contact"].map((n) => (
             <a
               key={n}
               href={`#${n.toLowerCase().replace(/ /g, "-")}`}
               className="nav-a"
+              style={{
+                textDecoration: "none",
+                color: "var(--text-secondary)",
+                fontWeight: 600,
+                fontSize: 14,
+              }}
             >
               {n}
             </a>
           ))}
         </div>
 
-        {/* ── Auth + burger */}
+        {/* ── Auth + Burger */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {/* ✅ إخفاء الأزرار دي في الموبايل لأنها موجودة في القائمة المنسدلة */}
           <motion.a
             href="/login"
             whileHover={{ scale: 1.03 }}
@@ -118,6 +130,7 @@ export function Navbar({ scrolled, isDark }: NavbarProps) {
               background: "var(--glass-bg)",
               backdropFilter: "blur(8px)",
               transition: "all 0.25s ease",
+              textDecoration: "none",
             }}
           >
             Login
@@ -129,6 +142,7 @@ export function Navbar({ scrolled, isDark }: NavbarProps) {
               boxShadow: "0 8px 28px rgba(22,163,74,.42)",
             }}
             whileTap={{ scale: 0.97 }}
+            className="hide-mob"
             style={{
               padding: "9px 22px",
               background: "var(--grad-brand)",
@@ -137,12 +151,15 @@ export function Navbar({ scrolled, isDark }: NavbarProps) {
               fontSize: 14,
               borderRadius: 12,
               boxShadow: "var(--shadow-md)",
+              textDecoration: "none",
             }}
           >
             Get Started
           </motion.a>
+
+          {/* ✅ زرار الموبايل فقط */}
           <button
-            className="burger"
+            className="burger-btn"
             onClick={() => setMenuOpen(!menuOpen)}
             style={{
               display: "flex",
@@ -151,10 +168,10 @@ export function Navbar({ scrolled, isDark }: NavbarProps) {
               background: "transparent",
               border: "none",
               cursor: "pointer",
-              color: "var(--text-muted)",
+              color: "var(--text-primary)",
             }}
           >
-            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+            {menuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
       </div>
@@ -171,6 +188,10 @@ export function Navbar({ scrolled, isDark }: NavbarProps) {
               borderTop: "1px solid var(--border-card)",
               background: "var(--bg-nav)",
               backdropFilter: "blur(20px)",
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              right: 0,
             }}
           >
             {["Features", "How it Works", "Contact"].map((n) => (
@@ -184,24 +205,26 @@ export function Navbar({ scrolled, isDark }: NavbarProps) {
                   color: "var(--text-secondary)",
                   fontWeight: 500,
                   borderBottom: "1px solid var(--border-base)",
+                  textDecoration: "none",
                 }}
               >
                 {n}
               </a>
             ))}
-            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <a
                 href="/login"
                 style={{
                   flex: 1,
                   textAlign: "center",
-                  padding: "10px",
+                  padding: "12px",
                   border: "1.5px solid var(--border-card)",
                   borderRadius: 12,
                   color: "var(--text-secondary)",
                   fontWeight: 600,
                   fontSize: 14,
                   background: "var(--glass-bg)",
+                  textDecoration: "none",
                 }}
               >
                 Login
@@ -211,12 +234,13 @@ export function Navbar({ scrolled, isDark }: NavbarProps) {
                 style={{
                   flex: 1,
                   textAlign: "center",
-                  padding: "10px",
+                  padding: "12px",
                   borderRadius: 12,
                   color: "white",
                   fontWeight: 700,
                   fontSize: 14,
                   background: "var(--grad-brand)",
+                  textDecoration: "none",
                 }}
               >
                 Get Started

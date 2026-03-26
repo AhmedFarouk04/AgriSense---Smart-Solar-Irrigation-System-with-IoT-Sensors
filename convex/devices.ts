@@ -73,13 +73,12 @@ export const getDevices = query({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
-
     const devices = await ctx.db
       .query("devices")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
-    return devices.sort((a, b) => b.createdAt - a.createdAt);
+    return devices.map(({ firebaseSecret, ...rest }) => rest);
   },
 });
 

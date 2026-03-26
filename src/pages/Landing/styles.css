@@ -1019,3 +1019,44 @@ svg {
     display: none !important;
   }
 }
+/* =========================================
+   Landing Page Responsive Utilities
+========================================= */
+
+/* Footer Grid Default (Desktop) */
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 48px;
+}
+
+/* Hide Burger Menu on Desktop */
+.burger-btn {
+  display: none !important;
+}
+
+/* Mobile & Tablet Styles */
+@media (max-width: 768px) {
+  /* إخفاء العناصر اللي مش محتاجينها في الموبايل */
+  .hide-mob {
+    display: none !important;
+  }
+
+  /* إظهار زرار القائمة الجانبية في الموبايل */
+  .burger-btn {
+    display: flex !important;
+  }
+
+  /* تحويل الفوتر لعمود واحد بدل 4 */
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  /* توسيط الحقوق في الفوتر على الموبايل */
+  .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+    justify-content: center;
+  }
+}

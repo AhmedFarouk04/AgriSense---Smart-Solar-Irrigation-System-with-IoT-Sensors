@@ -285,10 +285,8 @@ export default function AddZone() {
       if (result.success) {
         setTestResult(result.warning ? "warn" : "ok");
         if (result.warning) toast.warning(result.warning);
-        else toast.success("Connected successfully!");
       } else {
         setTestResult("fail");
-        toast.error(result.error ?? "Connection failed");
       }
     } catch {
       setTestResult("fail");
@@ -572,37 +570,30 @@ export default function AddZone() {
                         value={plantId}
                         onChange={(e) => setPlantId(e.target.value)}
                         style={{
-                          width: "100%",
-                          padding: "13px 14px 13px 42px",
-                          background: "var(--glass-bg)",
-                          border: "1.5px solid var(--border-card)",
-                          borderRadius: 14,
-                          color: plantId
-                            ? "var(--text-primary)"
-                            : "var(--text-faint)",
-                          fontSize: 14,
-                          fontWeight: 500,
-                          outline: "none",
+                          ...inputStyle, // Inherit base styles
                           appearance: "none",
+                          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+                          backgroundRepeat: "no-repeat",
+                          backgroundPosition: "right 14px center",
+                          backgroundSize: "16px",
+                          paddingRight: "40px",
+                          // We override the left padding because select doesn't need 42px like inputs with icons
+                          paddingLeft: "42px",
                           cursor: "pointer",
                         }}
                       >
-                        <option value="">No crop selected</option>
-                        {(plants ?? []).map(
-                          (p: {
-                            _id: string;
-                            name: string;
-                            nameAr: string;
-                          }) => (
-                            <option
-                              key={p._id}
-                              value={p._id}
-                              style={{ background: "#0f1f12" }}
-                            >
-                              {p.name} — {p.nameAr}
-                            </option>
-                          ),
-                        )}
+                        <option value="" style={{ background: "#070d09" }}>
+                          No crop selected
+                        </option>
+                        {(plants ?? []).map((p: any) => (
+                          <option
+                            key={p._id}
+                            value={p._id}
+                            style={{ background: "#0f1f12", color: "white" }}
+                          >
+                            {p.nameAr} ({p.name})
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <p
@@ -856,7 +847,7 @@ export default function AddZone() {
                       lineHeight: 1.6,
                     }}
                   >
-                    ✅ Your zone will start syncing sensor data every 30 seconds
+                    Your zone will start syncing sensor data every 30 seconds
                     automatically.
                   </div>
                 </motion.div>
@@ -957,3 +948,16 @@ export default function AddZone() {
     </div>
   );
 }
+// Add this at the very end of the file, outside the component
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "13px 14px 13px 42px",
+  background: "var(--glass-bg)",
+  border: "1.5px solid var(--border-card)",
+  borderRadius: 14,
+  color: "var(--text-primary)",
+  fontSize: 14,
+  fontWeight: 500,
+  outline: "none",
+  transition: "all 0.2s",
+};

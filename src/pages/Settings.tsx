@@ -168,8 +168,6 @@ function Section({
 export default function Settings() {
   const { signOut } = useAuthActions();
   const userSettings = useQuery(api.users.getSettings);
-
-  // وبدل api.userSettings.updateSettings خليها:
   const updateSettings = useMutation(api.users.updateSettings);
 
   const [scrolled, setScrolled] = useState(false);
@@ -195,7 +193,6 @@ export default function Settings() {
       toast.success(v ? "Notifications enabled" : "Notifications disabled");
     } catch {
       setNotifications(!v);
-      toast.error("Failed to update settings");
     }
   };
 
@@ -205,7 +202,6 @@ export default function Settings() {
       await signOut();
       nav("/");
     } catch {
-      toast.error("Failed to sign out");
       setSigningOut(false);
     }
   };
@@ -214,13 +210,8 @@ export default function Settings() {
     <div
       style={{
         minHeight: "100vh",
-        background: `
-        radial-gradient(ellipse 120% 60% at 50% 0%, #162e1a 0%, #0d2318 30%, transparent 60%),
-        radial-gradient(ellipse 80% 60% at 0% 50%, rgba(15,43,24,0.9) 0%, transparent 60%),
-        radial-gradient(ellipse 80% 60% at 100% 50%, rgba(11,30,36,0.7) 0%, transparent 60%),
-        radial-gradient(ellipse 100% 50% at 50% 100%, rgba(15,43,24,0.5) 0%, transparent 60%),
-        #070d09
-      `,
+        // ✅ تم إضافة الخلفية المتدرجة
+        background: `radial-gradient(ellipse 120% 60% at 50% 0%, #162e1a 0%, #0d2318 30%, transparent 60%), radial-gradient(ellipse 80% 60% at 0% 50%, rgba(15,43,24,0.9) 0%, transparent 60%), radial-gradient(ellipse 80% 60% at 100% 50%, rgba(11,30,36,0.7) 0%, transparent 60%), radial-gradient(ellipse 100% 50% at 50% 100%, rgba(15,43,24,0.5) 0%, transparent 60%), #070d09`,
         color: "var(--text-primary)",
         fontFamily: "var(--font-body)",
       }}
@@ -384,45 +375,6 @@ export default function Settings() {
                 value={notifications}
                 onChange={handleToggleNotifications}
               />
-            </SettingRow>
-          </Section>
-        </motion.div>
-
-        {/* Appearance */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Section title="Appearance">
-            <SettingRow
-              icon={<Moon size={16} />}
-              title="Theme"
-              subtitle="Current: Dark"
-            >
-              <div style={{ display: "flex", gap: 6 }}>
-                {["Dark", "Forest", "Ocean"].map((t) => (
-                  <button
-                    key={t}
-                    style={{
-                      padding: "5px 12px",
-                      borderRadius: 99,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      background:
-                        t === "Dark"
-                          ? "rgba(74,222,128,0.12)"
-                          : "var(--glass-bg)",
-                      border: `1px solid ${t === "Dark" ? "var(--brand-500)" : "var(--border-card)"}`,
-                      color:
-                        t === "Dark" ? "var(--brand-500)" : "var(--text-muted)",
-                    }}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
             </SettingRow>
           </Section>
         </motion.div>

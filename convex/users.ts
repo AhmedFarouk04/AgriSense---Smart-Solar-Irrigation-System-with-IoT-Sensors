@@ -165,3 +165,17 @@ export const getEvents = query({
       .take(50);
   },
 });
+export const clearEvents = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return;
+    const events = await ctx.db
+      .query("events")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    for (const event of events) {
+      await ctx.db.delete(event._id);
+    }
+  },
+});

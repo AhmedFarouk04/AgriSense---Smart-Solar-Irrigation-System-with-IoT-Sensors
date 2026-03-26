@@ -11,6 +11,7 @@ export function LiveCard({
   color,
   max,
   delay,
+  isLoading = false, // ✅ ضفنا ده للـ Feedback
 }: {
   icon: React.ReactNode;
   label: string;
@@ -20,6 +21,7 @@ export function LiveCard({
   color: string;
   max: number;
   delay: number;
+  isLoading?: boolean;
 }) {
   return (
     <motion.div
@@ -36,6 +38,7 @@ export function LiveCard({
         gap: 12,
         position: "relative",
         overflow: "hidden",
+        opacity: isLoading ? 0.7 : 1, // تأثير شفافية لو بيحمل
       }}
     >
       <div
@@ -70,7 +73,20 @@ export function LiveCard({
             color,
           }}
         >
-          {icon}
+          {isLoading ? (
+            <div
+              style={{
+                width: 16,
+                height: 16,
+                border: `2px solid ${color}40`,
+                borderTopColor: color,
+                borderRadius: "50%",
+                animation: "spin 0.8s linear infinite",
+              }}
+            />
+          ) : (
+            icon
+          )}
         </div>
         <GaugeRing value={value} max={max} color={color} size={52} />
       </div>
@@ -133,6 +149,7 @@ export function LiveCard({
           {status.label}
         </span>
       </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </motion.div>
   );
 }

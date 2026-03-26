@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useAuthActions } from "@convex-dev/auth/react";
 import {
   ArrowLeft,
   User,
@@ -14,6 +15,7 @@ import {
   Mail,
   Building,
   Ruler,
+  LogOut,
 } from "lucide-react";
 import { AgriSenseLogo } from "../components/Logo";
 
@@ -121,6 +123,7 @@ const inputStyle: React.CSSProperties = {
 };
 
 export default function Profile() {
+  const { signOut } = useAuthActions();
   const user = useQuery(api.users.getProfile);
   const updateProfile = useMutation(api.users.updateUserProfile);
 
@@ -176,6 +179,15 @@ export default function Profile() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      nav("/");
+    } catch (error) {
+      toast.error("Logout failed");
+    }
+  };
+
   if (user === undefined) {
     return (
       <div
@@ -197,10 +209,10 @@ export default function Profile() {
             animation: "spin 0.8s linear infinite",
           }}
         />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
+
   if (user === null) {
     return (
       <div
@@ -235,24 +247,18 @@ export default function Profile() {
       </div>
     );
   }
+
   return (
     <div
       style={{
         minHeight: "100vh",
-        background: `
-        radial-gradient(ellipse 120% 60% at 50% 0%, #162e1a 0%, #0d2318 30%, transparent 60%),
-        radial-gradient(ellipse 80% 60% at 0% 50%, rgba(15,43,24,0.9) 0%, transparent 60%),
-        radial-gradient(ellipse 80% 60% at 100% 50%, rgba(11,30,36,0.7) 0%, transparent 60%),
-        radial-gradient(ellipse 100% 50% at 50% 100%, rgba(15,43,24,0.5) 0%, transparent 60%),
-        #070d09
-      `,
+        // ✅ التعديل: إرجاع الخلفية المتدرجة الخضراء الفخمة
+        background: `radial-gradient(ellipse 120% 60% at 50% 0%, #162e1a 0%, #0d2318 30%, transparent 60%), radial-gradient(ellipse 80% 60% at 0% 50%, rgba(15,43,24,0.9) 0%, transparent 60%), radial-gradient(ellipse 80% 60% at 100% 50%, rgba(11,30,36,0.7) 0%, transparent 60%), radial-gradient(ellipse 100% 50% at 50% 100%, rgba(15,43,24,0.5) 0%, transparent 60%), #070d09`,
         color: "var(--text-primary)",
         fontFamily: "var(--font-body)",
       }}
     >
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-
-      {/* Background */}
+      {/* Background Decor */}
       <div
         style={{
           position: "fixed",
@@ -287,7 +293,6 @@ export default function Profile() {
         ))}
       </div>
 
-      {/* Header */}
       <header
         style={{
           position: "sticky",
@@ -295,7 +300,6 @@ export default function Profile() {
           zIndex: 100,
           background: scrolled ? "rgba(7,13,9,0.85)" : "transparent",
           backdropFilter: scrolled ? "blur(32px)" : "none",
-          WebkitBackdropFilter: scrolled ? "blur(32px)" : "none",
           borderBottom: `1px solid ${scrolled ? "var(--border-base)" : "transparent"}`,
           transition: "all 0.35s ease",
           padding: "12px 24px",
@@ -371,7 +375,6 @@ export default function Profile() {
         </div>
       </header>
 
-      {/* Main */}
       <main
         style={{
           maxWidth: 640,
@@ -483,226 +486,200 @@ export default function Profile() {
         </motion.div>
 
         {/* Personal Info */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Section title="Personal Info" icon={<User size={16} />}>
-            <Field label="Full Name *">
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                style={inputStyle}
-                placeholder="Your full name"
-              />
-            </Field>
-            <Field label="Email">
-              <div
-                style={{
-                  ...inputStyle,
-                  color: "var(--text-muted)",
-                  cursor: "default",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <Mail size={14} style={{ flexShrink: 0 }} />
-                {user.email ?? "—"}
-              </div>
-            </Field>
-            <Field label="Phone Number">
-              <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                style={inputStyle}
-                placeholder="+20 xxx xxx xxxx"
-                type="tel"
-              />
-            </Field>
-            <Field label="Role / Occupation">
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                style={inputStyle}
-              >
-                <option value="">Select role</option>
-                <option value="farmer">Farmer</option>
-                <option value="agronomist">Agronomist</option>
-                <option value="farm_manager">Farm Manager</option>
-                <option value="researcher">Researcher</option>
-                <option value="other">Other</option>
-              </select>
-            </Field>
-          </Section>
-        </motion.div>
+        <Section title="Personal Info" icon={<User size={16} />}>
+          <Field label="Full Name *">
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              style={inputStyle}
+              placeholder="Your full name"
+            />
+          </Field>
+          <Field label="Email">
+            <div
+              style={{
+                ...inputStyle,
+                color: "var(--text-muted)",
+                cursor: "default",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <Mail size={14} style={{ flexShrink: 0 }} />
+              {user.email ?? "—"}
+            </div>
+          </Field>
+          <Field label="Phone Number">
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              style={inputStyle}
+              placeholder="+20 xxx xxx xxxx"
+              type="tel"
+            />
+          </Field>
+          <Field label="Role / Occupation">
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              style={inputStyle}
+            >
+              <option value="">Select role</option>
+              <option value="farmer">Farmer</option>
+              <option value="agronomist">Agronomist</option>
+              <option value="farm_manager">Farm Manager</option>
+              <option value="researcher">Researcher</option>
+              <option value="other">Other</option>
+            </select>
+          </Field>
+        </Section>
 
         {/* Farm Info */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-        >
-          <Section title="Farm Info" icon={<Building size={16} />}>
-            <Field label="Farm Name">
+        <Section title="Farm Info" icon={<Building size={16} />}>
+          <Field label="Farm Name">
+            <input
+              value={farmName}
+              onChange={(e) => setFarmName(e.target.value)}
+              style={inputStyle}
+              placeholder='e.g. "Ahmed Farm"'
+            />
+          </Field>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto",
+              gap: 10,
+            }}
+          >
+            <Field label="Total Farm Area">
               <input
-                value={farmName}
-                onChange={(e) => setFarmName(e.target.value)}
+                value={farmArea}
+                onChange={(e) => setFarmArea(e.target.value)}
                 style={inputStyle}
-                placeholder='e.g. "Ahmed Farm"'
+                placeholder="e.g. 5000"
+                type="number"
+                min={0}
               />
             </Field>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr auto",
-                gap: 10,
-              }}
-            >
-              <Field label="Total Farm Area">
-                <input
-                  value={farmArea}
-                  onChange={(e) => setFarmArea(e.target.value)}
-                  style={inputStyle}
-                  placeholder="e.g. 5000"
-                  type="number"
-                  min={0}
-                />
-              </Field>
-              <Field label="Unit">
-                <select
-                  value={farmAreaUnit}
-                  onChange={(e) => setFarmAreaUnit(e.target.value)}
-                  style={{ ...inputStyle, minWidth: 100 }}
-                >
-                  <option value="m2">m²</option>
-                  <option value="feddan">Feddan</option>
-                  <option value="acre">Acre</option>
-                  <option value="hectare">Hectare</option>
-                </select>
-              </Field>
-            </div>
-            <Field label="Location" hint="City, region or coordinates">
-              <div style={{ position: "relative" }}>
-                <MapPin
-                  size={14}
-                  style={{
-                    position: "absolute",
-                    left: 12,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "var(--text-faint)",
-                    pointerEvents: "none",
-                  }}
-                />
-                <input
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  style={{ ...inputStyle, paddingLeft: 36 }}
-                  placeholder="e.g. Dakahlia, Egypt"
-                />
-              </div>
+            <Field label="Unit">
+              <select
+                value={farmAreaUnit}
+                onChange={(e) => setFarmAreaUnit(e.target.value)}
+                style={{ ...inputStyle, minWidth: 100 }}
+              >
+                <option value="m2">m²</option>
+                <option value="feddan">Feddan</option>
+                <option value="acre">Acre</option>
+                <option value="hectare">Hectare</option>
+              </select>
             </Field>
-          </Section>
-        </motion.div>
+          </div>
+          <Field label="Location" hint="City, region or coordinates">
+            <div style={{ position: "relative" }}>
+              <MapPin
+                size={14}
+                style={{
+                  position: "absolute",
+                  left: 12,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "var(--text-faint)",
+                  pointerEvents: "none",
+                }}
+              />
+              <input
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                style={{ ...inputStyle, paddingLeft: 36 }}
+                placeholder="e.g. Dakahlia, Egypt"
+              />
+            </div>
+          </Field>
+        </Section>
 
         {/* Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Section title="Account Stats" icon={<Mail size={16} />}>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 12,
-              }}
-            >
-              {[
-                {
-                  label: "Member since",
-                  value: new Date(user._creationTime).toLocaleDateString(
-                    "en-US",
-                    { month: "short", year: "numeric" },
-                  ),
-                },
-                {
-                  label: "Email status",
-                  value: user.emailVerificationTime
-                    ? "✅ Verified"
-                    : "❌ Unverified",
-                },
-              ].map((s, i) => (
+        <Section title="Account Stats" icon={<Mail size={16} />}>
+          <div
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
+          >
+            {[
+              {
+                label: "Member since",
+                value: new Date(user._creationTime).toLocaleDateString(
+                  "en-US",
+                  { month: "short", year: "numeric" },
+                ),
+              },
+              {
+                label: "Email status",
+                value: user.emailVerificationTime
+                  ? "✅ Verified"
+                  : "❌ Unverified",
+              },
+            ].map((s, i) => (
+              <div
+                key={i}
+                style={{
+                  padding: "14px 16px",
+                  background: "var(--glass-bg)",
+                  border: "1px solid var(--border-base)",
+                  borderRadius: 12,
+                }}
+              >
                 <div
-                  key={i}
                   style={{
-                    padding: "14px 16px",
-                    background: "var(--glass-bg)",
-                    border: "1px solid var(--border-base)",
-                    borderRadius: 12,
+                    fontSize: 11,
+                    color: "var(--text-faint)",
+                    fontWeight: 600,
+                    marginBottom: 4,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
                   }}
                 >
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: "var(--text-faint)",
-                      fontWeight: 600,
-                      marginBottom: 4,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.06em",
-                    }}
-                  >
-                    {s.label}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 700,
-                      color: "var(--text-primary)",
-                    }}
-                  >
-                    {s.value}
-                  </div>
+                  {s.label}
                 </div>
-              ))}
-            </div>
-          </Section>
-        </motion.div>
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  {s.value}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
 
-        {/* Save */}
-        <motion.button
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          whileHover={{
-            scale: 1.02,
-            boxShadow: "0 8px 28px rgba(22,163,74,0.3)",
-          }}
-          whileTap={{ scale: 0.98 }}
-          onClick={handleSave}
-          disabled={saving}
-          style={{
-            width: "100%",
-            padding: "14px",
-            background: "var(--grad-brand)",
-            border: "none",
-            borderRadius: 16,
-            color: "white",
-            fontSize: 15,
-            fontWeight: 700,
-            cursor: saving ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            opacity: saving ? 0.7 : 1,
-          }}
-        >
-          {saving ? (
-            <>
+        {/* Buttons */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <motion.button
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleSave}
+            disabled={saving}
+            style={{
+              width: "100%",
+              padding: "14px",
+              background: "var(--grad-brand)",
+              border: "none",
+              borderRadius: 16,
+              color: "white",
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: saving ? "not-allowed" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              opacity: saving ? 0.7 : 1,
+            }}
+          >
+            {saving ? (
               <div
                 style={{
                   width: 16,
@@ -713,14 +690,39 @@ export default function Profile() {
                   animation: "spin 0.8s linear infinite",
                 }}
               />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Save size={16} /> Save Profile
-            </>
-          )}
-        </motion.button>
+            ) : (
+              <>
+                <Save size={16} /> Save Profile
+              </>
+            )}
+          </motion.button>
+
+          {/* الزرار بتاع تسجيل الخروج */}
+          <motion.button
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleLogout}
+            style={{
+              width: "100%",
+              padding: "14px",
+              background: "rgba(248,113,113,0.05)",
+              border: "1.5px solid rgba(248,113,113,0.15)",
+              borderRadius: 16,
+              color: "#f87171",
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+            }}
+          >
+            <LogOut size={16} /> Logout from AgriSense
+          </motion.button>
+        </div>
       </main>
     </div>
   );

@@ -1,8 +1,7 @@
 import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
-import { Toaster } from "sonner";
-import { useEffect, useState } from "react";
-
+import { Toaster, toast } from "sonner";
+import { useEffect, useState, useRef } from "react";
 // Pages
 import Dashboard from "./pages/Dashboard";
 import Landing from "./pages/Landing";
@@ -13,7 +12,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Verify from "./pages/Verify";
 import AddZone from "./pages/AddZone";
 import DevicesList from "./pages/DevicesList";
-import DeviceDetails from "./pages/DeviceDetails"; // ✅ ضفنا الـ Import
+import DeviceDetails from "./pages/DeviceDetails";
 import DeviceSettings from "./pages/DeviceSettings";
 import Reports from "./pages/Reports";
 import Profile from "./pages/Profile";
@@ -23,6 +22,68 @@ import Help from "./pages/Help";
 
 const THEME = "theme-dark";
 
+function NotificationWatcher() {
+  const events = useQuery(api.users.getEvents);
+  const previousEventsLength = useRef<number | null>(null);
+  const audioEnabled = useRef(false);
+
+  // ✅ حل سحري: بمجرد ما تضغط في أي مكان، المتصفح سيعتبرك "موافق" على الأصوات
+  useEffect(() => {
+    const enableAudio = () => {
+      audioEnabled.current = true;
+      console.log("🔊 Audio interaction enabled");
+      // تشغيل صوت صامت جداً لمرة واحدة لفك القفل
+      const silentAudio = new Audio("/alert.mp3");
+      silentAudio.volume = 0;
+      silentAudio.play().catch(() => {});
+
+      window.removeEventListener("click", enableAudio);
+    };
+    window.addEventListener("click", enableAudio);
+    return () => window.removeEventListener("click", enableAudio);
+  }, []);
+
+  useEffect(() => {
+    if (events === undefined) return;
+
+    if (previousEventsLength.current === null) {
+      previousEventsLength.current = events.length;
+      return;
+    }
+
+    if (events.length > previousEventsLength.current) {
+      const newEvents = events.slice(
+        0,
+        events.length - previousEventsLength.current,
+      );
+      const hasCriticalAlert = newEvents.some(
+        (e: any) => e.type === "alert" || e.type === "low_moisture",
+      );
+
+      if (hasCriticalAlert) {
+        console.log("🚨 New Alert Detected! Trying to play sound...");
+        const audio = new Audio("/alert.mp3");
+        audio.volume = 1.0;
+
+        // محاولة التشغيل مع إظهار Toast في حال الفشل
+        audio
+          .play()
+          .then(() => console.log("🎵 Sound played successfully"))
+          .catch((e) => {
+            console.error(
+              "⚠️ Browser blocked sound. Click anywhere on the page first.",
+              e,
+            );
+            toast.error("🚨 New critical alert detected!");
+          });
+      }
+    }
+
+    previousEventsLength.current = events.length;
+  }, [events]);
+
+  return null;
+}
 function AuthenticatedRouter({ currentPath }: { currentPath: string }) {
   const user = useQuery(api.auth.loggedInUser);
 
@@ -35,7 +96,6 @@ function AuthenticatedRouter({ currentPath }: { currentPath: string }) {
   if (currentPath === "/add-zone") return <AddZone />;
   if (currentPath === "/devices") return <DevicesList />;
 
-  // ✅ ضفنا مسار صفحة تفاصيل الجهاز
   if (currentPath.startsWith("/device-details"))
     return <DeviceDetails deviceId={deviceId} />;
 
@@ -97,6 +157,8 @@ export default function App() {
       </Unauthenticated>
 
       <Authenticated>
+        {}
+        <NotificationWatcher />
         <AuthenticatedRouter currentPath={currentPath} />
       </Authenticated>
     </div>
