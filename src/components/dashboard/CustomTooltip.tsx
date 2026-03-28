@@ -5,14 +5,20 @@ export const CustomTooltip = ({ active, payload, label }: any) => {
   return (
     <div
       style={{
-        background: "#0f1f12",
-        border: "1px solid rgba(255,255,255,0.1)",
+        background: "var(--bg-card)", // ✅
+        border: "1px solid var(--border-card)", // ✅
         borderRadius: 10,
         padding: "8px 14px",
         fontSize: 12,
+        boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
       }}
     >
-      <div style={{ color: "rgba(255,255,255,0.5)", marginBottom: 4 }}>
+      <div
+        style={{
+          color: "var(--text-faint)", // ✅
+          marginBottom: 4,
+        }}
+      >
         {label}
       </div>
       {payload.map((p: any) => (

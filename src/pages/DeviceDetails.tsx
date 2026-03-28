@@ -44,7 +44,6 @@ function getMoistureStatus(v: number, min = 30, max = 70) {
   return { label: "Wet", color: "#60a5fa" };
 }
 
-// ✅ دالة حالة تدفق المياه اللي كانت ناقصة
 function getFlowStatus(v: number) {
   if (v === 0) return { label: "Stopped", color: "#6b7280" };
   if (v < 2) return { label: "Low", color: "#fbbf24" };
@@ -127,7 +126,7 @@ export default function DeviceDetails({
       <div
         style={{
           minHeight: "100vh",
-          background: "#070d09",
+          background: "var(--bg-page)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -137,7 +136,7 @@ export default function DeviceDetails({
           style={{
             width: 32,
             height: 32,
-            border: "3px solid rgba(255,255,255,0.1)",
+            border: "3px solid var(--border-card)",
             borderTopColor: "#4ade80",
             borderRadius: "50%",
             animation: "spin 0.8s linear infinite",
@@ -161,7 +160,7 @@ export default function DeviceDetails({
     <div
       style={{
         minHeight: "100vh",
-        background: `radial-gradient(ellipse 120% 60% at 50% 0%, #162e1a 0%, #0d2318 30%, transparent 60%), radial-gradient(ellipse 80% 60% at 0% 50%, rgba(15,43,24,0.9) 0%, transparent 60%), radial-gradient(ellipse 80% 60% at 100% 50%, rgba(11,30,36,0.7) 0%, transparent 60%), radial-gradient(ellipse 100% 50% at 50% 100%, rgba(15,43,24,0.5) 0%, transparent 60%), #070d09`,
+        background: "var(--bg-main-gradient)",
         color: "var(--text-primary)",
         fontFamily: "var(--font-body)",
       }}
@@ -174,7 +173,7 @@ export default function DeviceDetails({
           position: "sticky",
           top: 0,
           zIndex: 100,
-          background: scrolled ? "rgba(7,13,9,0.85)" : "transparent",
+          background: scrolled ? "var(--bg-nav)" : "transparent",
           backdropFilter: scrolled ? "blur(32px)" : "none",
           borderBottom: `1px solid ${scrolled ? "var(--border-base)" : "transparent"}`,
           transition: "all 0.35s ease",
@@ -356,7 +355,7 @@ export default function DeviceDetails({
                 delay={0.1}
               />
 
-              {/* ✅ إرجاع كارت الـ Water Flow المستقل */}
+              {}
               <LiveCard
                 icon={<Wind size={18} />}
                 label="Water Flow"
@@ -368,7 +367,7 @@ export default function DeviceDetails({
                 delay={0.16}
               />
 
-              {/* Pump Control Card */}
+              {}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -456,7 +455,7 @@ export default function DeviceDetails({
                       borderRadius: 15,
                       background: latest.pumpStatus
                         ? "#16a34a"
-                        : "rgba(255,255,255,0.1)",
+                        : "var(--border-base)",
                       position: "relative",
                       cursor: pumpLoading ? "not-allowed" : "pointer",
                       transition: "background 0.3s",
@@ -483,23 +482,24 @@ export default function DeviceDetails({
                 <div
                   style={{
                     padding: "12px",
-                    background: "rgba(0,0,0,0.2)",
+                    background: "var(--info-bg)",
+                    border: "1px solid var(--info-border)",
                     borderRadius: 12,
                     fontSize: 13,
-                    color: "var(--text-muted)",
+                    color: "var(--info-text)",
                     display: "flex",
                     alignItems: "center",
                     gap: 8,
                   }}
                 >
-                  <Activity size={14} color="var(--brand-500)" /> Toggle to
-                  remotely control your pump.
+                  <Activity size={14} color="var(--info-color)" /> {}
+                  Toggle to remotely control your pump.
                 </div>
               </motion.div>
             </motion.div>
           )}
 
-          {/* TAB: TRENDS */}
+          {}
           {activeTab === "trends" && (
             <motion.div
               key="trends"
@@ -510,7 +510,7 @@ export default function DeviceDetails({
             >
               <div
                 style={{
-                  background: "rgba(255,255,255,0.02)",
+                  background: "var(--bg-card)",
                   border: "1px solid var(--border-card)",
                   borderRadius: 20,
                   padding: "24px",
@@ -553,9 +553,9 @@ export default function DeviceDetails({
                   <LineChart data={chartData}>
                     <CartesianGrid
                       strokeDasharray="3 3"
-                      stroke="rgba(255,255,255,0.04)"
+                      stroke="var(--border-card)"
                     />
-                    {/* ✅ منع تداخل الوقت */}
+                    {}
                     <XAxis
                       dataKey="time"
                       tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
@@ -618,7 +618,7 @@ export default function DeviceDetails({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               style={{
-                background: "rgba(255,255,255,0.02)",
+                background: "var(--bg-card)",
                 border: "1px solid var(--border-card)",
                 borderRadius: 20,
                 padding: "40px",

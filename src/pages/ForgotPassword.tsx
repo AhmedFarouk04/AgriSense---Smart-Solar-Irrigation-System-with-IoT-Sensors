@@ -1,6 +1,6 @@
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
@@ -22,20 +22,7 @@ export default function ForgotPassword() {
   const [emailError, setEmailError] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [isDark, setIsDark] = useState(false);
   const requestReset = useMutation(api.authHelpers.requestPasswordReset);
-
-  useEffect(() => {
-    const check = () =>
-      setIsDark(document.body.classList.contains("theme-dark"));
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(document.body, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
 
   const validateEmail = (val: string): string => {
     if (!val.trim()) return "Email address is required";
@@ -54,13 +41,11 @@ export default function ForgotPassword() {
     setLoading(true);
     try {
       const result = await requestReset({ email: email.trim().toLowerCase() });
-      // ✅ بنقرأ الـ userExists من الـ response مباشرة
       if (result?.userExists === false) {
         setEmailError("No account found with this email address");
       } else {
-        // ✅ حفظ الإيميل وانتقال مباشر — بدون success screen
         sessionStorage.setItem("resetEmail", email.trim().toLowerCase());
-        nav("/reset-password");
+        setSubmitted(true); // ✅ نقلنا اليوزر لحالة النجاح
       }
     } catch {
       toast.error("Failed to send reset code. Try again.");
@@ -69,63 +54,9 @@ export default function ForgotPassword() {
     }
   };
 
-  const tk = isDark
-    ? {
-        panelBg: "linear-gradient(135deg,#070d09 0%,#0d1a10 55%,#080f18 100%)",
-        blobOp: 0.06,
-        heading: "#e8f5e9",
-        subtext: "rgba(255,255,255,0.45)",
-        backBtn: "rgba(255,255,255,0.40)",
-        backBtnHover: "rgba(255,255,255,0.85)",
-        iconBg:
-          "linear-gradient(135deg,rgba(245,158,11,0.18),rgba(249,115,22,0.18))",
-        iconBorder: "2px solid rgba(245,158,11,0.30)",
-        label: "rgba(255,255,255,0.70)",
-        inputBg: "#0f1f12",
-        inputBorder: "#1f3a25",
-        inputFocus: "#f59e0b",
-        inputColor: "#e8f5e9",
-        iconColor: "rgba(255,255,255,0.30)",
-        mobileName: "#e8f5e9",
-        successBg: "rgba(74,222,128,0.07)",
-        successBorder: "rgba(74,222,128,0.20)",
-        successHead: "#e8f5e9",
-        successSub: "#86efac",
-        successEmail: "#4ade80",
-        altBtn: "rgba(255,255,255,0.35)",
-        altBtnHover: "rgba(255,255,255,0.70)",
-        errorColor: "#f87171",
-      }
-    : {
-        panelBg: "linear-gradient(135deg,#fffbeb 0%,#ffffff 50%,#eff6ff 100%)",
-        blobOp: 0.3,
-        heading: "#111827",
-        subtext: "#6b7280",
-        backBtn: "#6b7280",
-        backBtnHover: "#111827",
-        iconBg:
-          "linear-gradient(135deg,rgba(245,158,11,0.15),rgba(249,115,22,0.15))",
-        iconBorder: "2px solid rgba(245,158,11,0.25)",
-        label: "#374151",
-        inputBg: "#ffffff",
-        inputBorder: "#e5e7eb",
-        inputFocus: "#f59e0b",
-        inputColor: "#111827",
-        iconColor: "#9ca3af",
-        mobileName: "#111827",
-        successBg: "rgba(22,163,74,0.07)",
-        successBorder: "rgba(22,163,74,0.20)",
-        successHead: "#111827",
-        successSub: "#166534",
-        successEmail: "#16a34a",
-        altBtn: "#6b7280",
-        altBtnHover: "#374151",
-        errorColor: "#ef4444",
-      };
-
   return (
     <div className="min-h-screen flex">
-      {/* ── LEFT PANEL — dark always ── */}
+      {/* ── LEFT PANEL — static dark, intentionally not theme-aware ── */}
       <div
         className="hidden lg:flex lg:w-[46%] flex-col justify-between p-14 relative overflow-hidden"
         style={{
@@ -227,28 +158,31 @@ export default function ForgotPassword() {
         <div className="relative z-10" />
       </div>
 
-      {/* ── RIGHT PANEL — theme-aware ── */}
+      {/* ── RIGHT PANEL — theme-aware via CSS variables ── */}
       <div
         className="flex-1 flex items-center justify-center p-6 lg:p-14 relative"
-        style={{ background: tk.panelBg, transition: "background 0.3s ease" }}
+        style={{
+          background: "var(--bg-main-gradient)",
+          transition: "background 0.3s ease",
+        }}
       >
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div
-            className="absolute -top-32 -right-32 w-96 h-96 rounded-full blur-3xl"
+            className="absolute -top-32 -right-32 w-96 h-96 rounded-full blur-3xl opacity-[0.08]"
             style={{
               background: "radial-gradient(circle,#fef3c7,transparent)",
-              opacity: tk.blobOp,
             }}
           />
         </div>
 
+        {/* Mobile logo */}
         <div className="lg:hidden absolute top-6 left-6 flex items-center gap-2">
           <AgriSenseLogo size={34} />
           <span
             className="font-black text-lg"
             style={{
               fontFamily: "'Fraunces',Georgia,serif",
-              color: tk.mobileName,
+              color: "var(--text-primary)",
             }}
           >
             AgriSense
@@ -261,35 +195,50 @@ export default function ForgotPassword() {
           transition={{ duration: 0.55 }}
           className="relative z-10 w-full max-w-[420px]"
         >
+          {/* Back button */}
           <button
             onClick={() => nav("/login")}
             className="flex items-center gap-1.5 transition-colors mb-8 text-sm font-semibold"
-            style={{ color: tk.backBtn }}
+            style={{ color: "var(--text-muted)" }}
             onMouseEnter={(e) =>
-              (e.currentTarget.style.color = tk.backBtnHover)
+              (e.currentTarget.style.color = "var(--text-primary)")
             }
-            onMouseLeave={(e) => (e.currentTarget.style.color = tk.backBtn)}
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.color = "var(--text-muted)")
+            }
           >
             <ArrowLeft className="w-4 h-4" /> Back to Login
           </button>
 
+          {/* Icon */}
           <div className="flex justify-center mb-6">
             <div
               className="w-20 h-20 rounded-3xl flex items-center justify-center"
-              style={{ background: tk.iconBg, border: tk.iconBorder }}
+              style={{
+                background:
+                  "linear-gradient(135deg,rgba(245,158,11,0.15),rgba(249,115,22,0.15))",
+                border: "2px solid rgba(245,158,11,0.25)",
+              }}
             >
               <KeyRound className="w-10 h-10 text-yellow-600" />
             </div>
           </div>
 
+          {/* Heading */}
           <div className="text-center mb-8">
             <h1
               className="text-[28px] font-black mb-2"
-              style={{ letterSpacing: "-0.025em", color: tk.heading }}
+              style={{
+                letterSpacing: "-0.025em",
+                color: "var(--text-primary)",
+              }}
             >
               Forgot password?
             </h1>
-            <p className="text-sm" style={{ color: tk.subtext }}>
+            <p
+              className="text-sm font-medium"
+              style={{ color: "var(--text-muted)" }}
+            >
               Enter your email and we'll send a reset code
             </p>
           </div>
@@ -299,36 +248,44 @@ export default function ForgotPassword() {
               <div>
                 <label
                   className="block text-sm font-bold mb-1.5"
-                  style={{ color: tk.label }}
+                  style={{ color: "var(--text-secondary)" }}
                 >
                   Email Address
                 </label>
                 <div className="relative">
                   <Mail
                     className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4"
-                    style={{ color: emailError ? tk.errorColor : tk.iconColor }}
+                    style={{
+                      color: emailError ? "#f87171" : "var(--text-faint)",
+                    }}
                   />
+                  {/* ✅ دمجنا onBlur هنا عشان نعالج الـ Error */}
                   <input
-                    type="text"
+                    type="email"
                     inputMode="email"
                     value={email}
                     onChange={(e) => {
                       setEmail(e.target.value);
                       if (emailError) setEmailError("");
                     }}
-                    onBlur={() => {
+                    onFocus={(e) =>
+                      (e.currentTarget.style.borderColor = emailError
+                        ? "#f87171"
+                        : "var(--brand-500)")
+                    }
+                    onBlur={(e) => {
                       const err = validateEmail(email);
                       if (err) setEmailError(err);
+                      e.currentTarget.style.borderColor = err
+                        ? "#f87171"
+                        : "var(--border-card)";
                     }}
                     className="w-full pl-11 pr-4 py-[14px] rounded-2xl outline-none transition-all text-sm font-medium"
                     style={{
-                      background: tk.inputBg,
-                      border: `2px solid ${emailError ? tk.errorColor : tk.inputBorder}`,
-                      color: tk.inputColor,
+                      background: "var(--glass-bg)",
+                      border: `2px solid ${emailError ? "#f87171" : "var(--border-card)"}`,
+                      color: "var(--text-primary)",
                     }}
-                    onFocus={(e) =>
-                      (e.currentTarget.style.border = `2px solid ${emailError ? tk.errorColor : tk.inputFocus}`)
-                    }
                   />
                 </div>
                 {emailError && (
@@ -337,7 +294,7 @@ export default function ForgotPassword() {
                     animate={{ opacity: 1, y: 0 }}
                     style={{
                       fontSize: 12,
-                      color: tk.errorColor,
+                      color: "#f87171",
                       marginTop: 6,
                       fontWeight: 500,
                     }}
@@ -347,6 +304,7 @@ export default function ForgotPassword() {
                 )}
               </div>
 
+              {/* Submit */}
               <motion.button
                 whileHover={{ scale: 1.015 }}
                 whileTap={{ scale: 0.985 }}
@@ -360,7 +318,17 @@ export default function ForgotPassword() {
               >
                 {loading ? (
                   <>
-                    <span className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />{" "}
+                    <span
+                      style={{
+                        width: 16,
+                        height: 16,
+                        border: "2px solid rgba(255,255,255,0.5)",
+                        borderTopColor: "white",
+                        borderRadius: "50%",
+                        animation: "spin 0.7s linear infinite",
+                        display: "inline-block",
+                      }}
+                    />{" "}
                     Sending...
                   </>
                 ) : (
@@ -370,27 +338,31 @@ export default function ForgotPassword() {
                 )}
               </motion.button>
 
+              {/* Already have a code */}
               <button
                 type="button"
                 onClick={() => nav("/reset-password")}
                 className="w-full py-3 text-sm font-semibold transition-colors"
-                style={{ color: tk.altBtn }}
+                style={{ color: "var(--text-muted)" }}
                 onMouseEnter={(e) =>
-                  (e.currentTarget.style.color = tk.altBtnHover)
+                  (e.currentTarget.style.color = "var(--text-primary)")
                 }
-                onMouseLeave={(e) => (e.currentTarget.style.color = tk.altBtn)}
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.color = "var(--text-muted)")
+                }
               >
                 Already have a code? Enter it here →
               </button>
             </form>
           ) : (
+            /* Success state */
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               className="text-center p-8 rounded-2xl"
               style={{
-                background: tk.successBg,
-                border: `2px solid ${tk.successBorder}`,
+                background: "rgba(34, 197, 94, 0.1)",
+                border: "2px solid rgba(34, 197, 94, 0.2)",
               }}
             >
               <motion.div
@@ -402,19 +374,19 @@ export default function ForgotPassword() {
               </motion.div>
               <h3
                 className="font-black text-xl mb-2"
-                style={{ color: tk.successHead }}
+                style={{ color: "var(--text-primary)" }}
               >
                 Code sent! 📧
               </h3>
               <p
                 className="text-sm font-medium mb-1"
-                style={{ color: tk.successSub }}
+                style={{ color: "var(--text-secondary)" }}
               >
                 Reset code sent to
               </p>
               <p
                 className="font-black text-sm mb-6 truncate"
-                style={{ color: tk.successEmail }}
+                style={{ color: "#22c55e" }}
               >
                 {email}
               </p>
@@ -423,20 +395,20 @@ export default function ForgotPassword() {
                 whileTap={{ scale: 0.985 }}
                 onClick={() => nav("/reset-password")}
                 className="w-full py-[14px] text-white rounded-2xl font-black text-sm"
-                style={{
-                  background: "linear-gradient(135deg,#16a34a,#0ea5e9)",
-                }}
+                style={{ background: "var(--grad-brand)" }}
               >
                 Enter Reset Code →
               </motion.button>
               <button
                 onClick={() => setSubmitted(false)}
                 className="mt-3 text-sm font-semibold transition-colors block w-full"
-                style={{ color: tk.altBtn }}
+                style={{ color: "var(--text-muted)" }}
                 onMouseEnter={(e) =>
-                  (e.currentTarget.style.color = tk.altBtnHover)
+                  (e.currentTarget.style.color = "var(--text-primary)")
                 }
-                onMouseLeave={(e) => (e.currentTarget.style.color = tk.altBtn)}
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.color = "var(--text-muted)")
+                }
               >
                 Try a different email
               </button>
@@ -444,6 +416,8 @@ export default function ForgotPassword() {
           )}
         </motion.div>
       </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

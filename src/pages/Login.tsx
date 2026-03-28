@@ -1,5 +1,5 @@
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Check } from "lucide-react";
@@ -39,19 +39,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [gLoading, setGLoading] = useState(false);
   const [errors, setErrors] = useState({ email: "", password: "" });
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    const check = () =>
-      setIsDark(document.body.classList.contains("theme-dark"));
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(document.body, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
 
   const validateForm = (): boolean => {
     const newErrors = { email: "", password: "" };
@@ -76,7 +63,6 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
     setLoading(true);
@@ -89,19 +75,14 @@ export default function Login() {
       toast.success("Welcome back! 🌱", {
         description: "Redirecting to dashboard...",
       });
-
       setTimeout(() => nav("/dashboard"), 1500);
     } catch (error: any) {
       console.error("Login error:", error);
-
-      setErrors({
-        email: " ",
-        password: "Invalid email or password",
-      });
-
+      setErrors({ email: " ", password: "Invalid email or password" });
       setLoading(false);
     }
   };
+
   const handleGoogle = async () => {
     setGLoading(true);
     try {
@@ -115,58 +96,15 @@ export default function Login() {
     }
   };
 
-  const tk = isDark
-    ? {
-        panelBg: "linear-gradient(135deg,#070d09 0%,#0d1a10 55%,#080f18 100%)",
-        blob1Op: 0.06,
-        blob2Op: 0.05,
-        heading: "#e8f5e9",
-        subtext: "rgba(255,255,255,0.45)",
-        label: "rgba(255,255,255,0.70)",
-        inputBg: "#0f1f12",
-        inputBorder: "#1f3a25",
-        inputFocus: "#22c55e",
-        inputColor: "#e8f5e9",
-        iconColor: "rgba(255,255,255,0.30)",
-        dividerLine: "rgba(255,255,255,0.08)",
-        dividerText: "rgba(255,255,255,0.28)",
-        googleBg: "#0f1f12",
-        googleBorder: "#1f3a25",
-        googleColor: "#e8f5e9",
-        checkText: "rgba(255,255,255,0.55)",
-        footerText: "rgba(255,255,255,0.38)",
-        mobileName: "#e8f5e9",
-      }
-    : {
-        panelBg: "linear-gradient(135deg,#f6fdf8 0%,#ffffff 55%,#f7fbff 100%)",
-        blob1Op: 0.1,
-        blob2Op: 0.08,
-        heading: "#111827",
-        subtext: "#6b7280",
-        label: "#374151",
-        inputBg: "#ffffff",
-        inputBorder: "#e5e7eb",
-        inputFocus: "#16a34a",
-        inputColor: "#111827",
-        iconColor: "#9ca3af",
-        dividerLine: "#e5e7eb",
-        dividerText: "#9ca3af",
-        googleBg: "#ffffff",
-        googleBorder: "#e5e7eb",
-        googleColor: "#374151",
-        checkText: "#4b5563",
-        footerText: "#6b7280",
-        mobileName: "#111827",
-      };
-
+  // Simplified borderColor — no more isDark dependency
   const borderColor = (field: "email" | "password", focused = false) => {
-    if (errors[field]) return "#ef4444";
-    return focused ? tk.inputFocus : tk.inputBorder;
+    if (errors[field]) return "var(--error-color)";
+    return focused ? "var(--brand-500)" : "var(--border-card)";
   };
 
   return (
     <div className="min-h-screen flex">
-      {}
+      {/* ===== LEFT PANEL (static dark green — intentionally not theme-aware) ===== */}
       <div
         className="hidden lg:flex lg:w-[46%] flex-col justify-between p-14 relative overflow-hidden"
         style={{
@@ -309,21 +247,24 @@ export default function Login() {
       {/* ===== RIGHT PANEL ===== */}
       <div
         className="flex-1 flex items-center justify-center p-6 lg:p-14 relative overflow-hidden"
-        style={{ background: tk.panelBg, transition: "background 0.3s ease" }}
+        style={{
+          background: "var(--bg-main-gradient)",
+          transition: "background 0.3s ease",
+        }}
       >
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div
             className="absolute -top-32 -right-32 w-96 h-96 rounded-full blur-3xl"
             style={{
               background: "radial-gradient(circle,#bbf7d0,transparent)",
-              opacity: tk.blob1Op,
+              opacity: 0.08,
             }}
           />
           <div
             className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full blur-3xl"
             style={{
               background: "radial-gradient(circle,#bfdbfe,transparent)",
-              opacity: tk.blob2Op,
+              opacity: 0.06,
             }}
           />
         </div>
@@ -335,7 +276,7 @@ export default function Login() {
             className="font-black text-lg"
             style={{
               fontFamily: "'Fraunces',Georgia,serif",
-              color: tk.mobileName,
+              color: "var(--text-primary)",
             }}
           >
             AgriSense
@@ -351,11 +292,14 @@ export default function Login() {
           <div className="mb-8">
             <h1
               className="text-[32px] font-black mb-2"
-              style={{ letterSpacing: "-0.025em", color: tk.heading }}
+              style={{
+                letterSpacing: "-0.025em",
+                color: "var(--text-primary)",
+              }}
             >
               Welcome back 👋
             </h1>
-            <p className="text-[15px]" style={{ color: tk.subtext }}>
+            <p className="text-[15px]" style={{ color: "var(--text-muted)" }}>
               Sign in to manage your smart farm
             </p>
           </div>
@@ -371,15 +315,25 @@ export default function Login() {
             disabled={gLoading || loading}
             className="w-full flex items-center justify-center gap-3 py-[14px] px-4 rounded-2xl font-semibold transition-all disabled:opacity-50 mb-5"
             style={{
-              background: tk.googleBg,
-              border: `2px solid ${tk.googleBorder}`,
-              color: tk.googleColor,
+              background: "var(--glass-bg)",
+              border: "2px solid var(--border-card)",
+              color: "var(--text-primary)",
               boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
             }}
           >
             {gLoading ? (
               <>
-                <span className="w-4 h-4 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin" />
+                <span
+                  style={{
+                    width: 16,
+                    height: 16,
+                    border: "2px solid var(--border-base)",
+                    borderTopColor: "var(--text-secondary)",
+                    borderRadius: "50%",
+                    animation: "spin 0.7s linear infinite",
+                    display: "inline-block",
+                  }}
+                />
                 Redirecting...
               </>
             ) : (
@@ -393,21 +347,20 @@ export default function Login() {
           <div className="flex items-center gap-3 mb-5">
             <div
               className="flex-1 h-px"
-              style={{ background: tk.dividerLine }}
+              style={{ background: "var(--border-base)" }}
             />
             <span
-              className="text-xs font-semibold"
-              style={{ color: tk.dividerText }}
+              className="text-xs font-bold"
+              style={{ color: "var(--text-faint)", letterSpacing: "0.06em" }}
             >
               OR SIGN IN WITH EMAIL
             </span>
             <div
               className="flex-1 h-px"
-              style={{ background: tk.dividerLine }}
+              style={{ background: "var(--border-base)" }}
             />
           </div>
 
-          {/* ✅ form با autoComplete="on" — مهم عشان البراوزر يعرف يملّي الـ credentials صح */}
           <form
             onSubmit={handleSubmit}
             autoComplete="on"
@@ -418,14 +371,14 @@ export default function Login() {
             <div>
               <label
                 className="block text-sm font-bold mb-1.5"
-                style={{ color: tk.label }}
+                style={{ color: "var(--text-secondary)" }}
               >
                 Email Address
               </label>
               <div className="relative">
                 <Mail
                   className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-                  style={{ color: tk.iconColor }}
+                  style={{ color: "var(--text-faint)" }}
                 />
                 <input
                   type="text"
@@ -439,24 +392,27 @@ export default function Login() {
                   }}
                   className="w-full pl-11 pr-4 py-[14px] rounded-2xl outline-none transition-all text-sm font-medium"
                   style={{
-                    background: tk.inputBg,
+                    background: "var(--glass-bg)",
                     border: `2px solid ${borderColor("email")}`,
-                    color: tk.inputColor,
+                    color: "var(--text-primary)",
                   }}
                   onFocus={(e) =>
-                    (e.currentTarget.style.border = `2px solid ${borderColor("email", true)}`)
+                    (e.currentTarget.style.borderColor = borderColor(
+                      "email",
+                      true,
+                    ))
                   }
                   onBlur={(e) =>
-                    (e.currentTarget.style.border = `2px solid ${borderColor("email")}`)
+                    (e.currentTarget.style.borderColor = borderColor("email"))
                   }
                 />
               </div>
-              {/* Error message */}
               {errors.email && (
                 <motion.p
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-red-500 text-xs mt-1.5 flex items-center gap-1"
+                  className="text-xs mt-1.5 flex items-center gap-1 font-medium"
+                  style={{ color: "var(--error-color)" }}
                 >
                   <span>⚠</span> {errors.email}
                 </motion.p>
@@ -467,14 +423,14 @@ export default function Login() {
             <div>
               <label
                 className="block text-sm font-bold mb-1.5"
-                style={{ color: tk.label }}
+                style={{ color: "var(--text-secondary)" }}
               >
                 Password
               </label>
               <div className="relative">
                 <Lock
                   className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-                  style={{ color: tk.iconColor }}
+                  style={{ color: "var(--text-faint)" }}
                 />
                 <input
                   type={showPass ? "text" : "password"}
@@ -487,22 +443,26 @@ export default function Login() {
                   }}
                   className="w-full pl-11 pr-12 py-[14px] rounded-2xl outline-none transition-all text-sm font-medium"
                   style={{
-                    background: tk.inputBg,
+                    background: "var(--glass-bg)",
                     border: `2px solid ${borderColor("password")}`,
-                    color: tk.inputColor,
+                    color: "var(--text-primary)",
                   }}
                   onFocus={(e) =>
-                    (e.currentTarget.style.border = `2px solid ${borderColor("password", true)}`)
+                    (e.currentTarget.style.borderColor = borderColor(
+                      "password",
+                      true,
+                    ))
                   }
                   onBlur={(e) =>
-                    (e.currentTarget.style.border = `2px solid ${borderColor("password")}`)
+                    (e.currentTarget.style.borderColor =
+                      borderColor("password"))
                   }
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 transition-colors"
-                  style={{ color: tk.iconColor }}
+                  style={{ color: "var(--text-faint)" }}
                   tabIndex={-1}
                 >
                   {showPass ? (
@@ -512,12 +472,12 @@ export default function Login() {
                   )}
                 </button>
               </div>
-              {/* Error message */}
               {errors.password && (
                 <motion.p
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-red-500 text-xs mt-1.5 flex items-center gap-1"
+                  className="text-xs mt-1.5 flex items-center gap-1 font-medium"
+                  style={{ color: "var(--error-color)" }}
                 >
                   <span>⚠</span> {errors.password}
                 </motion.p>
@@ -531,14 +491,18 @@ export default function Login() {
                   type="checkbox"
                   className="w-4 h-4 rounded accent-green-600"
                 />
-                <span className="text-sm" style={{ color: tk.checkText }}>
+                <span
+                  className="text-sm"
+                  style={{ color: "var(--text-muted)" }}
+                >
                   Remember me
                 </span>
               </label>
               <button
                 type="button"
                 onClick={() => nav("/forgot-password")}
-                className="text-sm font-bold text-green-500 hover:text-green-400 transition-colors"
+                className="text-sm font-bold transition-colors"
+                style={{ color: "var(--brand-500)" }}
               >
                 Forgot password?
               </button>
@@ -552,13 +516,23 @@ export default function Login() {
               disabled={loading || gLoading}
               className="w-full py-[14px] text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
               style={{
-                background: "linear-gradient(135deg,#16a34a 0%,#0ea5e9 100%)",
+                background: "var(--grad-brand)",
                 boxShadow: "0 8px 24px rgba(22,163,74,0.28)",
               }}
             >
               {loading ? (
                 <>
-                  <span className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                  <span
+                    style={{
+                      width: 16,
+                      height: 16,
+                      border: "2px solid rgba(255,255,255,0.5)",
+                      borderTopColor: "white",
+                      borderRadius: "50%",
+                      animation: "spin 0.7s linear infinite",
+                      display: "inline-block",
+                    }}
+                  />
                   Signing in...
                 </>
               ) : (
@@ -571,18 +545,21 @@ export default function Login() {
 
           <p
             className="text-center text-sm mt-6"
-            style={{ color: tk.footerText }}
+            style={{ color: "var(--text-faint)" }}
           >
             Don't have an account?{" "}
             <button
               onClick={() => nav("/register")}
-              className="font-black text-green-500 hover:text-green-400 transition-colors"
+              className="font-black transition-colors"
+              style={{ color: "var(--brand-500)" }}
             >
               Create account →
             </button>
           </p>
         </motion.div>
       </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

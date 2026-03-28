@@ -44,26 +44,24 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const StrengthRow = ({
-  label,
-  valid,
-  isDark,
-}: {
-  label: string;
-  valid: boolean;
-  isDark: boolean;
-}) => (
+// StrengthRow no longer needs isDark — CSS variables handle theming automatically
+const StrengthRow = ({ label, valid }: { label: string; valid: boolean }) => (
   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
     {valid ? (
       <CheckCircle
-        style={{ width: 14, height: 14, color: "#22c55e", flexShrink: 0 }}
+        style={{
+          width: 14,
+          height: 14,
+          color: "var(--success-color)",
+          flexShrink: 0,
+        }}
       />
     ) : (
       <XCircle
         style={{
           width: 14,
           height: 14,
-          color: isDark ? "#374151" : "#d1d5db",
+          color: "var(--border-card)",
           flexShrink: 0,
         }}
       />
@@ -71,7 +69,7 @@ const StrengthRow = ({
     <span
       style={{
         fontSize: 12,
-        color: valid ? "#22c55e" : isDark ? "#6b7280" : "#9ca3af",
+        color: valid ? "var(--success-color)" : "var(--text-faint)",
         fontWeight: 500,
       }}
     >
@@ -106,7 +104,6 @@ export default function Register() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [gLoading, setGLoading] = useState(false);
-  const [isDark, setIsDark] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [agreeError, setAgreeError] = useState(false);
 
@@ -131,7 +128,6 @@ export default function Register() {
     return "";
   };
 
-  // Queries
   // Queries
   const emailExists = useQuery(
     api.users.checkEmailExists,
@@ -159,7 +155,8 @@ export default function Register() {
     nameExists === undefined
   );
   const isChecking = isCheckingEmail || isCheckingName;
-  // Effects
+
+  // Effects — only for data logic, no isDark tracking needed
   useEffect(() => {
     if (emailExists === true) {
       setErrors((prev) => ({
@@ -188,18 +185,6 @@ export default function Register() {
       setErrors((prev) => ({ ...prev, name: "" }));
     }
   }, [nameExists]);
-
-  useEffect(() => {
-    const check = () =>
-      setIsDark(document.body.classList.contains("theme-dark"));
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(document.body, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
 
   // Password strength
   const ps = {
@@ -246,7 +231,6 @@ export default function Register() {
       valid = false;
     }
 
-    // Check format
     const nameErr = validateName(form.name);
     if (nameErr) {
       newErrors.name = nameErr;
@@ -259,14 +243,12 @@ export default function Register() {
       valid = false;
     }
 
-    // If still checking, prevent submission
     if (isChecking) {
       toast.loading("Checking availability...", { id: "checking" });
       setTimeout(() => toast.dismiss("checking"), 2000);
       return false;
     }
 
-    // Check existence (only for active accounts)
     if (!nameErr && nameExists === true) {
       newErrors.name =
         "This full name is already taken . Please choose another.";
@@ -278,7 +260,6 @@ export default function Register() {
       valid = false;
     }
 
-    // Password checks
     if (!form.password) {
       newErrors.password = "Password is required";
       valid = false;
@@ -362,75 +343,23 @@ export default function Register() {
     }
   };
 
-  // Theme colors
-  const tk = isDark
-    ? {
-        panelBg: "linear-gradient(135deg,#070d09 0%,#0d1a10 55%,#080f18 100%)",
-        blob1Op: 0.06,
-        blob2Op: 0.05,
-        heading: "#e8f5e9",
-        subtext: "rgba(255,255,255,0.45)",
-        label: "rgba(255,255,255,0.70)",
-        inputBg: "#0f1f12",
-        inputBorder: "#1f3a25",
-        inputFocus: "#22c55e",
-        inputColor: "#e8f5e9",
-        iconColor: "rgba(255,255,255,0.30)",
-        dividerLine: "rgba(255,255,255,0.08)",
-        dividerText: "rgba(255,255,255,0.28)",
-        googleBg: "#0f1f12",
-        googleBorder: "#1f3a25",
-        googleColor: "#e8f5e9",
-        strengthBg: "#0a1a0d",
-        strengthBorder: "#1a3020",
-        hintText: "rgba(255,255,255,0.28)",
-        termsText: "rgba(255,255,255,0.45)",
-        footerText: "rgba(255,255,255,0.38)",
-        mobileName: "#e8f5e9",
-        errorColor: "#f87171",
-      }
-    : {
-        panelBg: "linear-gradient(135deg,#f6fdf8 0%,#ffffff 55%,#f7fbff 100%)",
-        blob1Op: 0.1,
-        blob2Op: 0.08,
-        heading: "#111827",
-        subtext: "#6b7280",
-        label: "#374151",
-        inputBg: "#ffffff",
-        inputBorder: "#e5e7eb",
-        inputFocus: "#16a34a",
-        inputColor: "#111827",
-        iconColor: "#9ca3af",
-        dividerLine: "#e5e7eb",
-        dividerText: "#9ca3af",
-        googleBg: "#ffffff",
-        googleBorder: "#e5e7eb",
-        googleColor: "#374151",
-        strengthBg: "#f9fafb",
-        strengthBorder: "#e5e7eb",
-        hintText: "#9ca3af",
-        termsText: "#6b7280",
-        footerText: "#6b7280",
-        mobileName: "#111827",
-        errorColor: "#ef4444",
-      };
-
+  // Simplified inputBase — no more tk object
   const inputBase = (field: keyof typeof errors): React.CSSProperties => ({
     width: "100%",
     padding: "14px 16px 14px 44px",
-    background: tk.inputBg,
+    background: "var(--glass-bg)",
     borderRadius: 16,
     outline: "none",
     fontSize: 14,
     fontWeight: 500,
-    color: tk.inputColor,
-    border: `2px solid ${errors[field] ? tk.errorColor : tk.inputBorder}`,
+    color: "var(--text-primary)",
+    border: `2px solid ${errors[field] ? "var(--error-color)" : "var(--border-card)"}`,
     transition: "border .2s",
   });
 
   return (
     <div style={{ minHeight: "100vh", display: "flex" }}>
-      {/* Left side (static) */}
+      {/* ===== LEFT PANEL (static dark green — intentionally not theme-aware) ===== */}
       <div
         className="hidden lg:flex lg:w-[46%] flex-col justify-between p-14 relative overflow-hidden"
         style={{
@@ -474,6 +403,7 @@ export default function Register() {
             }}
           />
         </div>
+
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -521,6 +451,7 @@ export default function Register() {
             </div>
           </div>
         </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -553,6 +484,7 @@ export default function Register() {
               <AgriSenseLogo size={96} />
             </div>
           </motion.div>
+
           <h2
             style={{
               fontFamily: "'Fraunces',Georgia,serif",
@@ -576,6 +508,7 @@ export default function Register() {
               of Farming 🌱
             </span>
           </h2>
+
           <p
             style={{
               color: "rgba(187,247,208,0.7)",
@@ -587,6 +520,7 @@ export default function Register() {
             Create your free account and start saving water, boosting yields,
             and farming smarter from day one.
           </p>
+
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {[
               "Real-time soil moisture & salinity tracking",
@@ -626,6 +560,7 @@ export default function Register() {
             ))}
           </div>
         </motion.div>
+
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -641,10 +576,13 @@ export default function Register() {
         </motion.div>
       </div>
 
-      {/* Right side - form */}
+      {/* ===== RIGHT PANEL ===== */}
       <div
         className="flex-1 flex items-center justify-center p-6 pt-20 lg:pt-14 lg:p-14 relative overflow-hidden"
-        style={{ background: tk.panelBg, transition: "background 0.3s ease" }}
+        style={{
+          background: "var(--bg-main-gradient)",
+          transition: "background 0.3s ease",
+        }}
       >
         <div
           style={{
@@ -662,7 +600,7 @@ export default function Register() {
               width: 384,
               height: 384,
               borderRadius: "50%",
-              opacity: tk.blob1Op,
+              opacity: 0.08,
               filter: "blur(48px)",
               background: "radial-gradient(circle,#bbf7d0,transparent)",
             }}
@@ -675,12 +613,14 @@ export default function Register() {
               width: 384,
               height: 384,
               borderRadius: "50%",
-              opacity: tk.blob2Op,
+              opacity: 0.06,
               filter: "blur(48px)",
               background: "radial-gradient(circle,#bfdbfe,transparent)",
             }}
           />
         </div>
+
+        {/* Mobile logo */}
         <div
           className="lg:hidden"
           style={{
@@ -697,7 +637,7 @@ export default function Register() {
             style={{
               fontFamily: "'Fraunces',Georgia,serif",
               fontWeight: 900,
-              color: tk.mobileName,
+              color: "var(--text-primary)",
               fontSize: 18,
             }}
           >
@@ -721,18 +661,19 @@ export default function Register() {
               style={{
                 fontSize: 32,
                 fontWeight: 900,
-                color: tk.heading,
+                color: "var(--text-primary)",
                 marginBottom: 8,
                 letterSpacing: "-0.025em",
               }}
             >
               Create Account 🌾
             </h1>
-            <p style={{ color: tk.subtext, fontSize: 15 }}>
+            <p style={{ color: "var(--text-muted)", fontSize: 15 }}>
               Join AgriSense and start smart farming
             </p>
           </div>
 
+          {/* Google Button */}
           <motion.button
             whileHover={{
               scale: 1.015,
@@ -748,12 +689,12 @@ export default function Register() {
               justifyContent: "center",
               gap: 12,
               padding: "14px 16px",
-              background: tk.googleBg,
+              background: "var(--glass-bg)",
               borderRadius: 16,
               fontWeight: 600,
               fontSize: 14,
-              color: tk.googleColor,
-              border: `2px solid ${tk.googleBorder}`,
+              color: "var(--text-primary)",
+              border: "2px solid var(--border-card)",
               boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
               cursor: "pointer",
               marginBottom: 20,
@@ -766,8 +707,8 @@ export default function Register() {
                   style={{
                     width: 16,
                     height: 16,
-                    border: "2px solid #d1d5db",
-                    borderTopColor: "#374151",
+                    border: "2px solid var(--border-base)",
+                    borderTopColor: "var(--text-secondary)",
                     borderRadius: "50%",
                     animation: "spin 0.7s linear infinite",
                     display: "inline-block",
@@ -782,6 +723,7 @@ export default function Register() {
             )}
           </motion.button>
 
+          {/* Divider */}
           <div
             style={{
               display: "flex",
@@ -790,18 +732,22 @@ export default function Register() {
               marginBottom: 20,
             }}
           >
-            <div style={{ flex: 1, height: 1, background: tk.dividerLine }} />
+            <div
+              style={{ flex: 1, height: 1, background: "var(--border-base)" }}
+            />
             <span
               style={{
                 fontSize: 11,
                 fontWeight: 700,
-                color: tk.dividerText,
+                color: "var(--text-faint)",
                 letterSpacing: "0.06em",
               }}
             >
               OR SIGN UP WITH EMAIL
             </span>
-            <div style={{ flex: 1, height: 1, background: tk.dividerLine }} />
+            <div
+              style={{ flex: 1, height: 1, background: "var(--border-base)" }}
+            />
           </div>
 
           <form
@@ -817,7 +763,7 @@ export default function Register() {
                   display: "block",
                   fontSize: 13,
                   fontWeight: 700,
-                  color: tk.label,
+                  color: "var(--text-secondary)",
                   marginBottom: 6,
                 }}
               >
@@ -832,7 +778,7 @@ export default function Register() {
                     transform: "translateY(-50%)",
                     width: 16,
                     height: 16,
-                    color: tk.iconColor,
+                    color: "var(--text-faint)",
                   }}
                 />
                 <input
@@ -843,7 +789,6 @@ export default function Register() {
                   onChange={handleChange}
                   onBlur={() => {
                     const formatErr = validateName(form.name);
-
                     if (formatErr) {
                       setErrors((prev) => ({ ...prev, name: formatErr }));
                     } else {
@@ -860,7 +805,9 @@ export default function Register() {
                   }}
                   style={inputBase("name")}
                   onFocus={(e) =>
-                    (e.currentTarget.style.border = `2px solid ${errors.name ? tk.errorColor : tk.inputFocus}`)
+                    (e.currentTarget.style.borderColor = errors.name
+                      ? "var(--error-color)"
+                      : "var(--brand-500)")
                   }
                 />
               </div>
@@ -870,7 +817,7 @@ export default function Register() {
                   animate={{ opacity: 1, y: 0 }}
                   style={{
                     fontSize: 12,
-                    color: tk.errorColor,
+                    color: "var(--error-color)",
                     marginTop: 4,
                     fontWeight: 500,
                   }}
@@ -883,7 +830,7 @@ export default function Register() {
                   animate={{ opacity: 1, y: 0 }}
                   style={{
                     fontSize: 12,
-                    color: tk.hintText,
+                    color: "var(--text-faint)",
                     marginTop: 4,
                   }}
                 >
@@ -891,8 +838,12 @@ export default function Register() {
                 </motion.p>
               ) : (
                 <p
-                  style={{ fontSize: 12, color: tk.hintText, marginTop: 4 }}
-                ></p>
+                  style={{
+                    fontSize: 12,
+                    color: "var(--text-faint)",
+                    marginTop: 4,
+                  }}
+                />
               )}
             </div>
 
@@ -903,7 +854,7 @@ export default function Register() {
                   display: "block",
                   fontSize: 13,
                   fontWeight: 700,
-                  color: tk.label,
+                  color: "var(--text-secondary)",
                   marginBottom: 6,
                 }}
               >
@@ -918,7 +869,7 @@ export default function Register() {
                     transform: "translateY(-50%)",
                     width: 16,
                     height: 16,
-                    color: tk.iconColor,
+                    color: "var(--text-faint)",
                   }}
                 />
                 <input
@@ -931,7 +882,9 @@ export default function Register() {
                   onBlur={handleEmailBlur}
                   style={inputBase("email")}
                   onFocus={(e) =>
-                    (e.currentTarget.style.border = `2px solid ${errors.email ? tk.errorColor : tk.inputFocus}`)
+                    (e.currentTarget.style.borderColor = errors.email
+                      ? "var(--error-color)"
+                      : "var(--brand-500)")
                   }
                 />
               </div>
@@ -941,7 +894,7 @@ export default function Register() {
                   animate={{ opacity: 1, y: 0 }}
                   style={{
                     fontSize: 12,
-                    color: tk.errorColor,
+                    color: "var(--error-color)",
                     marginTop: 4,
                     fontWeight: 500,
                   }}
@@ -954,14 +907,20 @@ export default function Register() {
                   animate={{ opacity: 1, y: 0 }}
                   style={{
                     fontSize: 12,
-                    color: tk.hintText,
+                    color: "var(--text-faint)",
                     marginTop: 4,
                   }}
                 >
                   Checking availability...
                 </motion.p>
               ) : (
-                <p style={{ fontSize: 12, color: tk.hintText, marginTop: 4 }}>
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: "var(--text-faint)",
+                    marginTop: 4,
+                  }}
+                >
                   We'll send a verification code to this email
                 </p>
               )}
@@ -974,7 +933,7 @@ export default function Register() {
                   display: "block",
                   fontSize: 13,
                   fontWeight: 700,
-                  color: tk.label,
+                  color: "var(--text-secondary)",
                   marginBottom: 6,
                 }}
               >
@@ -989,7 +948,7 @@ export default function Register() {
                     transform: "translateY(-50%)",
                     width: 16,
                     height: 16,
-                    color: tk.iconColor,
+                    color: "var(--text-faint)",
                   }}
                 />
                 <input
@@ -1000,10 +959,14 @@ export default function Register() {
                   onChange={handleChange}
                   style={{ ...inputBase("password"), paddingRight: 48 }}
                   onFocus={(e) =>
-                    (e.currentTarget.style.border = `2px solid ${errors.password ? tk.errorColor : tk.inputFocus}`)
+                    (e.currentTarget.style.borderColor = errors.password
+                      ? "var(--error-color)"
+                      : "var(--brand-500)")
                   }
                   onBlur={(e) =>
-                    (e.currentTarget.style.border = `2px solid ${errors.password ? tk.errorColor : tk.inputBorder}`)
+                    (e.currentTarget.style.borderColor = errors.password
+                      ? "var(--error-color)"
+                      : "var(--border-card)")
                   }
                 />
                 <button
@@ -1018,7 +981,7 @@ export default function Register() {
                     background: "none",
                     border: "none",
                     cursor: "pointer",
-                    color: tk.iconColor,
+                    color: "var(--text-faint)",
                     padding: 0,
                   }}
                 >
@@ -1029,6 +992,7 @@ export default function Register() {
                   )}
                 </button>
               </div>
+
               {form.password && (
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}
@@ -1036,48 +1000,29 @@ export default function Register() {
                   style={{
                     marginTop: 10,
                     padding: "12px 14px",
-                    background: tk.strengthBg,
+                    background: "var(--glass-bg)",
                     borderRadius: 12,
-                    border: `1px solid ${tk.strengthBorder}`,
+                    border: "1px solid var(--border-card)",
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr",
                     gap: "6px 16px",
                   }}
                 >
-                  <StrengthRow
-                    label="8+ characters"
-                    valid={ps.length}
-                    isDark={isDark}
-                  />
-                  <StrengthRow
-                    label="Number"
-                    valid={ps.number}
-                    isDark={isDark}
-                  />
-                  <StrengthRow
-                    label="Symbol (!@#...)"
-                    valid={ps.symbol}
-                    isDark={isDark}
-                  />
-                  <StrengthRow
-                    label="Uppercase"
-                    valid={ps.upper}
-                    isDark={isDark}
-                  />
-                  <StrengthRow
-                    label="Lowercase"
-                    valid={ps.lower}
-                    isDark={isDark}
-                  />
+                  <StrengthRow label="8+ characters" valid={ps.length} />
+                  <StrengthRow label="Number" valid={ps.number} />
+                  <StrengthRow label="Symbol (!@#...)" valid={ps.symbol} />
+                  <StrengthRow label="Uppercase" valid={ps.upper} />
+                  <StrengthRow label="Lowercase" valid={ps.lower} />
                 </motion.div>
               )}
+
               {errors.password && (
                 <motion.p
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   style={{
                     fontSize: 12,
-                    color: tk.errorColor,
+                    color: "var(--error-color)",
                     marginTop: 6,
                     fontWeight: 500,
                   }}
@@ -1094,7 +1039,7 @@ export default function Register() {
                   display: "block",
                   fontSize: 13,
                   fontWeight: 700,
-                  color: tk.label,
+                  color: "var(--text-secondary)",
                   marginBottom: 6,
                 }}
               >
@@ -1109,7 +1054,7 @@ export default function Register() {
                     transform: "translateY(-50%)",
                     width: 16,
                     height: 16,
-                    color: tk.iconColor,
+                    color: "var(--text-faint)",
                   }}
                 />
                 <input
@@ -1120,10 +1065,14 @@ export default function Register() {
                   onChange={handleChange}
                   style={{ ...inputBase("confirm"), paddingRight: 48 }}
                   onFocus={(e) =>
-                    (e.currentTarget.style.border = `2px solid ${errors.confirm ? tk.errorColor : tk.inputFocus}`)
+                    (e.currentTarget.style.borderColor = errors.confirm
+                      ? "var(--error-color)"
+                      : "var(--brand-500)")
                   }
                   onBlur={(e) =>
-                    (e.currentTarget.style.border = `2px solid ${errors.confirm ? tk.errorColor : tk.inputBorder}`)
+                    (e.currentTarget.style.borderColor = errors.confirm
+                      ? "var(--error-color)"
+                      : "var(--border-card)")
                   }
                 />
                 <button
@@ -1138,7 +1087,7 @@ export default function Register() {
                     background: "none",
                     border: "none",
                     cursor: "pointer",
-                    color: tk.iconColor,
+                    color: "var(--text-faint)",
                     padding: 0,
                   }}
                 >
@@ -1155,7 +1104,7 @@ export default function Register() {
                   animate={{ opacity: 1, y: 0 }}
                   style={{
                     fontSize: 12,
-                    color: tk.errorColor,
+                    color: "var(--error-color)",
                     marginTop: 4,
                     fontWeight: 500,
                   }}
@@ -1184,7 +1133,7 @@ export default function Register() {
                   }}
                   style={{
                     marginTop: 2,
-                    accentColor: "#16a34a",
+                    accentColor: "var(--brand-600)",
                     width: 15,
                     height: 15,
                     flexShrink: 0,
@@ -1193,16 +1142,24 @@ export default function Register() {
                 <span
                   style={{
                     fontSize: 13,
-                    color: agreeError ? tk.errorColor : tk.termsText,
+                    color: agreeError
+                      ? "var(--error-color)"
+                      : "var(--text-muted)",
                     lineHeight: 1.5,
                   }}
                 >
                   I agree to the{" "}
-                  <a href="#" style={{ color: "#22c55e", fontWeight: 700 }}>
+                  <a
+                    href="#"
+                    style={{ color: "var(--brand-500)", fontWeight: 700 }}
+                  >
                     Terms of Service
                   </a>{" "}
                   and{" "}
-                  <a href="#" style={{ color: "#22c55e", fontWeight: 700 }}>
+                  <a
+                    href="#"
+                    style={{ color: "var(--brand-500)", fontWeight: 700 }}
+                  >
                     Privacy Policy
                   </a>
                 </span>
@@ -1213,7 +1170,7 @@ export default function Register() {
                   animate={{ opacity: 1, y: 0 }}
                   style={{
                     fontSize: 12,
-                    color: tk.errorColor,
+                    color: "var(--error-color)",
                     marginTop: 4,
                     fontWeight: 500,
                   }}
@@ -1243,7 +1200,7 @@ export default function Register() {
                 border: "none",
                 cursor:
                   loading || gLoading || isChecking ? "not-allowed" : "pointer",
-                background: "linear-gradient(135deg,#16a34a 0%,#0ea5e9 100%)",
+                background: "var(--grad-brand)",
                 boxShadow: "0 8px 24px rgba(22,163,74,0.28)",
                 opacity: loading || gLoading || isChecking ? 0.5 : 1,
               }}
@@ -1291,7 +1248,7 @@ export default function Register() {
             style={{
               textAlign: "center",
               fontSize: 14,
-              color: tk.footerText,
+              color: "var(--text-faint)",
               marginTop: 20,
             }}
           >
@@ -1300,7 +1257,7 @@ export default function Register() {
               onClick={() => nav("/login")}
               style={{
                 fontWeight: 900,
-                color: "#22c55e",
+                color: "var(--brand-500)",
                 background: "none",
                 border: "none",
                 cursor: "pointer",
@@ -1312,6 +1269,7 @@ export default function Register() {
           </p>
         </motion.div>
       </div>
+
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );

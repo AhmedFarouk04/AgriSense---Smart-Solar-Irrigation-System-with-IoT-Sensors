@@ -136,8 +136,7 @@ export default function Notifications() {
     <div
       style={{
         minHeight: "100vh",
-        // ✅ التعديل هنا: إرجاع الخلفية المتدرجة
-        background: `radial-gradient(ellipse 120% 60% at 50% 0%, #162e1a 0%, #0d2318 30%, transparent 60%), radial-gradient(ellipse 80% 60% at 0% 50%, rgba(15,43,24,0.9) 0%, transparent 60%), radial-gradient(ellipse 80% 60% at 100% 50%, rgba(11,30,36,0.7) 0%, transparent 60%), radial-gradient(ellipse 100% 50% at 50% 100%, rgba(15,43,24,0.5) 0%, transparent 60%), #070d09`,
+        background: "var(--bg-main-gradient)",
         color: "var(--text-primary)",
         fontFamily: "var(--font-body)",
       }}
@@ -178,11 +177,12 @@ export default function Notifications() {
           position: "sticky",
           top: 0,
           zIndex: 100,
-          background: scrolled ? "rgba(7,13,9,0.8)" : "transparent",
-          backdropFilter: "blur(20px)",
-          borderBottom: `1px solid ${scrolled ? "rgba(255,255,255,0.1)" : "transparent"}`,
+          background: scrolled ? "var(--bg-nav)" : "transparent",
+          backdropFilter: scrolled ? "blur(32px)" : "none",
+          WebkitBackdropFilter: scrolled ? "blur(32px)" : "none",
+          borderBottom: `1px solid ${scrolled ? "var(--border-base)" : "transparent"}`,
+          transition: "all 0.35s ease",
           padding: "12px 24px",
-          transition: "0.3s",
         }}
       >
         <div
@@ -201,9 +201,9 @@ export default function Notifications() {
                 width: 36,
                 height: 36,
                 borderRadius: 10,
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                color: "white",
+                background: "var(--glass-bg)",
+                border: "1px solid var(--border-card)",
+                color: "var(--text-muted)",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
@@ -219,10 +219,11 @@ export default function Notifications() {
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
+                color: "var(--text-primary)",
               }}
             >
               {" "}
-              <Bell size={18} color="#4ade80" /> Notifications{" "}
+              <Bell size={18} color="var(--brand-500)" /> Notifications{" "}
             </h1>
           </div>
           <button
@@ -230,7 +231,7 @@ export default function Notifications() {
             style={{
               background: "transparent",
               border: "none",
-              color: "#f87171",
+              color: "var(--error-color)",
               fontSize: 12,
               fontWeight: 600,
               cursor: "pointer",
@@ -282,13 +283,11 @@ export default function Notifications() {
                 borderRadius: 12,
                 border:
                   filter === f.id
-                    ? "1px solid #4ade80"
-                    : "1px solid rgba(255,255,255,0.1)",
-                background:
-                  filter === f.id
-                    ? "rgba(74,222,128,0.1)"
-                    : "rgba(255,255,255,0.03)",
-                color: filter === f.id ? "#4ade80" : "rgba(255,255,255,0.5)",
+                    ? `1px solid var(--brand-500)`
+                    : `1px solid var(--border-card)`,
+                background: filter === f.id ? "var(--glass-bg)" : "transparent",
+                color:
+                  filter === f.id ? "var(--brand-500)" : "var(--text-faint)",
                 cursor: "pointer",
                 fontSize: 13,
                 fontWeight: 600,
@@ -315,7 +314,7 @@ export default function Notifications() {
               style={{
                 width: 30,
                 height: 30,
-                border: "3px solid rgba(255,255,255,0.1)",
+                border: "3px solid var(--border-card)",
                 borderTopColor: "#4ade80",
                 borderRadius: "50%",
                 animation: "spin 1s linear infinite",
@@ -328,7 +327,7 @@ export default function Notifications() {
               style={{
                 width: 80,
                 height: 80,
-                background: "rgba(74,222,128,0.05)",
+                background: "var(--glass-bg)",
                 borderRadius: "50%",
                 display: "flex",
                 alignItems: "center",
@@ -336,7 +335,11 @@ export default function Notifications() {
                 margin: "0 auto 20px",
               }}
             >
-              <CheckCircle2 size={40} color="rgba(74,222,128,0.2)" />
+              <CheckCircle2
+                size={40}
+                color="var(--brand-500)"
+                style={{ opacity: 0.3 }}
+              />
             </div>
             <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
               All caught up!
@@ -352,7 +355,7 @@ export default function Notifications() {
                 style={{
                   fontSize: 11,
                   fontWeight: 800,
-                  color: "rgba(255,255,255,0.3)",
+                  color: "var(--text-faint)",
                   textTransform: "uppercase",
                   letterSpacing: "0.1em",
                   marginBottom: 16,
@@ -366,7 +369,7 @@ export default function Notifications() {
                   style={{
                     flex: 1,
                     height: 1,
-                    background: "rgba(255,255,255,0.05)",
+                    background: "var(--border-base)",
                   }}
                 />
               </h3>
@@ -384,7 +387,7 @@ export default function Notifications() {
                         display: "flex",
                         gap: 16,
                         padding: "16px",
-                        background: "rgba(255,255,255,0.02)",
+                        background: "var(--bg-card)",
                         border: `1px solid ${s.border}`,
                         borderRadius: 16,
                       }}
@@ -410,7 +413,7 @@ export default function Notifications() {
                             fontSize: 14,
                             fontWeight: 600,
                             marginBottom: 6,
-                            color: "rgba(255,255,255,0.9)",
+                            color: "var(--text-primary)",
                           }}
                         >
                           {e.message}
@@ -426,7 +429,7 @@ export default function Notifications() {
                             <span
                               style={{
                                 fontSize: 10,
-                                background: "rgba(74,222,128,0.1)",
+                                background: "var(--success-bg)",
                                 color: "#4ade80",
                                 padding: "2px 8px",
                                 borderRadius: 6,
@@ -439,7 +442,7 @@ export default function Notifications() {
                           <span
                             style={{
                               fontSize: 11,
-                              color: "rgba(255,255,255,0.3)",
+                              color: "var(--text-faint)",
                             }}
                           >
                             {timeAgo(e.timestamp)}

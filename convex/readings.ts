@@ -10,8 +10,6 @@ import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { api, internal } from "./_generated/api";
 
-// --- Queries ---
-
 export const getDeviceInternal = internalQuery({
   args: { deviceId: v.id("devices") },
   handler: async (ctx, args) => {
@@ -30,8 +28,6 @@ export const getLatestEventByType = internalQuery({
       .first();
   },
 });
-
-// --- Mutations ---
 
 export const saveReading = internalMutation({
   args: {
@@ -103,8 +99,6 @@ export const logPumpEvent = internalMutation({
   },
 });
 
-// --- Actions ---
-
 export const fetchAndSaveReadingInternal = internalAction({
   args: { deviceId: v.id("devices") },
   handler: async (ctx, args) => {
@@ -141,15 +135,9 @@ export const fetchAndSaveReadingInternal = internalAction({
         deviceId: args.deviceId,
       });
 
-      // 🚨 المحرك الذكي للتنبيهات (Smart Alert Engine)
-      // نمنع تكرار التنبيه لو لسه المشكلة قايمة من آخر سحب بيانات
-
       const minThreshold = device.customMinMoisture ?? 30;
 
-      // 1. تنبيه الرطوبة المنخفضة (Low Moisture)
       if (m < minThreshold) {
-        // نبعت تنبيه بس لو كانت القراءة اللي فاتت "سليمة" أو مفيش قراءة فاتت
-        // ده بيضمن إن التنبيه يوصل "مرة واحدة" عند حدوث المشكلة
         if (!latestReading || latestReading.moisture >= minThreshold) {
           await ctx.runMutation(internal.readings.logEventInternal, {
             userId: device.userId,
@@ -160,7 +148,6 @@ export const fetchAndSaveReadingInternal = internalAction({
         }
       }
 
-      // 2. تنبيه الحرارة المرتفعة (High Temperature)
       if (t > 40) {
         if (!latestReading || latestReading.temperature <= 40) {
           await ctx.runMutation(internal.readings.logEventInternal, {
@@ -172,26 +159,47 @@ export const fetchAndSaveReadingInternal = internalAction({
         }
       }
 
-      // 3. تنبيه عطل التدفق (Flow Failure)
-      // لو الطلمبة شغالة بس الحساس قاري مفيش ميه (ممكن يكون سدد أو كسر)
+      let currentPumpStatus = p;
+
       if (p && f < 0.1) {
         if (
-          !latestReading ||
-          latestReading.flowRate >= 0.1 ||
-          !latestReading.pumpStatus
+          latestReading &&
+          latestReading.pumpStatus &&
+          latestReading.flowRate < 0.1
         ) {
+          currentPumpStatus = false;
           await ctx.runMutation(internal.readings.logEventInternal, {
             userId: device.userId,
             deviceId: args.deviceId,
-            type: "alert",
-            message: `🚫 Flow Alert: Pump is ON but no water flowing in ${device.name}!`,
+            type: "pump_failure",
+            message: `🚨 CRITICAL: Pump is running dry in ${device.name}! Auto-shutdown activated.`,
           });
+          try {
+            await fetch(`${url}/control/pump.json?auth=${secret}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(0),
+            });
+          } catch (e) {}
+        } else {
+          if (
+            !latestReading ||
+            latestReading.flowRate >= 0.1 ||
+            !latestReading.pumpStatus
+          ) {
+            await ctx.runMutation(internal.readings.logEventInternal, {
+              userId: device.userId,
+              deviceId: args.deviceId,
+              type: "alert",
+              message: `🚫 Flow Alert: Pump is ON but no water flowing in ${device.name}!`,
+            });
+          }
         }
       }
 
       const shouldSave =
         !latestReading ||
-        latestReading.pumpStatus !== p ||
+        latestReading.pumpStatus !== currentPumpStatus ||
         Math.abs(latestReading.flowRate - f) > 0.1 ||
         Math.abs(latestReading.moisture - m) > 1 ||
         Math.abs(latestReading.temperature - t) > 0.5;
@@ -203,13 +211,11 @@ export const fetchAndSaveReadingInternal = internalAction({
           moisture: m,
           temperature: t,
           flowRate: f,
-          pumpStatus: p,
+          pumpStatus: currentPumpStatus,
           timestamp: Date.now(),
         });
       }
-    } catch (error) {
-      console.error("Polling error:", error);
-    }
+    } catch (error) {}
   },
 });
 
@@ -263,8 +269,6 @@ export const controlPump = action({
   },
 });
 
-// --- Standard Queries ---
-
 export const getLatestReading = query({
   args: { deviceId: v.id("devices") },
   handler: async (ctx, args) => {
@@ -311,8 +315,6 @@ export const getReadings7d = query({
   },
 });
 
-// --- Testing & Debugging ---
-
 export const generateFakeData = mutation({
   args: {
     daysOffset: v.optional(v.number()),
@@ -340,7 +342,6 @@ export const generateFakeData = mutation({
       timestamp: ts,
     });
 
-    // تسجيل تنبيه يدوي للتجربة
     if (m < 30 || t > 40) {
       await ctx.db.insert("events", {
         userId: device.userId,
@@ -354,6 +355,7 @@ export const generateFakeData = mutation({
     return `Success: Data generated with ${m < 30 || t > 40 ? "Alerts" : "Normal values"}`;
   },
 });
+
 export const seedHistoricalData = mutation({
   args: {},
   handler: async (ctx) => {
@@ -363,7 +365,6 @@ export const seedHistoricalData = mutation({
     const now = Date.now();
     let count = 0;
 
-    // ✅ هنلف على كل الأجهزة اللي في السيستم نزرعلها الداتا
     for (const device of devices) {
       for (let i = 24; i >= 0; i--) {
         const m = 50 + Math.sin(i) * 20;

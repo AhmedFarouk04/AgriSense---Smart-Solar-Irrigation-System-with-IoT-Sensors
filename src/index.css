@@ -4,17 +4,170 @@
 @tailwind components;
 @tailwind utilities;
 
-:root,
-.theme-dark {
+/* =========================================
+   🌙 DARK THEME (Default) - IMPROVED
+========================================= */
+:root {
   --bg-page: #070d09;
-  --text-primary: #e8f5e9;
-  --color-light: #ffffff;
-  --color-dark: #171717;
-  --primary-green: #16a34a;
-  --primary-blue: #0ea5e9;
-  --primary-orange: #f59e0b;
+  --bg-nav: rgba(7, 13, 9, 0.85);
+  --bg-card: rgba(255, 255, 255, 0.03);
+  --bg-card-alt: rgba(255, 255, 255, 0.02);
+  --bg-main-gradient:
+    radial-gradient(
+      ellipse 120% 60% at 50% 0%,
+      #1f4a2d 0%,
+      #0a0f0c 30%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 80% 60% at 0% 50%,
+      rgba(34, 197, 94, 0.25) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 80% 60% at 100% 50%,
+      rgba(16, 185, 129, 0.18) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 100% 50% at 50% 100%,
+      rgba(74, 222, 128, 0.2) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 120% 80% at 20% 80%,
+      rgba(56, 189, 248, 0.08) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 100% 70% at 80% 20%,
+      rgba(251, 191, 36, 0.06) 0%,
+      transparent 70%
+    ),
+    #050a07;
+
+  --text-primary: #f5faf7;
+  --text-secondary: rgba(255, 255, 255, 0.98);
+  --text-muted: rgba(255, 255, 255, 0.75);
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --text-faint: rgba(255, 255, 255, 0.4);
+
+  --brand-500: #4ade80;
+  --brand-600: #16a34a;
+
+  --border-base: rgba(255, 255, 255, 0.12);
+  --border-card: rgba(255, 255, 255, 0.08);
+
+  --glass-bg: rgba(255, 255, 255, 0.05);
+
+  --particle-1: rgba(74, 222, 128, 0.35);
+  --particle-2: rgba(56, 189, 248, 0.3);
+  --particle-3: rgba(251, 191, 36, 0.28);
+
+  --grad-brand: linear-gradient(135deg, #16a34a 0%, #0ea5e9 100%);
+  --badge-bg: rgba(255, 255, 255, 0.05);
+
+  /* ===== STEP BAR COLORS ===== */
+  --step-inactive-text: rgba(255, 255, 255, 0.25);
+  --step-completed-text: rgba(255, 255, 255, 0.6);
+  --step-inactive-bg: rgba(255, 255, 255, 0.06);
+
+  /* ===== STATUS & INFO COLORS ===== */
+  --info-bg: rgba(56, 189, 248, 0.06);
+  --info-border: rgba(56, 189, 248, 0.15);
+  --info-text: rgba(147, 210, 255, 0.8);
+  --info-color: #7dd3fc;
+
+  --success-bg: rgba(74, 222, 128, 0.06);
+  --success-border: rgba(74, 222, 128, 0.25);
+  --success-text: #4ade80;
+  --success-color: #4ade80;
+
+  --error-bg: rgba(248, 113, 113, 0.08);
+  --error-border: rgba(248, 113, 113, 0.25);
+  --error-text: #f87171;
+  --error-color: #f87171;
+
+  --warning-bg: rgba(251, 191, 36, 0.08);
+  --warning-border: rgba(251, 191, 36, 0.25);
+  --warning-text: #fbbf24;
+  --warning-color: #fbbf24;
+
+  /* ===== SHADOWS ===== */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.2);
 }
 
+/* =========================================
+   🌿 FOREST LIGHT THEME - IMPROVED
+========================================= */
+.theme-forest {
+  --bg-page: #fdfffe;
+  --bg-soft: #f8fbf9;
+  --bg-card: #ffffff;
+  --bg-card-alt: #fafdfb;
+  --bg-nav: rgba(253, 255, 254, 0.95);
+  --bg-main-gradient: linear-gradient(
+    160deg,
+    #f3faf5 0%,
+    #f7fdf9 40%,
+    #fafbf9 80%
+  );
+
+  --text-primary: #0d2a12;
+  --text-secondary: #2a5530;
+  --text-muted: #7a9d85;
+  --text-faint: #9bb5a3;
+
+  --brand-500: #22c55e;
+  --brand-600: #16a34a;
+
+  --border-base: rgba(22, 163, 74, 0.14);
+  --border-card: rgba(22, 163, 74, 0.2);
+
+  --glass-bg: rgba(255, 255, 255, 0.75);
+
+  --particle-1: #16a34a;
+  --particle-2: #0ea5e9;
+  --particle-3: #f59e0b;
+
+  --grad-brand: linear-gradient(135deg, #16a34a 0%, #0ea5e9 100%);
+  --badge-bg: rgba(22, 163, 74, 0.12);
+
+  /* ===== STEP BAR COLORS - LIGHT ===== */
+  --step-inactive-text: #9bb5a3;
+  --step-completed-text: #2a5530;
+  --step-inactive-bg: rgba(22, 163, 74, 0.1);
+
+  /* ===== STATUS & INFO COLORS - Light Theme ===== */
+  --info-bg: rgba(56, 189, 248, 0.1);
+  --info-border: rgba(56, 189, 248, 0.25);
+  --info-text: #0284c7;
+  --info-color: #0284c7;
+
+  --success-bg: rgba(34, 197, 94, 0.1);
+  --success-border: rgba(34, 197, 94, 0.25);
+  --success-text: #16a34a;
+  --success-color: #16a34a;
+
+  --error-bg: rgba(239, 68, 68, 0.1);
+  --error-border: rgba(239, 68, 68, 0.25);
+  --error-text: #dc2626;
+  --error-color: #dc2626;
+
+  --warning-bg: rgba(234, 179, 8, 0.1);
+  --warning-border: rgba(234, 179, 8, 0.25);
+  --warning-text: #b45309;
+  --warning-color: #b45309;
+
+  /* ===== SHADOWS - Light Theme ===== */
+  --shadow-sm: 0 1px 2px rgba(13, 42, 18, 0.05);
+  --shadow-md: 0 4px 8px rgba(13, 42, 18, 0.08);
+  --shadow-lg: 0 10px 20px rgba(13, 42, 18, 0.12);
+}
+
+/* Base Body Styles */
 body {
   font-family:
     "Inter",
@@ -24,21 +177,26 @@ body {
     Roboto,
     sans-serif;
   color: var(--text-primary);
-  background: var(--bg-page);
+  background: var(--bg-main-gradient);
+  background-attachment: fixed;
+  transition:
+    background 0.3s ease,
+    color 0.3s ease;
+  min-height: 100vh;
 }
 
+/* Auth Styles */
 .accent-text {
   @apply text-slate-600;
 }
-
 .auth-input-field {
   @apply w-full px-4 py-3 rounded-container bg-white border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow shadow-sm hover:shadow;
 }
-
 .auth-button {
   @apply w-full px-4 py-3 rounded bg-primary text-white font-semibold hover:bg-primary-hover transition-colors shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
+/* Animations */
 @keyframes blob {
   0% {
     transform: translate(0px, 0px) scale(1);
@@ -53,7 +211,6 @@ body {
     transform: translate(0px, 0px) scale(1);
   }
 }
-
 .animate-blob {
   animation: blob 7s infinite;
 }
@@ -63,72 +220,30 @@ body {
 .animation-delay-4000 {
   animation-delay: 4s;
 }
+
 /* Responsive Grid Utilities */
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
 }
-
 .charts-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
 }
-
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 14px;
 }
-
-/* Mobile Screens (Phones) */
-@media (max-width: 768px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr; /* كارت واحد في الصف */
-  }
-  .charts-grid {
-    grid-template-columns: 1fr; /* رسم بياني واحد في الصف */
-  }
-  .stats-grid {
-    grid-template-columns: 1fr; /* إحصائية واحدة في الصف */
-  }
-
-  /* تصغير الهيدر في الموبايل */
-  .header-actions {
-    gap: 8px !important;
-  }
-  .hide-on-mobile {
-    display: none !important;
-  }
-}
-
-/* Tablet Screens */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .dashboard-grid {
-    grid-template-columns: repeat(2, 1fr); /* كارتين في الصف */
-  }
-  .stats-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-/* Responsive Utilities */
-.dashboard-grid {
+.footer-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 48px;
 }
-
-.charts-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+.burger-btn {
+  display: none !important;
 }
 
 /* Mobile Screens (Phones) */
@@ -142,12 +257,26 @@ body {
   .stats-grid {
     grid-template-columns: 1fr;
   }
-
   .header-actions {
     gap: 8px !important;
   }
   .hide-on-mobile {
     display: none !important;
+  }
+  .hide-mob {
+    display: none !important;
+  }
+  .burger-btn {
+    display: flex !important;
+  }
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+    justify-content: center;
   }
 }
 
@@ -158,46 +287,5 @@ body {
   }
   .stats-grid {
     grid-template-columns: repeat(3, 1fr);
-  }
-}
-/* =========================================
-   Landing Page Responsive Utilities
-========================================= */
-
-/* Footer Grid Default (Desktop) */
-.footer-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 48px;
-}
-
-/* Hide Burger Menu on Desktop */
-.burger-btn {
-  display: none !important;
-}
-
-/* Mobile & Tablet Styles */
-@media (max-width: 768px) {
-  /* إخفاء العناصر اللي مش محتاجينها في الموبايل */
-  .hide-mob {
-    display: none !important;
-  }
-
-  /* إظهار زرار القائمة الجانبية في الموبايل */
-  .burger-btn {
-    display: flex !important;
-  }
-
-  /* تحويل الفوتر لعمود واحد بدل 4 */
-  .footer-grid {
-    grid-template-columns: 1fr;
-    gap: 32px;
-  }
-
-  /* توسيط الحقوق في الفوتر على الموبايل */
-  .footer-bottom {
-    flex-direction: column;
-    text-align: center;
-    justify-content: center;
   }
 }

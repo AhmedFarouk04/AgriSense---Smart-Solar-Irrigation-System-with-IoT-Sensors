@@ -15,7 +15,7 @@ import {
   Leaf,
   Trash2,
   MoreVertical,
-  Activity, // ✅ ضفنا الكلمة دي هنا
+  Activity,
 } from "lucide-react";
 import { AgriSenseLogo } from "../components/Logo";
 
@@ -72,8 +72,7 @@ export default function DevicesList() {
     <div
       style={{
         minHeight: "100vh",
-        // ✅ الخلفية المتدرجة الخضراء الفخمة
-        background: `radial-gradient(ellipse 120% 60% at 50% 0%, #162e1a 0%, #0d2318 30%, transparent 60%), radial-gradient(ellipse 80% 60% at 0% 50%, rgba(15,43,24,0.9) 0%, transparent 60%), radial-gradient(ellipse 80% 60% at 100% 50%, rgba(11,30,36,0.7) 0%, transparent 60%), radial-gradient(ellipse 100% 50% at 50% 100%, rgba(15,43,24,0.5) 0%, transparent 60%), #070d09`,
+        background: "var(--bg-main-gradient)",
         color: "var(--text-primary)",
         fontFamily: "var(--font-body)",
       }}
@@ -121,7 +120,7 @@ export default function DevicesList() {
           position: "sticky",
           top: 0,
           zIndex: 100,
-          background: scrolled ? "rgba(7,13,9,0.85)" : "transparent",
+          background: scrolled ? "var(--bg-nav)" : "transparent",
           backdropFilter: scrolled ? "blur(32px)" : "none",
           WebkitBackdropFilter: scrolled ? "blur(32px)" : "none",
           borderBottom: `1px solid ${scrolled ? "var(--border-base)" : "transparent"}`,
@@ -247,7 +246,8 @@ export default function DevicesList() {
               style={{
                 width: 32,
                 height: 32,
-                border: "3px solid rgba(255,255,255,0.1)",
+                border: "3px solid var(--border-card)",
+
                 borderTopColor: "#4ade80",
                 borderRadius: "50%",
                 animation: "spin 0.8s linear infinite",
@@ -438,7 +438,7 @@ export default function DevicesList() {
                               position: "absolute",
                               top: "calc(100% + 6px)",
                               right: 0,
-                              background: "#0d1a10",
+                              background: "var(--bg-card)",
                               border: "1px solid var(--border-card)",
                               borderRadius: 12,
                               overflow: "hidden",
@@ -447,51 +447,8 @@ export default function DevicesList() {
                               boxShadow: "var(--shadow-md)",
                             }}
                           >
-                            {/* ✅ تم تحديث الرابط ليوجهك لـ DeviceDetails */}
-                            <button
-                              onClick={() => {
-                                nav(`/device-details?id=${device._id}`);
-                                setOpenMenu(null);
-                              }}
-                              style={{
-                                width: "100%",
-                                padding: "10px 14px",
-                                background: "transparent",
-                                border: "none",
-                                color: "var(--text-secondary)",
-                                fontSize: 13,
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                textAlign: "left",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                              }}
-                            >
-                              <Activity size={13} /> Details & Live
-                            </button>
-                            <button
-                              onClick={() => {
-                                nav(`/device-settings?id=${device._id}`);
-                                setOpenMenu(null);
-                              }}
-                              style={{
-                                width: "100%",
-                                padding: "10px 14px",
-                                background: "transparent",
-                                border: "none",
-                                color: "var(--text-secondary)",
-                                fontSize: 13,
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                textAlign: "left",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                              }}
-                            >
-                              <Settings size={13} /> Settings
-                            </button>
+                            {}
+
                             <button
                               onClick={() => {
                                 handleDelete(device._id, device.name);
@@ -636,7 +593,6 @@ export default function DevicesList() {
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      // ✅ تم تحديث الرابط ليوجهك لـ DeviceDetails
                       onClick={() => nav(`/device-details?id=${device._id}`)}
                       style={{
                         flex: 1,

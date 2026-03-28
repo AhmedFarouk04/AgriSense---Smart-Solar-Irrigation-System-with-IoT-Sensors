@@ -12,10 +12,11 @@ import {
   Shield,
   LogOut,
   ChevronRight,
-  Check,
+  Sun, // ✅ ضفنا أيقونة الشمس
 } from "lucide-react";
 import { AgriSenseLogo } from "../components/Logo";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useTheme } from "./ThemeContext"; // ✅ استدعاء الـ Hook
 
 const nav = (p: string) => {
   window.history.pushState({}, "", p);
@@ -107,7 +108,8 @@ function Toggle({
         width: 44,
         height: 24,
         borderRadius: 12,
-        background: value ? "var(--brand-600)" : "rgba(255,255,255,0.1)",
+        background: value ? "var(--brand-600)" : "var(--glass-bg)",
+        border: "1px solid var(--border-card)",
         position: "relative",
         cursor: "pointer",
         transition: "background 0.3s",
@@ -117,8 +119,8 @@ function Toggle({
       <div
         style={{
           position: "absolute",
-          top: 3,
-          left: value ? 22 : 3,
+          top: 2,
+          left: value ? 21 : 2,
           width: 18,
           height: 18,
           borderRadius: "50%",
@@ -141,7 +143,7 @@ function Section({
   return (
     <div
       style={{
-        background: "rgba(255,255,255,0.03)",
+        background: "var(--bg-card)",
         border: "1px solid var(--border-card)",
         borderRadius: 20,
         padding: "20px 24px",
@@ -169,6 +171,9 @@ export default function Settings() {
   const { signOut } = useAuthActions();
   const userSettings = useQuery(api.users.getSettings);
   const updateSettings = useMutation(api.users.updateSettings);
+
+  // ✅ استدعاء حالة الثيم
+  const { theme, setTheme } = useTheme();
 
   const [scrolled, setScrolled] = useState(false);
   const [notifications, setNotifications] = useState(true);
@@ -210,15 +215,12 @@ export default function Settings() {
     <div
       style={{
         minHeight: "100vh",
-        // ✅ تم إضافة الخلفية المتدرجة
-        background: `radial-gradient(ellipse 120% 60% at 50% 0%, #162e1a 0%, #0d2318 30%, transparent 60%), radial-gradient(ellipse 80% 60% at 0% 50%, rgba(15,43,24,0.9) 0%, transparent 60%), radial-gradient(ellipse 80% 60% at 100% 50%, rgba(11,30,36,0.7) 0%, transparent 60%), radial-gradient(ellipse 100% 50% at 50% 100%, rgba(15,43,24,0.5) 0%, transparent 60%), #070d09`,
-        color: "var(--text-primary)",
-        fontFamily: "var(--font-body)",
+        // ✅ تم مسح الخلفية الثابتة (بتتجاب أوتوماتيك من الـ body في CSS)
       }}
     >
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-      {/* Background */}
+      {/* Background Decor */}
       <div
         style={{
           position: "fixed",
@@ -259,9 +261,8 @@ export default function Settings() {
           position: "sticky",
           top: 0,
           zIndex: 100,
-          background: scrolled ? "rgba(7,13,9,0.85)" : "transparent",
+          background: scrolled ? "var(--bg-nav)" : "transparent",
           backdropFilter: scrolled ? "blur(32px)" : "none",
-          WebkitBackdropFilter: scrolled ? "blur(32px)" : "none",
           borderBottom: `1px solid ${scrolled ? "var(--border-base)" : "transparent"}`,
           transition: "all 0.35s ease",
           padding: "12px 24px",
@@ -307,7 +308,7 @@ export default function Settings() {
                   gap: 8,
                 }}
               >
-                <SettingsIcon size={15} style={{ color: "var(--brand-500)" }} />{" "}
+                <SettingsIcon size={15} style={{ color: "var(--brand-500)" }} />
                 Settings
               </div>
               <div
@@ -324,7 +325,12 @@ export default function Settings() {
           <motion.a
             href="/dashboard"
             whileHover={{ scale: 1.02 }}
-            style={{ display: "flex", alignItems: "center", gap: 10 }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              textDecoration: "none",
+            }}
           >
             <AgriSenseLogo size={34} />
             <span
@@ -375,6 +381,48 @@ export default function Settings() {
                 value={notifications}
                 onChange={handleToggleNotifications}
               />
+            </SettingRow>
+          </Section>
+        </motion.div>
+
+        {/* Appearance */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <Section title="Appearance">
+            <SettingRow
+              icon={theme === "dark" ? <Moon size={16} /> : <Sun size={16} />}
+              title="Theme"
+              subtitle={`Current: ${theme === "dark" ? "Dark Mode" : "Forest Light"}`}
+            >
+              <div style={{ display: "flex", gap: 6 }}>
+                {["dark", "forest"].map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTheme(t as "dark" | "forest")} // ✅ تغيير الثيم من هنا
+                    style={{
+                      padding: "6px 14px",
+                      borderRadius: 99,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      textTransform: "capitalize",
+                      cursor: "pointer",
+                      background:
+                        theme === t
+                          ? "rgba(74,222,128,0.15)"
+                          : "var(--glass-bg)",
+                      border: `1px solid ${theme === t ? "var(--brand-500)" : "var(--border-card)"}`,
+                      color:
+                        theme === t ? "var(--brand-500)" : "var(--text-muted)",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
             </SettingRow>
           </Section>
         </motion.div>

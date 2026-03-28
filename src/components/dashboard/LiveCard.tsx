@@ -11,7 +11,7 @@ export function LiveCard({
   color,
   max,
   delay,
-  isLoading = false, // ✅ ضفنا ده للـ Feedback
+  isLoading = false,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -29,8 +29,8 @@ export function LiveCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.5 }}
       style={{
-        background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.07)",
+        background: "var(--bg-card)",
+        border: "1px solid var(--border-card)",
         borderRadius: 20,
         padding: "20px 22px",
         display: "flex",
@@ -38,9 +38,10 @@ export function LiveCard({
         gap: 12,
         position: "relative",
         overflow: "hidden",
-        opacity: isLoading ? 0.7 : 1, // تأثير شفافية لو بيحمل
+        opacity: isLoading ? 0.7 : 1,
       }}
     >
+      {/* Glow decoration */}
       <div
         style={{
           position: "absolute",
@@ -53,6 +54,8 @@ export function LiveCard({
           pointerEvents: "none",
         }}
       />
+
+      {/* Icon + Gauge */}
       <div
         style={{
           display: "flex",
@@ -90,11 +93,13 @@ export function LiveCard({
         </div>
         <GaugeRing value={value} max={max} color={color} size={52} />
       </div>
+
+      {/* Value */}
       <div>
         <div
           style={{
             fontSize: 11,
-            color: "rgba(255,255,255,0.4)",
+            color: "var(--text-faint)",
             fontWeight: 600,
             letterSpacing: "0.08em",
             textTransform: "uppercase",
@@ -107,7 +112,7 @@ export function LiveCard({
           style={{
             fontSize: 28,
             fontWeight: 800,
-            color: "#e8f5e9",
+            color: "var(--text-primary)",
             lineHeight: 1,
             letterSpacing: "-0.02em",
           }}
@@ -117,7 +122,7 @@ export function LiveCard({
             style={{
               fontSize: 13,
               fontWeight: 500,
-              color: "rgba(255,255,255,0.4)",
+              color: "var(--text-faint)",
               marginLeft: 3,
             }}
           >
@@ -125,6 +130,8 @@ export function LiveCard({
           </span>
         </div>
       </div>
+
+      {/* Status badge */}
       <div
         style={{
           display: "inline-flex",
@@ -149,6 +156,7 @@ export function LiveCard({
           {status.label}
         </span>
       </div>
+
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </motion.div>
   );

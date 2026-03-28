@@ -10,7 +10,7 @@
    ╚═══════════════════════════════════════════════════════════════╝ */
 
 :root,
-.theme-dark {
+.theme-forest {
   --bg-page: #070d09;
   --bg-soft: #0d1a10;
   --bg-card: #0f1f12;
@@ -993,9 +993,6 @@ svg {
   border-radius: 4px;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   RESPONSIVE
-══════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
   .hide-mob {
     display: none !important;
@@ -1019,9 +1016,6 @@ svg {
     display: none !important;
   }
 }
-/* =========================================
-   Landing Page Responsive Utilities
-========================================= */
 
 /* Footer Grid Default (Desktop) */
 .footer-grid {
@@ -1037,23 +1031,19 @@ svg {
 
 /* Mobile & Tablet Styles */
 @media (max-width: 768px) {
-  /* إخفاء العناصر اللي مش محتاجينها في الموبايل */
   .hide-mob {
     display: none !important;
   }
 
-  /* إظهار زرار القائمة الجانبية في الموبايل */
   .burger-btn {
     display: flex !important;
   }
 
-  /* تحويل الفوتر لعمود واحد بدل 4 */
   .footer-grid {
     grid-template-columns: 1fr;
     gap: 32px;
   }
 
-  /* توسيط الحقوق في الفوتر على الموبايل */
   .footer-bottom {
     flex-direction: column;
     text-align: center;

@@ -75,8 +75,8 @@ function StepBar({ current }: { current: Step }) {
                     ? "var(--brand-600)"
                     : active
                       ? "var(--grad-brand)"
-                      : "rgba(255,255,255,0.06)",
-                  border: `2px solid ${done ? "var(--brand-600)" : active ? "var(--brand-500)" : "rgba(255,255,255,0.1)"}`,
+                      : "var(--step-inactive-bg)",
+                  border: `2px solid ${done ? "var(--brand-600)" : active ? "var(--brand-500)" : "var(--border-base)"}`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -92,7 +92,7 @@ function StepBar({ current }: { current: Step }) {
                     style={{
                       fontSize: 13,
                       fontWeight: 700,
-                      color: active ? "white" : "rgba(255,255,255,0.3)",
+                      color: active ? "white" : "var(--step-inactive-text)",
                     }}
                   >
                     {step}
@@ -106,8 +106,8 @@ function StepBar({ current }: { current: Step }) {
                   color: active
                     ? "var(--brand-500)"
                     : done
-                      ? "rgba(255,255,255,0.6)"
-                      : "rgba(255,255,255,0.25)",
+                      ? "var(--step-completed-text)"
+                      : "var(--step-inactive-text)",
                   whiteSpace: "nowrap",
                 }}
               >
@@ -194,7 +194,7 @@ function InputField({
             width: "100%",
             padding: "13px 14px 13px 42px",
             background: "var(--glass-bg)",
-            border: `1.5px solid ${error ? "#f87171" : focused ? "var(--brand-500)" : "var(--border-card)"}`,
+            border: `1.5px solid ${error ? "var(--error-color)" : focused ? "var(--brand-500)" : "var(--border-card)"}`,
             borderRadius: 14,
             color: "var(--text-primary)",
             fontSize: 14,
@@ -212,7 +212,7 @@ function InputField({
           animate={{ opacity: 1, y: 0 }}
           style={{
             fontSize: 12,
-            color: "#f87171",
+            color: "var(--error-color)",
             marginTop: 5,
             fontWeight: 500,
           }}
@@ -323,13 +323,7 @@ export default function AddZone() {
     <div
       style={{
         minHeight: "100vh",
-        background: `
-        radial-gradient(ellipse 120% 60% at 50% 0%, #162e1a 0%, #0d2318 30%, transparent 60%),
-        radial-gradient(ellipse 80% 60% at 0% 50%, rgba(15,43,24,0.9) 0%, transparent 60%),
-        radial-gradient(ellipse 80% 60% at 100% 50%, rgba(11,30,36,0.7) 0%, transparent 60%),
-        radial-gradient(ellipse 100% 50% at 50% 100%, rgba(15,43,24,0.5) 0%, transparent 60%),
-        #070d09
-      `,
+        background: "var(--bg-main-gradient)",
         color: "var(--text-primary)",
         fontFamily: "var(--font-body)",
         display: "flex",
@@ -392,13 +386,12 @@ export default function AddZone() {
           position: "sticky",
           top: 0,
           zIndex: 50,
-          // ✅ شفاف في الأول، solid لما يسكرول
-          background: scrolled ? "rgba(7,13,9,0.85)" : "transparent",
+          background: scrolled ? "var(--header-scrolled-bg)" : "transparent",
           backdropFilter: scrolled ? "blur(24px)" : "none",
           WebkitBackdropFilter: scrolled ? "blur(24px)" : "none",
           borderBottom: `1px solid ${scrolled ? "var(--border-base)" : "transparent"}`,
           boxShadow: scrolled ? "var(--shadow-sm)" : "none",
-          transition: "all 0.35s ease", // ✅ smooth
+          transition: "all 0.35s ease",
           padding: "12px 24px",
           display: "flex",
           alignItems: "center",
@@ -570,27 +563,20 @@ export default function AddZone() {
                         value={plantId}
                         onChange={(e) => setPlantId(e.target.value)}
                         style={{
-                          ...inputStyle, // Inherit base styles
+                          ...inputStyle,
                           appearance: "none",
                           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
                           backgroundRepeat: "no-repeat",
                           backgroundPosition: "right 14px center",
                           backgroundSize: "16px",
                           paddingRight: "40px",
-                          // We override the left padding because select doesn't need 42px like inputs with icons
                           paddingLeft: "42px",
                           cursor: "pointer",
                         }}
                       >
-                        <option value="" style={{ background: "#070d09" }}>
-                          No crop selected
-                        </option>
+                        <option value="">No crop selected</option>
                         {(plants ?? []).map((p: any) => (
-                          <option
-                            key={p._id}
-                            value={p._id}
-                            style={{ background: "#0f1f12", color: "white" }}
-                          >
+                          <option key={p._id} value={p._id}>
                             {p.nameAr} ({p.name})
                           </option>
                         ))}
@@ -639,11 +625,11 @@ export default function AddZone() {
                   <div
                     style={{
                       padding: "12px 16px",
-                      background: "rgba(56,189,248,0.06)",
-                      border: "1px solid rgba(56,189,248,0.15)",
+                      background: "var(--info-bg)",
+                      border: `1px solid var(--info-border)`,
                       borderRadius: 12,
                       fontSize: 13,
-                      color: "rgba(147,210,255,0.8)",
+                      color: "var(--info-text)",
                       lineHeight: 1.6,
                     }}
                   >
@@ -691,11 +677,21 @@ export default function AddZone() {
                       padding: "12px",
                       background:
                         testResult === "ok"
-                          ? "rgba(74,222,128,0.08)"
+                          ? "var(--success-bg)"
                           : testResult === "fail"
-                            ? "rgba(248,113,113,0.08)"
-                            : "rgba(56,189,248,0.08)",
-                      border: `1px solid ${testResult === "ok" ? "rgba(74,222,128,0.25)" : testResult === "fail" ? "rgba(248,113,113,0.25)" : "rgba(56,189,248,0.2)"}`,
+                            ? "var(--error-bg)"
+                            : testResult === "warn"
+                              ? "var(--warning-bg)"
+                              : "var(--info-bg)",
+                      border: `1px solid ${
+                        testResult === "ok"
+                          ? "var(--success-border)"
+                          : testResult === "fail"
+                            ? "var(--error-border)"
+                            : testResult === "warn"
+                              ? "var(--warning-border)"
+                              : "var(--info-border)"
+                      }`,
                       borderRadius: 12,
                       fontSize: 14,
                       fontWeight: 600,
@@ -708,10 +704,12 @@ export default function AddZone() {
                       transition: "all 0.2s",
                       color:
                         testResult === "ok"
-                          ? "#4ade80"
+                          ? "var(--success-color)"
                           : testResult === "fail"
-                            ? "#f87171"
-                            : "#7dd3fc",
+                            ? "var(--error-color)"
+                            : testResult === "warn"
+                              ? "var(--warning-color)"
+                              : "var(--info-color)",
                     }}
                   >
                     {testing ? (
@@ -724,15 +722,13 @@ export default function AddZone() {
                       </>
                     ) : testResult === "ok" ? (
                       <>
-                        <Wifi size={15} color="#4ade80" />
+                        <Wifi size={15} color="var(--success-color)" />
                         <span>Connected ✓</span>
                       </>
                     ) : testResult === "warn" ? (
                       <>
-                        <Wifi size={15} color="#fbbf24" />
-                        <span style={{ color: "#fbbf24" }}>
-                          Connected (no data yet)
-                        </span>
+                        <Wifi size={15} color="var(--warning-color)" />
+                        <span>Connected (no data yet)</span>
                       </>
                     ) : testResult === "fail" ? (
                       <>
@@ -839,11 +835,11 @@ export default function AddZone() {
                   <div
                     style={{
                       padding: "12px 16px",
-                      background: "rgba(74,222,128,0.06)",
-                      border: "1px solid var(--badge-border)",
+                      background: "var(--success-bg)",
+                      border: `1px solid var(--success-border)`,
                       borderRadius: 12,
                       fontSize: 13,
-                      color: "var(--badge-color)",
+                      color: "var(--success-color)",
                       lineHeight: 1.6,
                     }}
                   >
@@ -948,6 +944,7 @@ export default function AddZone() {
     </div>
   );
 }
+
 // Add this at the very end of the file, outside the component
 const inputStyle: React.CSSProperties = {
   width: "100%",

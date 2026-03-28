@@ -23,7 +23,6 @@ export default function Verify() {
   const [resendLoading, setResendLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(300);
   const [done, setDone] = useState(false);
-  const [isDark, setIsDark] = useState(false);
   const refs = useRef<(HTMLInputElement | null)[]>([]);
 
   const email = sessionStorage.getItem("verificationEmail") || "your email";
@@ -38,18 +37,6 @@ export default function Verify() {
     const t = setInterval(() => setTimeLeft((p) => p - 1), 1000);
     return () => clearInterval(t);
   }, [timeLeft]);
-
-  useEffect(() => {
-    const check = () =>
-      setIsDark(document.body.classList.contains("theme-dark"));
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(document.body, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
 
   const handleChange = (i: number, val: string) => {
     if (codeError) setCodeError("");
@@ -121,85 +108,43 @@ export default function Verify() {
   const fmt = (s: number) =>
     `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
-  const tk = isDark
-    ? {
-        doneBg: "linear-gradient(135deg,#070d09 0%,#0d1a10 55%,#080f18 100%)",
-        doneHead: "#e8f5e9",
-        doneSub: "rgba(255,255,255,0.45)",
-        panelBg: "linear-gradient(135deg,#070d09 0%,#0d1a10 50%,#080f18 100%)",
-        blob1Op: 0.06,
-        blob2Op: 0.05,
-        heading: "#e8f5e9",
-        subtext: "rgba(255,255,255,0.45)",
-        emailColor: "#4ade80",
-        backBtn: "rgba(255,255,255,0.40)",
-        backBtnHover: "rgba(255,255,255,0.85)",
-        mobileName: "#e8f5e9",
-        digitBg: "#0d1f10",
-        digitBgFilled: "rgba(74,222,128,0.10)",
-        digitBgError: "rgba(248,113,113,0.10)",
-        digitBorder: "#1a3020",
-        digitBorderFilled: "2.5px solid #22c55e",
-        digitBorderError: "2.5px solid #f87171",
-        digitColor: "#e8f5e9",
-        digitShadow: "0 1px 4px rgba(0,0,0,0.3)",
-        digitShadowFilled: "0 0 0 4px rgba(74,222,128,0.12)",
-        digitShadowError: "0 0 0 4px rgba(248,113,113,0.12)",
-        timerNormal: "rgba(255,255,255,0.35)",
-        progressBg: "rgba(255,255,255,0.08)",
-        resendBtn: "rgba(255,255,255,0.40)",
-        resendBtnHover: "rgba(255,255,255,0.85)",
-        resendHoverBg: "rgba(255,255,255,0.05)",
-        footerText: "rgba(255,255,255,0.30)",
-        footerLink: "#4ade80",
-        iconBg:
-          "linear-gradient(135deg,rgba(22,163,74,0.15),rgba(14,165,233,0.15))",
-        iconBorder: "2px solid rgba(22,163,74,0.25)",
-        iconShadow: "0 12px 32px rgba(22,163,74,0.10)",
-        errorColor: "#f87171",
-      }
-    : {
-        doneBg: "linear-gradient(135deg,#f0fdf4,#ffffff,#eff6ff)",
-        doneHead: "#111827",
-        doneSub: "#6b7280",
-        panelBg: "linear-gradient(135deg,#f0fdf4 0%,#ffffff 50%,#eff6ff 100%)",
-        blob1Op: 0.3,
-        blob2Op: 0.2,
-        heading: "#111827",
-        subtext: "#9ca3af",
-        emailColor: "#16a34a",
-        backBtn: "#6b7280",
-        backBtnHover: "#111827",
-        mobileName: "#111827",
-        digitBg: "white",
-        digitBgFilled: "rgba(22,163,74,0.07)",
-        digitBgError: "rgba(239,68,68,0.07)",
-        digitBorder: "#e5e7eb",
-        digitBorderFilled: "2.5px solid #16a34a",
-        digitBorderError: "2.5px solid #ef4444",
-        digitColor: "#0f172a",
-        digitShadow: "0 1px 4px rgba(0,0,0,0.06)",
-        digitShadowFilled: "0 0 0 4px rgba(22,163,74,0.10)",
-        digitShadowError: "0 0 0 4px rgba(239,68,68,0.10)",
-        timerNormal: "#9ca3af",
-        progressBg: "#f3f4f6",
-        resendBtn: "#6b7280",
-        resendBtnHover: "#111827",
-        resendHoverBg: "#f9fafb",
-        footerText: "#9ca3af",
-        footerLink: "#16a34a",
-        iconBg:
-          "linear-gradient(135deg,rgba(22,163,74,0.12),rgba(14,165,233,0.12))",
-        iconBorder: "2px solid rgba(22,163,74,0.2)",
-        iconShadow: "0 12px 32px rgba(22,163,74,0.12)",
-        errorColor: "#ef4444",
-      };
+  // ── Digit box styles — computed per-cell, pure CSS variables ──
+  const digitStyle = (digit: string): React.CSSProperties => ({
+    width: 52,
+    height: 58,
+    textAlign: "center",
+    fontSize: 26,
+    fontWeight: 900,
+    borderRadius: 16,
+    outline: "none",
+    transition: "all 0.15s",
+    color: "var(--text-primary)",
+    background: codeError
+      ? "var(--error-bg)"
+      : digit
+        ? "var(--success-bg)"
+        : "var(--glass-bg)",
+    border: codeError
+      ? "2.5px solid var(--error-color)"
+      : digit
+        ? "2.5px solid var(--success-color)"
+        : "2px solid var(--border-card)",
+    boxShadow: codeError
+      ? "0 0 0 4px var(--error-bg)"
+      : digit
+        ? "0 0 0 4px var(--success-bg)"
+        : "var(--shadow-sm)",
+  });
 
+  // ── Done screen ──
   if (done)
     return (
       <div
         className="min-h-screen flex items-center justify-center"
-        style={{ background: tk.doneBg }}
+        style={{
+          background: "var(--bg-main-gradient)",
+          transition: "background 0.3s ease",
+        }}
       >
         <motion.div
           initial={{ scale: 0.5, opacity: 0 }}
@@ -212,7 +157,7 @@ export default function Verify() {
             transition={{ duration: 0.7 }}
             className="w-28 h-28 mx-auto mb-6 rounded-3xl flex items-center justify-center"
             style={{
-              background: "linear-gradient(135deg,#16a34a,#0ea5e9)",
+              background: "var(--grad-brand)",
               boxShadow: "0 24px 56px rgba(22,163,74,0.45)",
             }}
           >
@@ -222,24 +167,24 @@ export default function Verify() {
             className="text-4xl font-black mb-2"
             style={{
               fontFamily: "'Fraunces',Georgia,serif",
-              color: tk.doneHead,
+              color: "var(--text-primary)",
             }}
           >
             Verified! 🎉
           </h2>
-          <p className="mb-6" style={{ color: tk.doneSub }}>
+          <p className="mb-6" style={{ color: "var(--text-muted)" }}>
             Redirecting to your dashboard...
           </p>
           <div
             className="w-64 mx-auto h-1.5 rounded-full overflow-hidden"
-            style={{ background: tk.progressBg }}
+            style={{ background: "var(--border-base)" }}
           >
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: "100%" }}
               transition={{ duration: 2 }}
               className="h-full rounded-full"
-              style={{ background: "linear-gradient(135deg,#16a34a,#0ea5e9)" }}
+              style={{ background: "var(--grad-brand)" }}
             />
           </div>
         </motion.div>
@@ -248,7 +193,7 @@ export default function Verify() {
 
   return (
     <div className="min-h-screen flex">
-      {/* LEFT PANEL */}
+      {/* ── LEFT PANEL — static dark, intentionally not theme-aware ── */}
       <div
         className="hidden lg:flex lg:w-[46%] flex-col justify-center p-14 relative overflow-hidden"
         style={{
@@ -272,6 +217,7 @@ export default function Verify() {
             }}
           />
         </div>
+
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -299,6 +245,7 @@ export default function Verify() {
             </div>
           </div>
         </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -337,6 +284,7 @@ export default function Verify() {
               ))}
             </div>
           </div>
+
           <h2
             className="font-black text-[40px] leading-[1.08] mb-4 text-white"
             style={{
@@ -383,34 +331,39 @@ export default function Verify() {
         </motion.div>
       </div>
 
-      {/* RIGHT PANEL */}
+      {/* ── RIGHT PANEL — theme-aware via CSS variables ── */}
       <div
         className="flex-1 flex items-center justify-center p-6 lg:p-14 relative"
-        style={{ background: tk.panelBg, transition: "background 0.3s ease" }}
+        style={{
+          background: "var(--bg-main-gradient)",
+          transition: "background 0.3s ease",
+        }}
       >
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div
             className="absolute -top-32 -right-32 w-96 h-96 rounded-full blur-3xl"
             style={{
               background: "radial-gradient(circle,#bbf7d0,transparent)",
-              opacity: tk.blob1Op,
+              opacity: 0.08,
             }}
           />
           <div
             className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full blur-3xl"
             style={{
               background: "radial-gradient(circle,#bfdbfe,transparent)",
-              opacity: tk.blob2Op,
+              opacity: 0.06,
             }}
           />
         </div>
+
+        {/* Mobile logo */}
         <div className="lg:hidden absolute top-6 left-6 flex items-center gap-2">
           <AgriSenseLogo size={34} />
           <span
             className="font-black text-lg"
             style={{
               fontFamily: "'Fraunces',Georgia,serif",
-              color: tk.mobileName,
+              color: "var(--text-primary)",
             }}
           >
             AgriSense
@@ -423,52 +376,62 @@ export default function Verify() {
           transition={{ duration: 0.55 }}
           className="relative z-10 w-full max-w-[420px]"
         >
+          {/* Back button */}
           <button
             onClick={() => nav("/register")}
             className="flex items-center gap-1.5 transition-colors mb-8 text-sm font-semibold"
-            style={{ color: tk.backBtn }}
+            style={{ color: "var(--text-muted)" }}
             onMouseEnter={(e) =>
-              (e.currentTarget.style.color = tk.backBtnHover)
+              (e.currentTarget.style.color = "var(--text-primary)")
             }
-            onMouseLeave={(e) => (e.currentTarget.style.color = tk.backBtn)}
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.color = "var(--text-muted)")
+            }
           >
             <ArrowLeft className="w-4 h-4" /> Back to Register
           </button>
 
+          {/* Icon */}
           <div className="flex justify-center mb-6">
             <motion.div
               animate={{ scale: [1, 1.04, 1] }}
               transition={{ duration: 3.5, repeat: Infinity }}
               className="w-20 h-20 rounded-3xl flex items-center justify-center"
               style={{
-                background: tk.iconBg,
-                border: tk.iconBorder,
-                boxShadow: tk.iconShadow,
+                background:
+                  "linear-gradient(135deg,rgba(22,163,74,0.12),rgba(14,165,233,0.12))",
+                border: "2px solid var(--success-border)",
+                boxShadow: "0 12px 32px rgba(22,163,74,0.10)",
               }}
             >
               <Inbox className="w-10 h-10 text-green-500" />
             </motion.div>
           </div>
 
+          {/* Heading */}
           <div className="text-center mb-8">
             <h1
               className="text-[28px] font-black mb-1.5"
-              style={{ letterSpacing: "-0.025em", color: tk.heading }}
+              style={{
+                letterSpacing: "-0.025em",
+                color: "var(--text-primary)",
+              }}
             >
               Verify your email
             </h1>
-            <p className="text-sm" style={{ color: tk.subtext }}>
+            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
               We sent a 6-digit code to
             </p>
             <p
               className="font-black text-sm mt-0.5 truncate"
-              style={{ color: tk.emailColor }}
+              style={{ color: "var(--success-color)" }}
             >
               {email}
             </p>
           </div>
 
           <form onSubmit={handleVerify}>
+            {/* OTP digit inputs */}
             <div className="flex justify-center gap-2.5 mb-2">
               {code.map((digit, i) => (
                 <motion.input
@@ -485,29 +448,12 @@ export default function Verify() {
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.06 }}
-                  className="w-[52px] h-[58px] text-center text-[26px] font-black rounded-2xl outline-none transition-all"
-                  style={{
-                    border: codeError
-                      ? tk.digitBorderError
-                      : digit
-                        ? tk.digitBorderFilled
-                        : `2px solid ${tk.digitBorder}`,
-                    background: codeError
-                      ? tk.digitBgError
-                      : digit
-                        ? tk.digitBgFilled
-                        : tk.digitBg,
-                    boxShadow: codeError
-                      ? tk.digitShadowError
-                      : digit
-                        ? tk.digitShadowFilled
-                        : tk.digitShadow,
-                    color: tk.digitColor,
-                  }}
+                  style={digitStyle(digit)}
                 />
               ))}
             </div>
 
+            {/* Error message */}
             <div className="flex justify-center mb-3" style={{ minHeight: 22 }}>
               <AnimatePresence>
                 {codeError && (
@@ -517,7 +463,7 @@ export default function Verify() {
                     exit={{ opacity: 0, y: -4 }}
                     style={{
                       fontSize: 12,
-                      color: tk.errorColor,
+                      color: "var(--error-color)",
                       fontWeight: 600,
                       textAlign: "center",
                     }}
@@ -528,9 +474,10 @@ export default function Verify() {
               </AnimatePresence>
             </div>
 
+            {/* Timer + fill counter */}
             <div
               className="flex items-center justify-between text-xs font-semibold mb-2"
-              style={{ color: tk.timerNormal }}
+              style={{ color: "var(--text-faint)" }}
             >
               <span>{filled}/6 entered</span>
               <span className={timeLeft < 60 ? "text-red-500 font-black" : ""}>
@@ -539,19 +486,22 @@ export default function Verify() {
                   : "⚠️ Code expired"}
               </span>
             </div>
+
+            {/* Progress bar */}
             <div
               className="w-full h-1.5 rounded-full mb-6 overflow-hidden"
-              style={{ background: tk.progressBg }}
+              style={{ background: "var(--border-base)" }}
             >
               <motion.div
                 className="h-full rounded-full transition-all duration-300"
                 style={{
-                  background: "linear-gradient(135deg,#16a34a,#0ea5e9)",
+                  background: "var(--grad-brand)",
                   width: `${(filled / 6) * 100}%`,
                 }}
               />
             </div>
 
+            {/* Verify button */}
             <motion.button
               whileHover={{ scale: 1.015 }}
               whileTap={{ scale: 0.985 }}
@@ -559,13 +509,23 @@ export default function Verify() {
               disabled={loading || filled !== 6}
               className="w-full py-[14px] text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 disabled:opacity-40 transition-all mb-3"
               style={{
-                background: "linear-gradient(135deg,#16a34a,#0ea5e9)",
+                background: "var(--grad-brand)",
                 boxShadow: "0 8px 24px rgba(22,163,74,0.35)",
               }}
             >
               {loading ? (
                 <>
-                  <span className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />{" "}
+                  <span
+                    style={{
+                      width: 16,
+                      height: 16,
+                      border: "2px solid rgba(255,255,255,0.5)",
+                      borderTopColor: "white",
+                      borderRadius: "50%",
+                      animation: "spin 0.7s linear infinite",
+                      display: "inline-block",
+                    }}
+                  />{" "}
                   Verifying...
                 </>
               ) : (
@@ -575,18 +535,19 @@ export default function Verify() {
               )}
             </motion.button>
 
+            {/* Resend button */}
             <button
               type="button"
               onClick={handleResend}
               disabled={resendLoading}
               className="w-full py-3 flex items-center justify-center gap-2 text-sm font-bold rounded-2xl transition-all disabled:opacity-40"
-              style={{ color: tk.resendBtn }}
+              style={{ color: "var(--text-muted)" }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = tk.resendBtnHover;
-                e.currentTarget.style.background = tk.resendHoverBg;
+                e.currentTarget.style.color = "var(--text-primary)";
+                e.currentTarget.style.background = "var(--glass-bg)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = tk.resendBtn;
+                e.currentTarget.style.color = "var(--text-muted)";
                 e.currentTarget.style.background = "transparent";
               }}
             >
@@ -597,21 +558,24 @@ export default function Verify() {
             </button>
           </form>
 
+          {/* Footer */}
           <p
             className="text-center text-xs mt-5"
-            style={{ color: tk.footerText }}
+            style={{ color: "var(--text-faint)" }}
           >
             Wrong email?{" "}
             <button
               onClick={handleDifferentEmail}
               className="font-bold hover:underline"
-              style={{ color: tk.footerLink }}
+              style={{ color: "var(--brand-500)" }}
             >
               Use a different email
             </button>
           </p>
         </motion.div>
       </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

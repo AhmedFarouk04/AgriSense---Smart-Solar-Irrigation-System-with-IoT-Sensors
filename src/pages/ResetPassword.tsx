@@ -22,26 +22,23 @@ const nav = (p: string) => {
   window.dispatchEvent(new Event("popstate"));
 };
 
-const StrengthRow = ({
-  label,
-  valid,
-  isDark,
-}: {
-  label: string;
-  valid: boolean;
-  isDark: boolean;
-}) => (
+const StrengthRow = ({ label, valid }: { label: string; valid: boolean }) => (
   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
     {valid ? (
       <CheckCircle2
-        style={{ width: 14, height: 14, color: "#22c55e", flexShrink: 0 }}
+        style={{
+          width: 14,
+          height: 14,
+          color: "var(--success-color)",
+          flexShrink: 0,
+        }}
       />
     ) : (
       <XCircle
         style={{
           width: 14,
           height: 14,
-          color: isDark ? "#374151" : "#d1d5db",
+          color: "var(--text-faint)",
           flexShrink: 0,
         }}
       />
@@ -49,7 +46,7 @@ const StrengthRow = ({
     <span
       style={{
         fontSize: 12,
-        color: valid ? "#22c55e" : isDark ? "#6b7280" : "#9ca3af",
+        color: valid ? "var(--success-color)" : "var(--text-muted)",
         fontWeight: 500,
       }}
     >
@@ -83,7 +80,6 @@ export default function ResetPassword() {
   const [confirmError, setConfirmError] = useState("");
   const [loading, setLoading] = useState(false);
   const [completed, setCompleted] = useState(false);
-  const [isDark, setIsDark] = useState(false);
 
   const filled = codeDigits.filter(Boolean).length;
 
@@ -96,18 +92,6 @@ export default function ResetPassword() {
     const t = setInterval(() => setResendCooldown((p) => p - 1), 1000);
     return () => clearInterval(t);
   }, [resendCooldown]);
-
-  useEffect(() => {
-    const check = () =>
-      setIsDark(document.body.classList.contains("theme-dark"));
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(document.body, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
 
   const ps = {
     length: newPassword.length >= 8,
@@ -228,88 +212,15 @@ export default function ResetPassword() {
   const fmt = (s: number) =>
     `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
-  const tk = isDark
-    ? {
-        panelBg: "linear-gradient(135deg,#070d09 0%,#0d1a10 55%,#080f18 100%)",
-        blobOp: 0.06,
-        heading: "#e8f5e9",
-        subtext: "rgba(255,255,255,0.45)",
-        backBtn: "rgba(255,255,255,0.40)",
-        backBtnHover: "rgba(255,255,255,0.85)",
-        label: "rgba(255,255,255,0.70)",
-        inputBg: "#0f1f12",
-        inputBorder: "#1f3a25",
-        inputFocus: "#22c55e",
-        inputColor: "#e8f5e9",
-        iconColor: "rgba(255,255,255,0.30)",
-        mobileName: "#e8f5e9",
-        digitBg: "#0d1f10",
-        digitBgFilled: "rgba(74,222,128,0.10)",
-        digitBgError: "rgba(248,113,113,0.10)",
-        digitBorder: "#1a3020",
-        digitBorderFilled: "2.5px solid #22c55e",
-        digitBorderError: "2.5px solid #f87171",
-        digitColor: "#e8f5e9",
-        digitShadow: "0 1px 4px rgba(0,0,0,0.3)",
-        digitShadowFilled: "0 0 0 4px rgba(74,222,128,0.12)",
-        digitShadowError: "0 0 0 4px rgba(248,113,113,0.12)",
-        strengthBg: "#0a1a0d",
-        strengthBorder: "#1a3020",
-        errorColor: "#f87171",
-        emailBadgeBg: "rgba(74,222,128,0.08)",
-        emailBadgeBorder: "rgba(74,222,128,0.20)",
-        emailBadgeText: "#4ade80",
-        progressBg: "rgba(255,255,255,0.08)",
-        resendBtn: "rgba(255,255,255,0.40)",
-        resendBtnHover: "rgba(255,255,255,0.85)",
-        resendHoverBg: "rgba(255,255,255,0.05)",
-      }
-    : {
-        panelBg: "linear-gradient(135deg,#f6fdf8 0%,#ffffff 55%,#f7fbff 100%)",
-        blobOp: 0.1,
-        heading: "#111827",
-        subtext: "#6b7280",
-        backBtn: "#6b7280",
-        backBtnHover: "#111827",
-        label: "#374151",
-        inputBg: "#ffffff",
-        inputBorder: "#e5e7eb",
-        inputFocus: "#16a34a",
-        inputColor: "#111827",
-        iconColor: "#9ca3af",
-        mobileName: "#111827",
-        digitBg: "white",
-        digitBgFilled: "rgba(22,163,74,0.07)",
-        digitBgError: "rgba(239,68,68,0.07)",
-        digitBorder: "#e5e7eb",
-        digitBorderFilled: "2.5px solid #16a34a",
-        digitBorderError: "2.5px solid #ef4444",
-        digitColor: "#0f172a",
-        digitShadow: "0 1px 4px rgba(0,0,0,0.06)",
-        digitShadowFilled: "0 0 0 4px rgba(22,163,74,0.10)",
-        digitShadowError: "0 0 0 4px rgba(239,68,68,0.10)",
-        strengthBg: "#f9fafb",
-        strengthBorder: "#e5e7eb",
-        errorColor: "#ef4444",
-        emailBadgeBg: "rgba(22,163,74,0.07)",
-        emailBadgeBorder: "rgba(22,163,74,0.20)",
-        emailBadgeText: "#16a34a",
-        progressBg: "#f3f4f6",
-        resendBtn: "#6b7280",
-        resendBtnHover: "#111827",
-        resendHoverBg: "#f9fafb",
-      };
-
   const inputBase: React.CSSProperties = {
     width: "100%",
     padding: "13px 16px 13px 44px",
-    background: tk.inputBg,
+    background: "var(--bg-card)",
     borderRadius: 16,
     outline: "none",
     fontSize: 14,
     fontWeight: 500,
-    color: tk.inputColor,
-    border: `2px solid ${tk.inputBorder}`,
+    color: "var(--text-primary)",
     transition: "border .2s",
   };
 
@@ -317,20 +228,25 @@ export default function ResetPassword() {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
-        style={{ background: tk.panelBg }}
+        style={{ background: "var(--bg-main-gradient)" }}
       >
         <motion.div
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 120 }}
-          className="text-center p-14"
+          className="text-center p-14 rounded-3xl"
+          style={{
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-card)",
+            boxShadow: "var(--shadow-lg)",
+          }}
         >
           <motion.div
             animate={{ scale: [1, 1.15, 1], rotate: [0, 8, -8, 0] }}
             transition={{ duration: 0.7 }}
             className="w-28 h-28 mx-auto mb-6 rounded-3xl flex items-center justify-center"
             style={{
-              background: "linear-gradient(135deg,#16a34a,#0ea5e9)",
+              background: "var(--grad-brand)",
               boxShadow: "0 24px 56px rgba(22,163,74,0.40)",
             }}
           >
@@ -340,22 +256,22 @@ export default function ResetPassword() {
             className="text-4xl font-black mb-2"
             style={{
               fontFamily: "'Fraunces',Georgia,serif",
-              color: tk.heading,
+              color: "var(--text-primary)",
             }}
           >
             Password Reset! 🔐
           </h2>
-          <p style={{ color: tk.subtext }}>Redirecting to login...</p>
+          <p style={{ color: "var(--text-muted)" }}>Redirecting to login...</p>
           <div
             className="w-64 mx-auto h-1.5 rounded-full overflow-hidden mt-6"
-            style={{ background: tk.progressBg }}
+            style={{ background: "var(--border-base)" }}
           >
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: "100%" }}
               transition={{ duration: 2 }}
               className="h-full rounded-full"
-              style={{ background: "linear-gradient(135deg,#16a34a,#0ea5e9)" }}
+              style={{ background: "var(--grad-brand)" }}
             />
           </div>
         </motion.div>
@@ -364,7 +280,7 @@ export default function ResetPassword() {
 
   return (
     <div className="min-h-screen flex">
-      {/* LEFT PANEL */}
+      {/* ── LEFT PANEL — static dark branding ── */}
       <div
         className="hidden lg:flex lg:w-[46%] flex-col justify-between p-14 relative overflow-hidden"
         style={{
@@ -470,8 +386,7 @@ export default function ResetPassword() {
                 <br />
                 <span
                   style={{
-                    background:
-                      "linear-gradient(135deg,#4ade80 0%,#22d3ee 100%)",
+                    background: "var(--grad-brand)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                   }}
@@ -490,24 +405,25 @@ export default function ResetPassword() {
         <div className="relative z-10" />
       </div>
 
-      {/* RIGHT PANEL */}
+      {/* ── RIGHT PANEL — theme-aware via CSS variables ── */}
       <div
         className="flex-1 flex items-center justify-center p-6 lg:p-14 relative overflow-hidden"
-        style={{ background: tk.panelBg, transition: "background 0.3s ease" }}
+        style={{
+          background: "var(--bg-main-gradient)",
+          transition: "background 0.3s ease",
+        }}
       >
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div
-            className="absolute -top-32 -right-32 w-96 h-96 rounded-full blur-3xl"
+            className="absolute -top-32 -right-32 w-96 h-96 rounded-full blur-3xl opacity-[0.08]"
             style={{
-              background: "radial-gradient(circle,#bbf7d0,transparent)",
-              opacity: tk.blobOp,
+              background: "radial-gradient(circle,#22c55e,transparent)",
             }}
           />
           <div
-            className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full blur-3xl"
+            className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full blur-3xl opacity-[0.06]"
             style={{
-              background: "radial-gradient(circle,#bfdbfe,transparent)",
-              opacity: tk.blobOp * 0.8,
+              background: "radial-gradient(circle,#0ea5e9,transparent)",
             }}
           />
         </div>
@@ -517,7 +433,7 @@ export default function ResetPassword() {
             className="font-black text-lg"
             style={{
               fontFamily: "'Fraunces',Georgia,serif",
-              color: tk.mobileName,
+              color: "var(--text-primary)",
             }}
           >
             AgriSense
@@ -532,15 +448,13 @@ export default function ResetPassword() {
         >
           <button
             onClick={() => (step === 2 ? setStep(1) : nav("/forgot-password"))}
-            className="flex items-center gap-1.5 transition-colors mb-8 text-sm font-semibold"
-            style={{ color: tk.backBtn }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.color = tk.backBtnHover)
-            }
-            onMouseLeave={(e) => (e.currentTarget.style.color = tk.backBtn)}
+            className="flex items-center gap-1.5 transition-colors mb-8 text-sm font-semibold group"
+            style={{ color: "var(--text-muted)" }}
           >
-            <ArrowLeft className="w-4 h-4" />
-            {step === 2 ? "Back to Code" : "Back"}
+            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+            <span className="group-hover:text-[var(--text-primary)]">
+              {step === 2 ? "Back to Code" : "Back"}
+            </span>
           </button>
 
           {/* Step indicator */}
@@ -551,12 +465,9 @@ export default function ResetPassword() {
                   className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black transition-all"
                   style={{
                     background:
-                      step >= s
-                        ? "linear-gradient(135deg,#16a34a,#0ea5e9)"
-                        : isDark
-                          ? "#1a3020"
-                          : "#e5e7eb",
-                    color: step >= s ? "white" : isDark ? "#6b7280" : "#9ca3af",
+                      step >= s ? "var(--grad-brand)" : "var(--bg-card)",
+                    border: step < s ? "1px solid var(--border-card)" : "none",
+                    color: step >= s ? "white" : "var(--text-muted)",
                   }}
                 >
                   {step > s ? <CheckCircle className="w-4 h-4" /> : s}
@@ -566,7 +477,7 @@ export default function ResetPassword() {
                     className="h-0.5 w-10 rounded-full transition-all"
                     style={{
                       background:
-                        step > s ? "#16a34a" : isDark ? "#1a3020" : "#e5e7eb",
+                        step > s ? "var(--brand-500)" : "var(--border-card)",
                     }}
                   />
                 )}
@@ -574,7 +485,7 @@ export default function ResetPassword() {
             ))}
             <span
               className="text-xs font-semibold ml-1"
-              style={{ color: tk.subtext }}
+              style={{ color: "var(--text-muted)" }}
             >
               {step === 1 ? "Enter Code" : "New Password"}
             </span>
@@ -585,9 +496,9 @@ export default function ResetPassword() {
             <div
               className="flex items-center gap-2 px-3 py-2 rounded-xl mb-6 text-xs font-semibold"
               style={{
-                background: tk.emailBadgeBg,
-                border: `1px solid ${tk.emailBadgeBorder}`,
-                color: tk.emailBadgeText,
+                background: "var(--badge-bg)",
+                border: `1px solid var(--border-card)`,
+                color: "var(--brand-500)",
               }}
             >
               <span>📧</span>
@@ -608,11 +519,14 @@ export default function ResetPassword() {
                 <div className="mb-8">
                   <h1
                     className="text-[28px] font-black mb-1.5"
-                    style={{ letterSpacing: "-0.025em", color: tk.heading }}
+                    style={{
+                      letterSpacing: "-0.025em",
+                      color: "var(--text-primary)",
+                    }}
                   >
                     Enter Reset Code
                   </h1>
-                  <p className="text-sm" style={{ color: tk.subtext }}>
+                  <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                     We sent a 6-digit code to your email
                   </p>
                 </div>
@@ -634,24 +548,20 @@ export default function ResetPassword() {
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.06 }}
-                        className="w-[52px] h-[58px] text-center text-[26px] font-black rounded-2xl outline-none transition-all"
+                        className="w-[52px] h-[58px] text-center text-[26px] font-black rounded-2xl outline-none transition-all shadow-sm"
                         style={{
-                          border: codeError
-                            ? tk.digitBorderError
-                            : digit
-                              ? tk.digitBorderFilled
-                              : `2px solid ${tk.digitBorder}`,
                           background: codeError
-                            ? tk.digitBgError
+                            ? "var(--error-bg)"
                             : digit
-                              ? tk.digitBgFilled
-                              : tk.digitBg,
+                              ? "var(--success-bg)"
+                              : "var(--bg-card)",
+                          border: `2px solid ${codeError ? "var(--error-color)" : digit ? "var(--success-color)" : "var(--border-card)"}`,
+                          color: "var(--text-primary)",
                           boxShadow: codeError
-                            ? tk.digitShadowError
+                            ? "0 0 0 4px var(--error-bg)"
                             : digit
-                              ? tk.digitShadowFilled
-                              : tk.digitShadow,
-                          color: tk.digitColor,
+                              ? "0 0 0 4px var(--success-bg)"
+                              : "var(--shadow-sm)",
                         }}
                       />
                     ))}
@@ -669,7 +579,7 @@ export default function ResetPassword() {
                           exit={{ opacity: 0, y: -4 }}
                           style={{
                             fontSize: 12,
-                            color: tk.errorColor,
+                            color: "var(--error-color)",
                             fontWeight: 600,
                             textAlign: "center",
                           }}
@@ -685,10 +595,9 @@ export default function ResetPassword() {
                     whileTap={{ scale: 0.985 }}
                     type="submit"
                     disabled={verifyingCode || filled !== 6}
-                    className="w-full py-[14px] text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 disabled:opacity-40 transition-all mb-3"
+                    className="w-full py-[14px] text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 disabled:opacity-40 transition-all mb-3 shadow-md"
                     style={{
-                      background: "linear-gradient(135deg,#f59e0b,#f97316)",
-                      boxShadow: "0 8px 24px rgba(245,158,11,0.28)",
+                      background: "var(--grad-brand)",
                     }}
                   >
                     {verifyingCode ? (
@@ -703,21 +612,13 @@ export default function ResetPassword() {
                     )}
                   </motion.button>
 
-                  {/* ✅ Resend button */}
+                  {/* Resend button */}
                   <button
                     type="button"
                     onClick={handleResend}
                     disabled={resendLoading || resendCooldown > 0}
-                    className="w-full py-3 flex items-center justify-center gap-2 text-sm font-bold rounded-2xl transition-all disabled:opacity-40"
-                    style={{ color: tk.resendBtn }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = tk.resendBtnHover;
-                      e.currentTarget.style.background = tk.resendHoverBg;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = tk.resendBtn;
-                      e.currentTarget.style.background = "transparent";
-                    }}
+                    className="w-full py-3 flex items-center justify-center gap-2 text-sm font-bold rounded-2xl transition-all disabled:opacity-40 hover:bg-black/5 dark:hover:bg-white/5"
+                    style={{ color: "var(--text-muted)" }}
                   >
                     <RefreshCw
                       className={`w-4 h-4 ${resendLoading ? "animate-spin" : ""}`}
@@ -744,11 +645,14 @@ export default function ResetPassword() {
                 <div className="mb-8">
                   <h1
                     className="text-[28px] font-black mb-1.5"
-                    style={{ letterSpacing: "-0.025em", color: tk.heading }}
+                    style={{
+                      letterSpacing: "-0.025em",
+                      color: "var(--text-primary)",
+                    }}
                   >
                     New Password
                   </h1>
-                  <p className="text-sm" style={{ color: tk.subtext }}>
+                  <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                     Choose a strong password for your account
                   </p>
                 </div>
@@ -761,7 +665,7 @@ export default function ResetPassword() {
                   <div>
                     <label
                       className="block text-sm font-bold mb-1.5"
-                      style={{ color: tk.label }}
+                      style={{ color: "var(--text-secondary)" }}
                     >
                       New Password *
                     </label>
@@ -769,7 +673,9 @@ export default function ResetPassword() {
                       <Lock
                         className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4"
                         style={{
-                          color: passError ? tk.errorColor : tk.iconColor,
+                          color: passError
+                            ? "var(--error-color)"
+                            : "var(--text-faint)",
                         }}
                       />
                       <input
@@ -782,13 +688,13 @@ export default function ResetPassword() {
                         style={{
                           ...inputBase,
                           paddingRight: 48,
-                          border: `2px solid ${passError ? tk.errorColor : tk.inputBorder}`,
+                          border: `2px solid ${passError ? "var(--error-color)" : "var(--border-card)"}`,
                         }}
                         onFocus={(e) =>
-                          (e.currentTarget.style.border = `2px solid ${passError ? tk.errorColor : tk.inputFocus}`)
+                          (e.currentTarget.style.border = `2px solid ${passError ? "var(--error-color)" : "var(--brand-500)"}`)
                         }
                         onBlur={(e) =>
-                          (e.currentTarget.style.border = `2px solid ${passError ? tk.errorColor : tk.inputBorder}`)
+                          (e.currentTarget.style.border = `2px solid ${passError ? "var(--error-color)" : "var(--border-card)"}`)
                         }
                       />
                       <button
@@ -803,7 +709,7 @@ export default function ResetPassword() {
                           background: "none",
                           border: "none",
                           cursor: "pointer",
-                          color: tk.iconColor,
+                          color: "var(--text-faint)",
                           padding: 0,
                         }}
                       >
@@ -821,39 +727,22 @@ export default function ResetPassword() {
                         style={{
                           marginTop: 10,
                           padding: "12px 14px",
-                          background: tk.strengthBg,
+                          background: "var(--bg-card)",
                           borderRadius: 12,
-                          border: `1px solid ${tk.strengthBorder}`,
+                          border: `1px solid var(--border-card)`,
                           display: "grid",
                           gridTemplateColumns: "1fr 1fr",
                           gap: "6px 16px",
                         }}
                       >
-                        <StrengthRow
-                          label="8+ characters"
-                          valid={ps.length}
-                          isDark={isDark}
-                        />
-                        <StrengthRow
-                          label="Number"
-                          valid={ps.number}
-                          isDark={isDark}
-                        />
+                        <StrengthRow label="8+ characters" valid={ps.length} />
+                        <StrengthRow label="Number" valid={ps.number} />
                         <StrengthRow
                           label="Symbol (!@#...)"
                           valid={ps.symbol}
-                          isDark={isDark}
                         />
-                        <StrengthRow
-                          label="Uppercase"
-                          valid={ps.upper}
-                          isDark={isDark}
-                        />
-                        <StrengthRow
-                          label="Lowercase"
-                          valid={ps.lower}
-                          isDark={isDark}
-                        />
+                        <StrengthRow label="Uppercase" valid={ps.upper} />
+                        <StrengthRow label="Lowercase" valid={ps.lower} />
                       </motion.div>
                     )}
                     {passError && (
@@ -862,7 +751,7 @@ export default function ResetPassword() {
                         animate={{ opacity: 1, y: 0 }}
                         style={{
                           fontSize: 12,
-                          color: tk.errorColor,
+                          color: "var(--error-color)",
                           marginTop: 6,
                           fontWeight: 500,
                         }}
@@ -875,7 +764,7 @@ export default function ResetPassword() {
                   <div>
                     <label
                       className="block text-sm font-bold mb-1.5"
-                      style={{ color: tk.label }}
+                      style={{ color: "var(--text-secondary)" }}
                     >
                       Confirm Password *
                     </label>
@@ -883,7 +772,9 @@ export default function ResetPassword() {
                       <Lock
                         className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4"
                         style={{
-                          color: confirmError ? tk.errorColor : tk.iconColor,
+                          color: confirmError
+                            ? "var(--error-color)"
+                            : "var(--text-faint)",
                         }}
                       />
                       <input
@@ -896,13 +787,13 @@ export default function ResetPassword() {
                         style={{
                           ...inputBase,
                           paddingRight: 48,
-                          border: `2px solid ${confirmError ? tk.errorColor : tk.inputBorder}`,
+                          border: `2px solid ${confirmError ? "var(--error-color)" : "var(--border-card)"}`,
                         }}
                         onFocus={(e) =>
-                          (e.currentTarget.style.border = `2px solid ${confirmError ? tk.errorColor : tk.inputFocus}`)
+                          (e.currentTarget.style.border = `2px solid ${confirmError ? "var(--error-color)" : "var(--brand-500)"}`)
                         }
                         onBlur={(e) =>
-                          (e.currentTarget.style.border = `2px solid ${confirmError ? tk.errorColor : tk.inputBorder}`)
+                          (e.currentTarget.style.border = `2px solid ${confirmError ? "var(--error-color)" : "var(--border-card)"}`)
                         }
                       />
                       <button
@@ -917,7 +808,7 @@ export default function ResetPassword() {
                           background: "none",
                           border: "none",
                           cursor: "pointer",
-                          color: tk.iconColor,
+                          color: "var(--text-faint)",
                           padding: 0,
                         }}
                       >
@@ -934,7 +825,7 @@ export default function ResetPassword() {
                         animate={{ opacity: 1, y: 0 }}
                         style={{
                           fontSize: 12,
-                          color: tk.errorColor,
+                          color: "var(--error-color)",
                           marginTop: 6,
                           fontWeight: 500,
                         }}
@@ -949,10 +840,9 @@ export default function ResetPassword() {
                     whileTap={{ scale: 0.985 }}
                     type="submit"
                     disabled={loading}
-                    className="w-full py-[14px] text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
+                    className="w-full py-[14px] text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-all shadow-md mt-6"
                     style={{
-                      background: "linear-gradient(135deg,#16a34a,#0ea5e9)",
-                      boxShadow: "0 8px 24px rgba(22,163,74,0.28)",
+                      background: "var(--grad-brand)",
                     }}
                   >
                     {loading ? (

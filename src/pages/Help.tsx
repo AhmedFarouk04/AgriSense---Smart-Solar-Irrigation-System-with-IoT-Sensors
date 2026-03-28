@@ -174,8 +174,7 @@ export default function Help() {
     <div
       style={{
         minHeight: "100vh",
-        // ✅ تم إضافة الخلفية المتدرجة
-        background: `radial-gradient(ellipse 120% 60% at 50% 0%, #162e1a 0%, #0d2318 30%, transparent 60%), radial-gradient(ellipse 80% 60% at 0% 50%, rgba(15,43,24,0.9) 0%, transparent 60%), radial-gradient(ellipse 80% 60% at 100% 50%, rgba(11,30,36,0.7) 0%, transparent 60%), radial-gradient(ellipse 100% 50% at 50% 100%, rgba(15,43,24,0.5) 0%, transparent 60%), #070d09`,
+        background: "var(--bg-main-gradient)",
         color: "var(--text-primary)",
         fontFamily: "var(--font-body)",
       }}
@@ -221,7 +220,7 @@ export default function Help() {
           position: "sticky",
           top: 0,
           zIndex: 100,
-          background: scrolled ? "rgba(7,13,9,0.85)" : "transparent",
+          background: scrolled ? "var(--bg-nav)" : "transparent",
           backdropFilter: scrolled ? "blur(32px)" : "none",
           WebkitBackdropFilter: scrolled ? "blur(32px)" : "none",
           borderBottom: `1px solid ${scrolled ? "var(--border-base)" : "transparent"}`,

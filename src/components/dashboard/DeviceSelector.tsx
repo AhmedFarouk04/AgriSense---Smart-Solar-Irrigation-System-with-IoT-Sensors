@@ -28,6 +28,7 @@ export function DeviceSelector({
         gap: 6,
       }}
     >
+      {/* ── Trigger Button ── */}
       <button
         onClick={() => setOpen(!open)}
         style={{
@@ -35,10 +36,10 @@ export function DeviceSelector({
           alignItems: "center",
           gap: 8,
           padding: "8px 14px",
-          background: "rgba(255,255,255,0.05)",
-          border: "1px solid rgba(255,255,255,0.1)",
+          background: "var(--glass-bg)", // ✅
+          border: "1px solid var(--border-card)", // ✅
           borderRadius: 12,
-          color: "#e8f5e9",
+          color: "var(--text-primary)", // ✅
           fontWeight: 600,
           fontSize: 14,
           cursor: "pointer",
@@ -60,6 +61,7 @@ export function DeviceSelector({
         <ChevronDown size={14} style={{ opacity: 0.5 }} />
       </button>
 
+      {/* ── Settings Button ── */}
       {selectedId && (
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -70,13 +72,13 @@ export function DeviceSelector({
             width: 34,
             height: 34,
             borderRadius: 10,
-            background: "rgba(255,255,255,0.05)",
-            border: "1px solid rgba(255,255,255,0.1)",
+            background: "var(--glass-bg)", // ✅
+            border: "1px solid var(--border-card)", // ✅
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             cursor: "pointer",
-            color: "rgba(255,255,255,0.5)",
+            color: "var(--text-faint)", // ✅
             transition: "all 0.2s",
           }}
         >
@@ -84,6 +86,7 @@ export function DeviceSelector({
         </motion.button>
       )}
 
+      {/* ── Dropdown ── */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -94,12 +97,13 @@ export function DeviceSelector({
               position: "absolute",
               top: "calc(100% + 6px)",
               left: 0,
-              background: "#0d1a10",
-              border: "1px solid rgba(255,255,255,0.1)",
+              background: "var(--bg-card)", // ✅
+              border: "1px solid var(--border-card)", // ✅
               borderRadius: 12,
               overflow: "hidden",
               zIndex: 50,
               minWidth: 200,
+              boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
             }}
           >
             {devices.map((d) => (
@@ -120,7 +124,7 @@ export function DeviceSelector({
                       ? "rgba(74,222,128,0.08)"
                       : "transparent",
                   border: "none",
-                  color: "#e8f5e9",
+                  color: "var(--text-primary)", // ✅
                   fontSize: 14,
                   fontWeight: 500,
                   cursor: "pointer",
@@ -149,7 +153,7 @@ export function DeviceSelector({
                   style={{
                     padding: 4,
                     borderRadius: 6,
-                    color: "rgba(255,255,255,0.3)",
+                    color: "var(--text-faint)", // ✅
                     cursor: "pointer",
                   }}
                 >
@@ -157,6 +161,8 @@ export function DeviceSelector({
                 </motion.div>
               </button>
             ))}
+
+            {/* Add Zone button */}
             <button
               onClick={() => {
                 nav("/add-zone");
@@ -170,8 +176,8 @@ export function DeviceSelector({
                 padding: "10px 14px",
                 background: "transparent",
                 border: "none",
-                borderTop: "1px solid rgba(255,255,255,0.06)",
-                color: "#4ade80",
+                borderTop: "1px solid var(--border-card)", // ✅
+                color: "var(--brand-500)", // ✅
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: "pointer",

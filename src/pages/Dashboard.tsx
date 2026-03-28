@@ -67,7 +67,6 @@ function getTempStatus(v: number) {
   if (v < 35) return { label: "Normal", color: "#4ade80" };
   return { label: "Hot", color: "#f87171" };
 }
-
 function getFlowStatus(v: number) {
   if (v === 0) return { label: "Stopped", color: "#6b7280" };
   if (v < 2) return { label: "Low", color: "#fbbf24" };
@@ -151,8 +150,8 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
           style={{
             width: 32,
             height: 32,
-            border: "3px solid rgba(255,255,255,0.1)",
-            borderTopColor: "#4ade80",
+            border: "3px solid var(--border-card)",
+            borderTopColor: "var(--brand-500)",
             borderRadius: "50%",
             animation: "spin 0.8s linear infinite",
           }}
@@ -170,10 +169,10 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
       >
         <WifiOff
           size={48}
-          color="rgba(255,255,255,0.2)"
+          color="var(--text-faint)"
           style={{ margin: "0 auto 16px" }}
         />
-        <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 15 }}>
+        <p style={{ color: "var(--text-faint)", fontSize: 15 }}>
           Waiting for sensor data...
         </p>
       </motion.div>
@@ -191,7 +190,7 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      {/* ── Header: Live Status ── */}
+      {/* ── Live Status Bar ── */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -200,8 +199,8 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
           alignItems: "center",
           justifyContent: "space-between",
           padding: "10px 18px",
-          background: "rgba(255,255,255,0.02)",
-          border: "1px solid rgba(255,255,255,0.06)",
+          background: "var(--bg-card)",
+          border: "1px solid var(--border-card)",
           borderRadius: 14,
         }}
       >
@@ -210,7 +209,7 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
           <span
             style={{
               fontSize: 12,
-              color: "rgba(255,255,255,0.4)",
+              color: "var(--text-faint)",
               fontWeight: 500,
             }}
           >
@@ -234,7 +233,6 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
       </motion.div>
 
       {/* ── Main KPIs & Pump Control ── */}
-      {/* ✅ استخدام الكلاس بدل الستايل المباشر */}
       <div className="dashboard-grid">
         <LiveCard
           icon={<Droplets size={18} />}
@@ -267,13 +265,14 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
           delay={0.16}
         />
 
+        {/* ── Pump Control Card ── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.24, duration: 0.5 }}
           style={{
-            background: "rgba(255,255,255,0.03)",
-            border: `1px solid ${latest.pumpStatus ? "rgba(74,222,128,0.25)" : "rgba(255,255,255,0.07)"}`,
+            background: "var(--bg-card)",
+            border: `1px solid ${latest.pumpStatus ? "rgba(74,222,128,0.25)" : "var(--border-card)"}`,
             borderRadius: 20,
             padding: "20px 22px",
             display: "flex",
@@ -296,8 +295,8 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                 height: 38,
                 borderRadius: 12,
                 background: latest.pumpStatus
-                  ? "rgba(74,222,128,0.15)"
-                  : "rgba(107,114,128,0.1)",
+                  ? "#16a34a"
+                  : "var(--border-base)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -309,8 +308,8 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                   style={{
                     width: 14,
                     height: 14,
-                    border: "2px solid rgba(255,255,255,0.3)",
-                    borderTopColor: "white",
+                    border: "2px solid var(--border-card)",
+                    borderTopColor: "var(--brand-500)",
                     borderRadius: "50%",
                     animation: "spin 0.8s linear infinite",
                   }}
@@ -326,7 +325,7 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                 borderRadius: 10,
                 background: latest.pumpStatus
                   ? "#16a34a"
-                  : "rgba(255,255,255,0.1)",
+                  : "var(--border-base)",
                 position: "relative",
                 cursor: pumpLoading ? "not-allowed" : "pointer",
                 transition: "background 0.3s",
@@ -352,7 +351,7 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
             <div
               style={{
                 fontSize: 11,
-                color: "rgba(255,255,255,0.4)",
+                color: "var(--text-faint)",
                 fontWeight: 600,
                 textTransform: "uppercase",
                 marginBottom: 4,
@@ -360,7 +359,13 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
             >
               Pump Control
             </div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: "#e8f5e9" }}>
+            <div
+              style={{
+                fontSize: 28,
+                fontWeight: 800,
+                color: "var(--text-primary)",
+              }}
+            >
               {latest.pumpStatus ? "ON" : "OFF"}
             </div>
           </div>
@@ -375,41 +380,44 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "rgba(255,255,255,0.02)",
-            border: "1px solid rgba(255,255,255,0.06)",
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-card)",
             borderRadius: 20,
           }}
         >
-          <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 13 }}>
+          <span style={{ color: "var(--text-faint)", fontSize: 13 }}>
             Waiting for enough data to generate charts...
           </span>
         </div>
       ) : (
         <>
-          {/* ✅ استخدام الكلاس للرسوم البيانية */}
           <div className="charts-grid">
-            {/* Moisture Chart */}
+            {/* ── Moisture Chart ── */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
               style={{
-                background: "rgba(255,255,255,0.02)",
-                border: "1px solid rgba(255,255,255,0.06)",
+                background: "var(--bg-card)",
+                border: "1px solid var(--border-card)",
                 borderRadius: 20,
                 padding: "20px",
               }}
             >
               <div style={{ marginBottom: 16 }}>
                 <div
-                  style={{ fontSize: 14, fontWeight: 700, color: "#e8f5e9" }}
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                  }}
                 >
                   Soil Moisture
                 </div>
                 <div
                   style={{
                     fontSize: 12,
-                    color: "rgba(255,255,255,0.35)",
+                    color: "var(--text-faint)",
                     marginTop: 2,
                   }}
                 >
@@ -432,17 +440,17 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                   </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="rgba(255,255,255,0.04)"
+                    stroke="var(--border-card)"
                   />
                   <XAxis
                     dataKey="time"
-                    tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
+                    tick={{ fill: "var(--text-faint)", fontSize: 10 }}
                     tickLine={false}
                     axisLine={false}
                     minTickGap={30}
                   />
                   <YAxis
-                    tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
+                    tick={{ fill: "var(--text-faint)", fontSize: 10 }}
                     tickLine={false}
                     axisLine={false}
                     width={28}
@@ -475,28 +483,32 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
               </ResponsiveContainer>
             </motion.div>
 
-            {/* Temperature Chart */}
+            {/* ── Temperature Chart ── */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
               style={{
-                background: "rgba(255,255,255,0.02)",
-                border: "1px solid rgba(255,255,255,0.06)",
+                background: "var(--bg-card)",
+                border: "1px solid var(--border-card)",
                 borderRadius: 20,
                 padding: "20px",
               }}
             >
               <div style={{ marginBottom: 16 }}>
                 <div
-                  style={{ fontSize: 14, fontWeight: 700, color: "#e8f5e9" }}
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                  }}
                 >
                   Temperature
                 </div>
                 <div
                   style={{
                     fontSize: 12,
-                    color: "rgba(255,255,255,0.35)",
+                    color: "var(--text-faint)",
                     marginTop: 2,
                   }}
                 >
@@ -507,17 +519,17 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                 <LineChart data={chartData} syncId="dashboardCharts">
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="rgba(255,255,255,0.04)"
+                    stroke="var(--border-card)"
                   />
                   <XAxis
                     dataKey="time"
-                    tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
+                    tick={{ fill: "var(--text-faint)", fontSize: 10 }}
                     tickLine={false}
                     axisLine={false}
                     minTickGap={30}
                   />
                   <YAxis
-                    tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
+                    tick={{ fill: "var(--text-faint)", fontSize: 10 }}
                     tickLine={false}
                     axisLine={false}
                     width={28}
@@ -537,20 +549,26 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
             </motion.div>
           </div>
 
-          {/* Flow Rate Chart */}
+          {/* ── Flow Rate Chart ── */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
             style={{
-              background: "rgba(255,255,255,0.02)",
-              border: "1px solid rgba(255,255,255,0.06)",
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-card)",
               borderRadius: 20,
               padding: "20px",
             }}
           >
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#e8f5e9" }}>
+              <div
+                style={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: "var(--text-primary)",
+                }}
+              >
                 Water Flow Rate
               </div>
             </div>
@@ -558,25 +576,25 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
               <BarChart data={chartData} syncId="dashboardCharts">
                 <CartesianGrid
                   strokeDasharray="3 3"
-                  stroke="rgba(255,255,255,0.04)"
+                  stroke="var(--border-card)"
                   vertical={false}
                 />
                 <XAxis
                   dataKey="time"
-                  tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
+                  tick={{ fill: "var(--text-faint)", fontSize: 10 }}
                   tickLine={false}
                   axisLine={false}
                   minTickGap={30}
                 />
                 <YAxis
-                  tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
+                  tick={{ fill: "var(--text-faint)", fontSize: 10 }}
                   tickLine={false}
                   axisLine={false}
                   width={28}
                 />
                 <Tooltip
                   content={<CustomTooltip />}
-                  cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                  cursor={{ fill: "var(--glass-bg)" }}
                 />
                 <Bar
                   dataKey="flow"
@@ -592,7 +610,6 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
       )}
 
       {/* ── Quick Stats ── */}
-      {/* ✅ استخدام الكلاس للبطاقات */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -622,8 +639,8 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
           <div
             key={i}
             style={{
-              background: "rgba(255,255,255,0.02)",
-              border: "1px solid rgba(255,255,255,0.06)",
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-card)",
               borderRadius: 16,
               padding: "16px 18px",
               display: "flex",
@@ -651,14 +668,20 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
               <div
                 style={{
                   fontSize: 11,
-                  color: "rgba(255,255,255,0.35)",
+                  color: "var(--text-faint)",
                   fontWeight: 600,
                   marginBottom: 2,
                 }}
               >
                 {s.label}
               </div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "#e8f5e9" }}>
+              <div
+                style={{
+                  fontSize: 16,
+                  fontWeight: 700,
+                  color: "var(--text-primary)",
+                }}
+              >
                 {s.value}
               </div>
             </div>
@@ -673,7 +696,6 @@ export default function Dashboard() {
   const devices = useQuery(api.devices.getDevices);
   const user = useQuery(api.auth.loggedInUser);
   const events = useQuery(api.users.getEvents);
-
   const { signOut } = useAuthActions();
 
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
@@ -690,12 +712,9 @@ export default function Dashboard() {
         parseInt(localStorage.getItem("lastViewedNotifications") || "0"),
       );
     };
-
     window.addEventListener("notifications_viewed", handleViewed);
-
-    return () => {
+    return () =>
       window.removeEventListener("notifications_viewed", handleViewed);
-    };
   }, []);
 
   useEffect(() => {
@@ -723,11 +742,11 @@ export default function Dashboard() {
     <div
       style={{
         minHeight: "100vh",
-        background: `radial-gradient(ellipse 120% 60% at 50% 0%, #162e1a 0%, #0d2318 30%, transparent 60%), radial-gradient(ellipse 80% 60% at 0% 50%, rgba(15,43,24,0.9) 0%, transparent 60%), radial-gradient(ellipse 80% 60% at 100% 50%, rgba(11,30,36,0.7) 0%, transparent 60%), radial-gradient(ellipse 100% 50% at 50% 100%, rgba(15,43,24,0.5) 0%, transparent 60%), #070d09`,
         color: "var(--text-primary)",
         fontFamily: "var(--font-body)",
       }}
     >
+      {/* Background Decor */}
       <div
         style={{
           position: "fixed",
@@ -777,12 +796,13 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Header */}
       <header
         style={{
           position: "sticky",
           top: 0,
           zIndex: 100,
-          background: scrolled ? "rgba(7,13,9,0.85)" : "transparent",
+          background: scrolled ? "var(--bg-nav)" : "transparent",
           backdropFilter: scrolled ? "blur(32px)" : "none",
           WebkitBackdropFilter: scrolled ? "blur(32px)" : "none",
           borderBottom: `1px solid ${scrolled ? "var(--border-base)" : "transparent"}`,
@@ -807,7 +827,7 @@ export default function Dashboard() {
             >
               <AgriSenseLogo size={38} />
               <div
-                className="hide-on-mobile" // ✅ إخفاء الاسم في الموبايل
+                className="hide-on-mobile"
                 style={{
                   display: "flex",
                   flexDirection: "column",
@@ -832,8 +852,9 @@ export default function Dashboard() {
               </div>
             </motion.a>
 
+            {/* Greeting badge */}
             <div
-              className="hide-on-mobile" // ✅ إخفاء الترحيب في الموبايل عشان نوفر مساحة
+              className="hide-on-mobile"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -845,15 +866,14 @@ export default function Dashboard() {
                 fontWeight: 600,
               }}
             >
-              <span style={{ color: "rgba(255,255,255,0.65)" }}>
-                {greeting},
-              </span>
+              <span style={{ color: "var(--text-muted)" }}>{greeting},</span>
               <span style={{ color: "var(--brand-500)", fontWeight: 800 }}>
                 {user?.name?.split(" ")[0] ?? "Farmer"}
               </span>{" "}
               👋
             </div>
 
+            {/* Device Selector */}
             {devices && devices.length > 0 && (
               <DeviceSelector
                 devices={devices}
@@ -867,7 +887,33 @@ export default function Dashboard() {
             className="header-actions"
             style={{ display: "flex", alignItems: "center", gap: 10 }}
           >
-            {/* Reports */}
+            {/* ✅ My Zones button - جديد */}
+            {devices && devices.length > 0 && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                onClick={() => nav("/devices")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "0 14px",
+                  height: 36,
+                  borderRadius: 10,
+                  background: "var(--glass-bg)",
+                  border: "1px solid var(--border-card)",
+                  cursor: "pointer",
+                  color: "var(--text-secondary)",
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+                title="View all zones"
+              >
+                <ListIcon size={16} />
+                <span className="hide-on-mobile">My Zones</span>
+              </motion.button>
+            )}
+
+            {/* Reports button */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               onClick={() => nav("/reports")}
@@ -878,7 +924,7 @@ export default function Dashboard() {
                 padding: "0 14px",
                 height: 36,
                 borderRadius: 10,
-                background: "rgba(74,222,128,0.1)",
+                background: "var(--success-bg)",
                 border: "1px solid rgba(74,222,128,0.2)",
                 cursor: "pointer",
                 color: "#4ade80",
@@ -886,11 +932,11 @@ export default function Dashboard() {
                 fontWeight: 600,
               }}
             >
-              <BarChart2 size={16} />{" "}
+              <BarChart2 size={16} />
               <span className="hide-on-mobile">Reports</span>
             </motion.button>
 
-            {/* Notifications */}
+            {/* Notifications button */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               onClick={() => nav("/notifications")}
@@ -927,7 +973,7 @@ export default function Dashboard() {
                     alignItems: "center",
                     justifyContent: "center",
                     borderRadius: 99,
-                    border: "2px solid #070d09",
+                    border: "2px solid var(--bg-page)",
                   }}
                 >
                   {unreadCount > 9 ? "+9" : unreadCount}
@@ -982,88 +1028,61 @@ export default function Dashboard() {
                         top: "100%",
                         right: 0,
                         marginTop: 10,
-                        background: "#0f1f12",
-                        border: "1px solid rgba(255,255,255,0.1)",
+                        background: "var(--bg-card)",
+                        border: "1px solid var(--border-card)",
                         borderRadius: 12,
                         padding: 6,
                         minWidth: 180,
                         zIndex: 200,
-                        boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+                        boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
                       }}
                     >
-                      <button
-                        onClick={() => {
-                          setUserMenuOpen(false);
-                          nav("/profile");
-                        }}
-                        style={{
-                          width: "100%",
-                          padding: "10px 12px",
-                          background: "transparent",
-                          border: "none",
-                          color: "white",
-                          textAlign: "left",
-                          cursor: "pointer",
-                          fontSize: 13,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          borderRadius: 8,
-                        }}
-                      >
-                        <UserIcon size={14} /> My Profile
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setUserMenuOpen(false);
-                          nav("/settings");
-                        }}
-                        style={{
-                          width: "100%",
-                          padding: "10px 12px",
-                          background: "transparent",
-                          border: "none",
-                          color: "white",
-                          textAlign: "left",
-                          cursor: "pointer",
-                          fontSize: 13,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          borderRadius: 8,
-                        }}
-                      >
-                        <SettingsIcon size={14} /> Settings
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setUserMenuOpen(false);
-                          nav("/help");
-                        }}
-                        style={{
-                          width: "100%",
-                          padding: "10px 12px",
-                          background: "transparent",
-                          border: "none",
-                          color: "white",
-                          textAlign: "left",
-                          cursor: "pointer",
-                          fontSize: 13,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          borderRadius: 8,
-                        }}
-                      >
-                        <HelpCircle size={14} /> Help & Support
-                      </button>
+                      {[
+                        {
+                          label: "My Profile",
+                          icon: <UserIcon size={14} />,
+                          path: "/profile",
+                        },
+                        {
+                          label: "Settings",
+                          icon: <SettingsIcon size={14} />,
+                          path: "/settings",
+                        },
+                        {
+                          label: "Help & Support",
+                          icon: <HelpCircle size={14} />,
+                          path: "/help",
+                        },
+                      ].map((item) => (
+                        <button
+                          key={item.path}
+                          onClick={() => {
+                            setUserMenuOpen(false);
+                            nav(item.path);
+                          }}
+                          style={{
+                            width: "100%",
+                            padding: "10px 12px",
+                            background: "transparent",
+                            border: "none",
+                            color: "var(--text-primary)",
+                            textAlign: "left",
+                            cursor: "pointer",
+                            fontSize: 13,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            borderRadius: 8,
+                          }}
+                        >
+                          {item.icon} {item.label}
+                        </button>
+                      ))}
 
                       <div
                         style={{
                           height: 1,
-                          background: "rgba(255,255,255,0.05)",
+                          background: "var(--border-card)",
                           margin: "4px 0",
                         }}
                       />
@@ -1072,7 +1091,7 @@ export default function Dashboard() {
                           try {
                             await signOut();
                             nav("/");
-                          } catch (error) {
+                          } catch {
                             toast.error("Logout failed");
                           }
                         }}
@@ -1102,6 +1121,7 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {/* Main */}
       <main
         style={{
           maxWidth: 1200,
@@ -1123,8 +1143,8 @@ export default function Dashboard() {
               style={{
                 width: 32,
                 height: 32,
-                border: "3px solid rgba(255,255,255,0.1)",
-                borderTopColor: "#4ade80",
+                border: "3px solid var(--border-card)",
+                borderTopColor: "var(--brand-500)",
                 borderRadius: "50%",
                 animation: "spin 0.8s linear infinite",
               }}
@@ -1136,7 +1156,15 @@ export default function Dashboard() {
           <DashboardContent deviceId={selectedDeviceId as Id<"devices">} />
         ) : null}
       </main>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(74,222,128,0.4); } 70% { box-shadow: 0 0 0 6px rgba(74,222,128,0); } 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); } }`}</style>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse {
+          0% { box-shadow: 0 0 0 0 rgba(74,222,128,0.4); }
+          70% { box-shadow: 0 0 0 6px rgba(74,222,128,0); }
+          100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
+        }
+      `}</style>
     </div>
   );
 }

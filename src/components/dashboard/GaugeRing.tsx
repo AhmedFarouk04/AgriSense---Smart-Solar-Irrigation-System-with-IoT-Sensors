@@ -16,12 +16,13 @@ export function GaugeRing({
   const dash = Math.min(value / max, 1) * circ;
   return (
     <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+      {/* ✅ الدايرة الخلفية — استخدمنا currentColor عبر CSS variable */}
       <circle
         cx={size / 2}
         cy={size / 2}
         r={r}
         fill="none"
-        stroke="rgba(255,255,255,0.06)"
+        stroke="var(--border-card)" // ✅ كانت rgba(255,255,255,0.06)
         strokeWidth={5}
       />
       <circle

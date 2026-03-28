@@ -1,15 +1,24 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Sun, Moon } from "lucide-react"; // ✅ تم إضافة Sun و Moon
 import { AgriSenseLogo } from "./Logo";
+import { useTheme } from "../../ThemeContext"; // ✅ استدعاء الـ ThemeContext
 
 interface NavbarProps {
   scrolled: boolean;
-  isDark: boolean;
+  isDark: boolean; // سيبناها عشان لو بتتبعت من بره متعملش Error
 }
 
 export function Navbar({ scrolled, isDark }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // ✅ جلب حالة الثيم ودالة التغيير
+  const { theme, setTheme } = useTheme();
+
+  // ✅ دالة التبديل بضغطة زر
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "forest" : "dark");
+  };
 
   return (
     <motion.nav
@@ -40,7 +49,7 @@ export function Navbar({ scrolled, isDark }: NavbarProps) {
           justifyContent: "space-between",
         }}
       >
-        {/* ── Logo */}
+        {/* Logo */}
         <motion.a
           href="/"
           whileHover={{ scale: 1.02 }}
@@ -93,7 +102,7 @@ export function Navbar({ scrolled, isDark }: NavbarProps) {
           </div>
         </motion.a>
 
-        {/* ── Center links (Hidden on Mobile) */}
+        {/* Center links (Hidden on Mobile) */}
         <div className="hide-mob" style={{ display: "flex", gap: 36 }}>
           {["Features", "How it Works", "Contact"].map((n) => (
             <a
@@ -112,9 +121,31 @@ export function Navbar({ scrolled, isDark }: NavbarProps) {
           ))}
         </div>
 
-        {/* ── Auth + Burger */}
+        {/* Auth + Burger + Theme Toggle */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {/* ✅ إخفاء الأزرار دي في الموبايل لأنها موجودة في القائمة المنسدلة */}
+          {/* ✅ زرار تغيير الثيم الجديد */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={toggleTheme}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 38,
+              height: 38,
+              borderRadius: "50%",
+              background: "var(--glass-bg)",
+              border: "1px solid var(--border-base)",
+              color: "var(--text-secondary)",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
+          >
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+          </motion.button>
+
           <motion.a
             href="/login"
             whileHover={{ scale: 1.03 }}
@@ -135,6 +166,7 @@ export function Navbar({ scrolled, isDark }: NavbarProps) {
           >
             Login
           </motion.a>
+
           <motion.a
             href="/register"
             whileHover={{
@@ -157,7 +189,7 @@ export function Navbar({ scrolled, isDark }: NavbarProps) {
             Get Started
           </motion.a>
 
-          {/* ✅ زرار الموبايل فقط */}
+          {/* زرار القائمة الجانبية (الموبايل) */}
           <button
             className="burger-btn"
             onClick={() => setMenuOpen(!menuOpen)}
@@ -176,7 +208,7 @@ export function Navbar({ scrolled, isDark }: NavbarProps) {
         </div>
       </div>
 
-      {/* ── Mobile menu */}
+      {/* Mobile menu */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div

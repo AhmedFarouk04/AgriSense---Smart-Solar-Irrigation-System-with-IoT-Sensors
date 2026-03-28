@@ -2,6 +2,8 @@ import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { Toaster, toast } from "sonner";
 import { useEffect, useState, useRef } from "react";
+// ✅ تم استيراد الـ ThemeProvider
+import { ThemeProvider } from "./pages/ThemeContext";
 // Pages
 import Dashboard from "./pages/Dashboard";
 import Landing from "./pages/Landing";
@@ -20,19 +22,15 @@ import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
 import Help from "./pages/Help";
 
-const THEME = "theme-dark";
-
 function NotificationWatcher() {
   const events = useQuery(api.users.getEvents);
   const previousEventsLength = useRef<number | null>(null);
   const audioEnabled = useRef(false);
 
-  // ✅ حل سحري: بمجرد ما تضغط في أي مكان، المتصفح سيعتبرك "موافق" على الأصوات
   useEffect(() => {
     const enableAudio = () => {
       audioEnabled.current = true;
       console.log("🔊 Audio interaction enabled");
-      // تشغيل صوت صامت جداً لمرة واحدة لفك القفل
       const silentAudio = new Audio("/alert.mp3");
       silentAudio.volume = 0;
       silentAudio.play().catch(() => {});
@@ -65,7 +63,6 @@ function NotificationWatcher() {
         const audio = new Audio("/alert.mp3");
         audio.volume = 1.0;
 
-        // محاولة التشغيل مع إظهار Toast في حال الفشل
         audio
           .play()
           .then(() => console.log("🎵 Sound played successfully"))
@@ -84,6 +81,7 @@ function NotificationWatcher() {
 
   return null;
 }
+
 function AuthenticatedRouter({ currentPath }: { currentPath: string }) {
   const user = useQuery(api.auth.loggedInUser);
 
@@ -114,10 +112,7 @@ function AuthenticatedRouter({ currentPath }: { currentPath: string }) {
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
 
-  useEffect(() => {
-    document.body.classList.add(THEME);
-    return () => document.body.classList.remove(THEME);
-  }, []);
+  // ❌ مسحنا استخدام الـ THEME الثابت من هنا لأن الـ ThemeContext هيتكفل بيها
 
   useEffect(() => {
     const handleLocationChange = () => {
@@ -144,23 +139,25 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col" dir="ltr">
-      <Toaster position="top-center" richColors />
+    // ✅ تغليف التطبيق بالـ ThemeProvider
+    <ThemeProvider>
+      <div className="min-h-screen flex flex-col" dir="ltr">
+        <Toaster position="top-center" richColors />
 
-      <Unauthenticated>
-        {currentPath === "/login" && <Login />}
-        {currentPath === "/register" && <Register />}
-        {currentPath === "/forgot-password" && <ForgotPassword />}
-        {currentPath === "/reset-password" && <ResetPassword />}
-        {currentPath === "/verify" && <Verify />}
-        {!unauthPublicRoutes.includes(currentPath) && <Landing />}
-      </Unauthenticated>
+        <Unauthenticated>
+          {currentPath === "/login" && <Login />}
+          {currentPath === "/register" && <Register />}
+          {currentPath === "/forgot-password" && <ForgotPassword />}
+          {currentPath === "/reset-password" && <ResetPassword />}
+          {currentPath === "/verify" && <Verify />}
+          {!unauthPublicRoutes.includes(currentPath) && <Landing />}
+        </Unauthenticated>
 
-      <Authenticated>
-        {}
-        <NotificationWatcher />
-        <AuthenticatedRouter currentPath={currentPath} />
-      </Authenticated>
-    </div>
+        <Authenticated>
+          <NotificationWatcher />
+          <AuthenticatedRouter currentPath={currentPath} />
+        </Authenticated>
+      </div>
+    </ThemeProvider>
   );
 }

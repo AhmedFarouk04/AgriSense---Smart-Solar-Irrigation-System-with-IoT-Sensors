@@ -193,7 +193,7 @@ export default function Profile() {
       <div
         style={{
           minHeight: "100vh",
-          background: "#070d09",
+          background: "var(--bg-page)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -203,8 +203,8 @@ export default function Profile() {
           style={{
             width: 32,
             height: 32,
-            border: "3px solid rgba(255,255,255,0.1)",
-            borderTopColor: "#4ade80",
+            border: "3px solid var(--border-card)",
+            borderTopColor: "var(--brand-500)",
             borderRadius: "50%",
             animation: "spin 0.8s linear infinite",
           }}
@@ -236,7 +236,7 @@ export default function Profile() {
               background: "var(--grad-brand)",
               border: "none",
               borderRadius: 12,
-              color: "white",
+              color: "var(--text-primary)",
               cursor: "pointer",
               fontWeight: 600,
             }}
@@ -252,8 +252,7 @@ export default function Profile() {
     <div
       style={{
         minHeight: "100vh",
-        // ✅ التعديل: إرجاع الخلفية المتدرجة الخضراء الفخمة
-        background: `radial-gradient(ellipse 120% 60% at 50% 0%, #162e1a 0%, #0d2318 30%, transparent 60%), radial-gradient(ellipse 80% 60% at 0% 50%, rgba(15,43,24,0.9) 0%, transparent 60%), radial-gradient(ellipse 80% 60% at 100% 50%, rgba(11,30,36,0.7) 0%, transparent 60%), radial-gradient(ellipse 100% 50% at 50% 100%, rgba(15,43,24,0.5) 0%, transparent 60%), #070d09`,
+        background: "var(--bg-main-gradient)",
         color: "var(--text-primary)",
         fontFamily: "var(--font-body)",
       }}
@@ -298,7 +297,7 @@ export default function Profile() {
           position: "sticky",
           top: 0,
           zIndex: 100,
-          background: scrolled ? "rgba(7,13,9,0.85)" : "transparent",
+          background: scrolled ? "var(--bg-nav)" : "transparent",
           backdropFilter: scrolled ? "blur(32px)" : "none",
           borderBottom: `1px solid ${scrolled ? "var(--border-base)" : "transparent"}`,
           transition: "all 0.35s ease",
@@ -414,7 +413,7 @@ export default function Profile() {
                 justifyContent: "center",
                 fontSize: 28,
                 fontWeight: 800,
-                color: "white",
+                color: "var(--text-primary)",
                 boxShadow: "0 8px 24px rgba(22,163,74,0.35)",
               }}
             >
@@ -668,7 +667,7 @@ export default function Profile() {
               background: "var(--grad-brand)",
               border: "none",
               borderRadius: 16,
-              color: "white",
+              color: "var(--text-primary)",
               fontSize: 15,
               fontWeight: 700,
               cursor: saving ? "not-allowed" : "pointer",
