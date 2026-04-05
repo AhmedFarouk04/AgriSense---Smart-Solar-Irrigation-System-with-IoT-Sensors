@@ -23,10 +23,6 @@ import {
   ListIcon,
 } from "lucide-react";
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   Tooltip,
@@ -470,14 +466,15 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                     opacity={0.5}
                   />
                   <Area
-                    type="monotone"
+                    type="natural"
                     dataKey="moisture"
                     stroke="#38bdf8"
-                    strokeWidth={2}
+                    strokeWidth={2.4}
                     fillOpacity={1}
                     fill="url(#colorMoisture)"
                     name="Moisture"
                     unit="%"
+                    dot={false}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -516,7 +513,13 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                 </div>
               </div>
               <ResponsiveContainer width="100%" height={140}>
-                <LineChart data={chartData} syncId="dashboardCharts">
+                <AreaChart data={chartData} syncId="dashboardCharts">
+                  <defs>
+                    <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="4%" stopColor="#fbbf24" stopOpacity={0.38} />
+                      <stop offset="96%" stopColor="#fbbf24" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
                     stroke="var(--border-card)"
@@ -535,16 +538,18 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                     width={28}
                   />
                   <Tooltip content={<CustomTooltip />} />
-                  <Line
-                    type="monotone"
+                  <Area
+                    type="natural"
                     dataKey="temperature"
                     stroke="#fbbf24"
-                    strokeWidth={2}
+                    strokeWidth={2.4}
+                    fillOpacity={1}
+                    fill="url(#colorTemp)"
                     dot={false}
                     name="Temperature"
                     unit="°C"
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             </motion.div>
           </div>
@@ -573,7 +578,13 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
               </div>
             </div>
             <ResponsiveContainer width="100%" height={120}>
-              <BarChart data={chartData} syncId="dashboardCharts">
+              <AreaChart data={chartData} syncId="dashboardCharts">
+                <defs>
+                  <linearGradient id="colorFlow" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="4%" stopColor="#34d399" stopOpacity={0.42} />
+                    <stop offset="96%" stopColor="#34d399" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="var(--border-card)"
@@ -596,14 +607,18 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                   content={<CustomTooltip />}
                   cursor={{ fill: "var(--glass-bg)" }}
                 />
-                <Bar
+                <Area
+                  type="natural"
                   dataKey="flow"
-                  fill="#34d399"
-                  radius={[3, 3, 0, 0]}
+                  stroke="#34d399"
+                  strokeWidth={2.4}
+                  fillOpacity={1}
+                  fill="url(#colorFlow)"
                   name="Flow"
-                  unit=" L/min"
+                  unit="L/min"
+                  dot={false}
                 />
-              </BarChart>
+              </AreaChart>
             </ResponsiveContainer>
           </motion.div>
         </>
