@@ -9,6 +9,8 @@
  */
 
 import type * as Plants from "../Plants.js";
+import type * as agronomy from "../agronomy.js";
+import type * as alerts from "../alerts.js";
 import type * as auth from "../auth.js";
 import type * as authHelpers from "../authHelpers.js";
 import type * as devices from "../devices.js";
@@ -20,6 +22,7 @@ import type * as passwordMutations from "../passwordMutations.js";
 import type * as readings from "../readings.js";
 import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
+import type * as weeklyActions from "../weeklyActions.js";
 
 import type {
   ApiFromModules,
@@ -29,6 +32,8 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   Plants: typeof Plants;
+  agronomy: typeof agronomy;
+  alerts: typeof alerts;
   auth: typeof auth;
   authHelpers: typeof authHelpers;
   devices: typeof devices;
@@ -40,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   readings: typeof readings;
   userSettings: typeof userSettings;
   users: typeof users;
+  weeklyActions: typeof weeklyActions;
 }>;
 
 /**

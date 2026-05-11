@@ -19,6 +19,13 @@ export const updateSettings = mutation({
     notificationsEnabled: v.optional(v.boolean()),
     theme: v.optional(v.string()),
     language: v.optional(v.string()),
+    escalationDelayMinutes: v.optional(v.number()),
+    externalAlertsEnabled: v.optional(v.boolean()),
+    externalAlertEmail: v.optional(v.string()),
+    externalAlertPhone: v.optional(v.string()),
+    externalAlertWhatsapp: v.optional(v.string()),
+    pushWebhookUrl: v.optional(v.string()),
+    lastNotificationsViewedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);

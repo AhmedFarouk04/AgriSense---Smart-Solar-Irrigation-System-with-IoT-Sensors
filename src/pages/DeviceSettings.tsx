@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
@@ -9,6 +9,7 @@ import {
   Settings,
   Leaf,
   Ruler,
+  CalendarDays,
   FileText,
   Droplets,
   Thermometer,
@@ -31,6 +32,13 @@ const PARTICLES = [
   { x: 75, y: 40, size: 6, color: "var(--particle-3)", delay: 1.8 },
 ];
 
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+function resolveCurrentCropWeek(cropStartedAt?: number, createdAt?: number) {
+  const anchor = cropStartedAt ?? createdAt ?? Date.now();
+  return Math.max(1, Math.floor((Date.now() - anchor) / WEEK_MS) + 1);
+}
+
 export default function DeviceSettings({
   deviceId,
 }: {
@@ -52,6 +60,7 @@ export default function DeviceSettings({
   // Form state
   const [name, setName] = useState<string | null>(null);
   const [plantId, setPlantId] = useState<string | null>(null);
+  const [initialCropWeek, setInitialCropWeek] = useState<string | null>(null);
   const [areaM2, setAreaM2] = useState<string | null>(null);
   const [notes, setNotes] = useState<string | null>(null);
   const [customMinMoisture, setCustomMinMoisture] = useState<string | null>(
@@ -64,7 +73,6 @@ export default function DeviceSettings({
     null,
   );
 
-  // Init form من الـ device data
   const getVal = (state: string | null, field: any) =>
     state !== null ? state : (field ?? "");
 
@@ -72,6 +80,9 @@ export default function DeviceSettings({
     if (device) {
       setName(device.name);
       setPlantId(device.plantId ?? "");
+      setInitialCropWeek(
+        resolveCurrentCropWeek(device.cropStartedAt, device.createdAt).toString(),
+      );
       setAreaM2(device.areaM2?.toString() ?? "");
       setNotes(device.notes ?? "");
       setCustomMinMoisture(device.customMinMoisture?.toString() ?? "");
@@ -99,7 +110,7 @@ export default function DeviceSettings({
         }}
       >
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>âš ï¸</div>
           <div style={{ fontSize: 18, fontWeight: 700 }}>
             No device selected
           </div>
@@ -157,6 +168,9 @@ export default function DeviceSettings({
         deviceId: device._id,
         name: name?.trim() || device.name,
         plantId: plantId ? (plantId as Id<"plants">) : undefined,
+        initialCropWeek: plantId
+          ? Math.max(1, Number(initialCropWeek || "1"))
+          : undefined,
         areaM2: areaM2 ? Number(areaM2) : undefined,
         notes: notes?.trim() || undefined,
         customMinMoisture: customMinMoisture
@@ -169,7 +183,7 @@ export default function DeviceSettings({
           ? Number(customOptimalTemp)
           : undefined,
       });
-      toast.success("Zone settings saved! ✅");
+      toast.success("Zone settings saved! âœ…");
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to save");
     } finally {
@@ -338,7 +352,7 @@ export default function DeviceSettings({
           gap: 20,
         }}
       >
-        {/* ── Zone Info */}
+        {/* â”€â”€ Zone Info */}
         <Section title="Zone Info" icon={<FileText size={16} />}>
           <Field label="Zone Name">
             <input
@@ -361,13 +375,48 @@ export default function DeviceSettings({
                   value={p._id}
                   style={{ background: "#0f1f12" }}
                 >
-                  {p.name} — {p.nameAr}
+                  {p.name} â€” {p.nameAr}
                 </option>
               ))}
             </select>
           </Field>
           <Field
-            label="Zone Area (m²)"
+            label="Current Crop Week"
+            hint={
+              plantId
+                ? "Adjust this if the crop was planted before this zone was created"
+                : "Select a crop type first"
+            }
+          >
+            <div style={{ position: "relative" }}>
+              <CalendarDays
+                size={15}
+                style={{
+                  position: "absolute",
+                  left: 12,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "var(--text-faint)",
+                }}
+              />
+              <input
+                type="number"
+                min={1}
+                max={104}
+                value={initialCropWeek ?? "1"}
+                onChange={(e) => setInitialCropWeek(e.target.value)}
+                disabled={!plantId}
+                style={{
+                  ...inputStyle,
+                  paddingLeft: 36,
+                  opacity: plantId ? 1 : 0.55,
+                }}
+                placeholder="1"
+              />
+            </div>
+          </Field>
+          <Field
+            label="Zone Area (mÂ²)"
             hint="Used to calculate water consumption"
           >
             <input
@@ -389,7 +438,7 @@ export default function DeviceSettings({
           </Field>
         </Section>
 
-        {/* ── Smart Thresholds */}
+        {/* â”€â”€ Smart Thresholds */}
         <Section
           title="Smart Thresholds"
           icon={<Droplets size={16} />}
@@ -448,10 +497,10 @@ export default function DeviceSettings({
             </Field>
           </div>
           <Field
-            label="Optimal Temperature (°C)"
+            label="Optimal Temperature (Â°C)"
             hint={
               selectedPlant
-                ? `Plant default: ${selectedPlant.optimalTemp}°C`
+                ? `Plant default: ${selectedPlant.optimalTemp}Â°C`
                 : undefined
             }
           >
@@ -469,7 +518,7 @@ export default function DeviceSettings({
           </Field>
         </Section>
 
-        {/* ── Connection Info (read only) */}
+        {/* â”€â”€ Connection Info (read only) */}
         <Section title="Connection" icon={<Settings size={16} />}>
           <Field label="Firebase URL">
             <div
@@ -526,7 +575,7 @@ export default function DeviceSettings({
           </div>
         </Section>
 
-        {/* ── Save Button */}
+        {/* â”€â”€ Save Button */}
         <motion.button
           whileHover={{
             scale: 1.02,
@@ -573,7 +622,7 @@ export default function DeviceSettings({
           )}
         </motion.button>
 
-        {/* ── Danger Zone */}
+        {/* â”€â”€ Danger Zone */}
         <Section title="Danger Zone" icon={<AlertTriangle size={16} />} danger>
           <p
             style={{
@@ -679,7 +728,6 @@ export default function DeviceSettings({
   );
 }
 
-// ── Helper Components
 function Section({
   title,
   icon,
@@ -784,3 +832,4 @@ const inputStyle: React.CSSProperties = {
   outline: "none",
   fontFamily: "var(--font-body)",
 };
+

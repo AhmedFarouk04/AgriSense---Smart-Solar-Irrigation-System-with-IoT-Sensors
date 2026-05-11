@@ -128,6 +128,13 @@ export const updateSettings = mutation({
     notificationsEnabled: v.optional(v.boolean()),
     theme: v.optional(v.string()),
     language: v.optional(v.string()),
+    escalationDelayMinutes: v.optional(v.number()),
+    externalAlertsEnabled: v.optional(v.boolean()),
+    externalAlertEmail: v.optional(v.string()),
+    externalAlertPhone: v.optional(v.string()),
+    externalAlertWhatsapp: v.optional(v.string()),
+    pushWebhookUrl: v.optional(v.string()),
+    lastNotificationsViewedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -162,7 +169,34 @@ export const getEvents = query({
       .query("events")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .order("desc")
-      .take(50);
+      .take(100);
+  },
+});
+
+export const markNotificationsViewed = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
+    const now = Date.now();
+    const existing = await ctx.db
+      .query("userSettings")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        lastNotificationsViewedAt: now,
+      });
+    } else {
+      await ctx.db.insert("userSettings", {
+        userId,
+        manualMode: false,
+        pumpManualStatus: false,
+        lastNotificationsViewedAt: now,
+      });
+    }
+    return { success: true, viewedAt: now };
   },
 });
 export const clearEvents = mutation({

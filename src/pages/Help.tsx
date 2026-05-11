@@ -39,8 +39,8 @@ const FAQS = [
     icon: <Wifi size={16} />,
   },
   {
-    q: "How does pump control work?",
-    a: "The pump toggle in the dashboard sends a command to your Firebase database. Your device reads the control/pump value and activates or deactivates the pump accordingly.",
+    q: "How does valve control work?",
+    a: "The valve toggle in the dashboard writes to Firebase control/valve, with control/pump fallback for older firmware. Your device reads that value to start or stop irrigation.",
     icon: <Power size={16} />,
   },
   {
@@ -60,7 +60,7 @@ const FAQS = [
   },
   {
     q: "What Firebase path does the device use?",
-    a: "The app reads from: sensor/moisture, sensor/air_temp, sensor/flow_rate, and control/pump. Make sure your device writes data to these exact paths.",
+    a: "The app reads from: sensor/moisture, sensor/air_temp, sensor/flow_rate, plus control/valve (and control/pump fallback). Make sure your device writes data to these exact paths.",
     icon: <Wifi size={16} />,
   },
 ];

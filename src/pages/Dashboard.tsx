@@ -21,8 +21,14 @@ import {
   HelpCircle,
   PlusCircle,
   ListIcon,
+  Sprout,
+  ListChecks,
 } from "lucide-react";
 import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   Tooltip,
@@ -64,7 +70,7 @@ function getTempStatus(v: number) {
   return { label: "Hot", color: "#f87171" };
 }
 function getFlowStatus(v: number) {
-  if (v === 0) return { label: "Stopped", color: "#6b7280" };
+  if (v === 0) return { label: "No Flow", color: "#f97316" };
   if (v < 2) return { label: "Low", color: "#fbbf24" };
   return { label: "Flowing", color: "#4ade80" };
 }
@@ -90,10 +96,13 @@ function timeAgo(ts: number) {
 function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
   const latest = useQuery(api.readings.getLatestReading, { deviceId });
   const readings24h = useQuery(api.readings.getReadings24h, { deviceId });
+  const moistureForecast = useQuery(api.readings.getMoistureForecast, { deviceId });
   const deviceDetails = useQuery(api.devices.getDevice, { deviceId });
   const fetchReading = useAction(api.readings.fetchAndSaveReading);
   const controlPump = useAction(api.readings.controlPump);
+  const startFertilization = useAction(api.readings.startFertilization);
   const [pumpLoading, setPumpLoading] = useState(false);
+  const [fertilizeLoading, setFertilizeLoading] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -113,11 +122,28 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
     try {
       await controlPump({ deviceId, state: !latest.pumpStatus });
       await refresh();
-      toast.success(`Pump ${!latest.pumpStatus ? "started" : "stopped"}`);
+      toast.success(`Valve ${!latest.pumpStatus ? "opened" : "closed"}`);
     } catch {
-      toast.error("Failed to control pump");
+      toast.error("Failed to control valve");
     } finally {
       setPumpLoading(false);
+    }
+  };
+
+  const handleFertilize = async () => {
+    const confirmed = window.confirm(
+      "Start fertilization cycle now?\nSafety mode will auto-stop on high temperature, zero flow, or max duration.",
+    );
+    if (!confirmed) return;
+    setFertilizeLoading(true);
+    try {
+      await startFertilization({ deviceId, durationMinutes: 10, confirmed: true });
+      await refresh();
+      toast.success("Fertilization cycle started. Check notifications for dosing details.");
+    } catch {
+      toast.error("Failed to start fertilization");
+    } finally {
+      setFertilizeLoading(false);
     }
   };
 
@@ -228,7 +254,7 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
         </div>
       </motion.div>
 
-      {/* ── Main KPIs & Pump Control ── */}
+      {/* ── Main KPIs & Valve Control ── */}
       <div className="dashboard-grid">
         <LiveCard
           icon={<Droplets size={18} />}
@@ -261,7 +287,7 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
           delay={0.16}
         />
 
-        {/* ── Pump Control Card ── */}
+        {/* ── Valve Control Card ── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -353,7 +379,7 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                 marginBottom: 4,
               }}
             >
-              Pump Control
+              Valve Control
             </div>
             <div
               style={{
@@ -365,6 +391,24 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
               {latest.pumpStatus ? "ON" : "OFF"}
             </div>
           </div>
+          <button
+            onClick={handleFertilize}
+            disabled={fertilizeLoading}
+            style={{
+              width: "100%",
+              padding: "9px 10px",
+              borderRadius: 10,
+              border: "1px solid rgba(163,230,53,0.35)",
+              background: "rgba(163,230,53,0.12)",
+              color: "#bef264",
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: fertilizeLoading ? "not-allowed" : "pointer",
+              opacity: fertilizeLoading ? 0.7 : 1,
+            }}
+          >
+            {fertilizeLoading ? "Starting..." : "Fertilize"}
+          </button>
         </motion.div>
       </div>
 
@@ -466,15 +510,14 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                     opacity={0.5}
                   />
                   <Area
-                    type="natural"
+                    type="monotone"
                     dataKey="moisture"
                     stroke="#38bdf8"
-                    strokeWidth={2.4}
+                    strokeWidth={2}
                     fillOpacity={1}
                     fill="url(#colorMoisture)"
                     name="Moisture"
                     unit="%"
-                    dot={false}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -513,13 +556,7 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                 </div>
               </div>
               <ResponsiveContainer width="100%" height={140}>
-                <AreaChart data={chartData} syncId="dashboardCharts">
-                  <defs>
-                    <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="4%" stopColor="#fbbf24" stopOpacity={0.38} />
-                      <stop offset="96%" stopColor="#fbbf24" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
+                <LineChart data={chartData} syncId="dashboardCharts">
                   <CartesianGrid
                     strokeDasharray="3 3"
                     stroke="var(--border-card)"
@@ -538,18 +575,16 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                     width={28}
                   />
                   <Tooltip content={<CustomTooltip />} />
-                  <Area
-                    type="natural"
+                  <Line
+                    type="monotone"
                     dataKey="temperature"
                     stroke="#fbbf24"
-                    strokeWidth={2.4}
-                    fillOpacity={1}
-                    fill="url(#colorTemp)"
+                    strokeWidth={2}
                     dot={false}
                     name="Temperature"
                     unit="°C"
                   />
-                </AreaChart>
+                </LineChart>
               </ResponsiveContainer>
             </motion.div>
           </div>
@@ -578,13 +613,7 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
               </div>
             </div>
             <ResponsiveContainer width="100%" height={120}>
-              <AreaChart data={chartData} syncId="dashboardCharts">
-                <defs>
-                  <linearGradient id="colorFlow" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="4%" stopColor="#34d399" stopOpacity={0.42} />
-                    <stop offset="96%" stopColor="#34d399" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
+              <BarChart data={chartData} syncId="dashboardCharts">
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="var(--border-card)"
@@ -607,18 +636,14 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                   content={<CustomTooltip />}
                   cursor={{ fill: "var(--glass-bg)" }}
                 />
-                <Area
-                  type="natural"
+                <Bar
                   dataKey="flow"
-                  stroke="#34d399"
-                  strokeWidth={2.4}
-                  fillOpacity={1}
-                  fill="url(#colorFlow)"
+                  fill="#34d399"
+                  radius={[3, 3, 0, 0]}
                   name="Flow"
-                  unit="L/min"
-                  dot={false}
+                  unit=" L/min"
                 />
-              </AreaChart>
+              </BarChart>
             </ResponsiveContainer>
           </motion.div>
         </>
@@ -649,6 +674,19 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
             label: "Avg Flow (24h)",
             value: `${avgFlow.toFixed(1)} L/min`,
             color: "#34d399",
+          },
+          {
+            icon: <Droplets size={16} />,
+            label: "Moisture Forecast",
+            value:
+              moistureForecast?.status === "predicted"
+                ? `${moistureForecast.hoursToThreshold}h to low`
+                : moistureForecast?.status === "below_threshold"
+                  ? "Already low"
+                  : moistureForecast?.status === "stable"
+                    ? "Stable"
+                    : "Learning...",
+            color: "#60a5fa",
           },
         ].map((s, i) => (
           <div
@@ -748,9 +786,7 @@ export default function Dashboard() {
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   const unreadCount = (events ?? []).filter(
-    (e: any) =>
-      (e.type === "alert" || e.type === "low_moisture") &&
-      e.timestamp > lastViewed,
+    (e: any) => e.timestamp > lastViewed,
   ).length;
 
   return (
@@ -902,7 +938,7 @@ export default function Dashboard() {
             className="header-actions"
             style={{ display: "flex", alignItems: "center", gap: 10 }}
           >
-            {/* ✅ My Zones button - جديد */}
+            {}
             {devices && devices.length > 0 && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -949,6 +985,29 @@ export default function Dashboard() {
             >
               <BarChart2 size={16} />
               <span className="hide-on-mobile">Reports</span>
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              onClick={() => nav("/weekly-actions")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "0 14px",
+                height: 36,
+                borderRadius: 10,
+                background: "var(--glass-bg)",
+                border: "1px solid var(--border-card)",
+                cursor: "pointer",
+                color: "var(--text-secondary)",
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+              title="Weekly tasks"
+            >
+              <ListChecks size={16} />
+              <span className="hide-on-mobile">Weekly Actions</span>
             </motion.button>
 
             {/* Notifications button */}
@@ -1067,6 +1126,11 @@ export default function Dashboard() {
                           label: "Help & Support",
                           icon: <HelpCircle size={14} />,
                           path: "/help",
+                        },
+                        {
+                          label: "Agronomy Catalog",
+                          icon: <Sprout size={14} />,
+                          path: "/agronomy-catalog",
                         },
                       ].map((item) => (
                         <button

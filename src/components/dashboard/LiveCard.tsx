@@ -41,7 +41,7 @@ export function LiveCard({
         opacity: isLoading ? 0.7 : 1,
       }}
     >
-      {/* Glow decoration */}
+      {}
       <div
         style={{
           position: "absolute",
@@ -55,7 +55,7 @@ export function LiveCard({
         }}
       />
 
-      {/* Icon + Gauge */}
+      {}
       <div
         style={{
           display: "flex",
@@ -94,7 +94,7 @@ export function LiveCard({
         <GaugeRing value={value} max={max} color={color} size={52} />
       </div>
 
-      {/* Value */}
+      {}
       <div>
         <div
           style={{
@@ -131,7 +131,7 @@ export function LiveCard({
         </div>
       </div>
 
-      {/* Status badge */}
+      {}
       <div
         style={{
           display: "inline-flex",

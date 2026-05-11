@@ -46,9 +46,9 @@ export function Footer({ isDark }: FooterProps) {
           zIndex: 1,
         }}
       >
-        {/* ✅ تم إزالة الـ inline grid واستخدام الكلاس للـ Responsive */}
+        {}
         <div className="footer-grid" style={{ marginBottom: 56 }}>
-          {/* ── Brand */}
+          {/*Brand */}
           <div>
             <div
               style={{
@@ -162,7 +162,7 @@ export function Footer({ isDark }: FooterProps) {
             </div>
           </div>
 
-          {/* ── Link columns */}
+          {/* Link columns */}
           {cols.map((col, i) => (
             <div key={i}>
               <h4
@@ -208,8 +208,8 @@ export function Footer({ isDark }: FooterProps) {
           ))}
         </div>
 
-        {/* ── Bottom bar */}
-        {/* ✅ استخدام الكلاس للـ Responsive */}
+        {}
+        {}
         <div
           className="footer-bottom"
           style={{

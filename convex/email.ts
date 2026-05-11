@@ -141,3 +141,36 @@ export const sendPasswordResetEmail = internalAction({
     }
   },
 });
+
+export const sendCriticalAlertEmail = internalAction({
+  args: {
+    email: v.string(),
+    subject: v.string(),
+    message: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const { email, subject, message } = args;
+    try {
+      const mailOptions = {
+        from: `"AgriSense Alerts" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject,
+        html: `
+          <html>
+            <body style="font-family: Inter, Arial, sans-serif; background:#f6faf6; padding:24px;">
+              <div style="max-width:620px;margin:0 auto;background:#fff;border-radius:16px;padding:24px;border:1px solid #e5efe5;">
+                <h2 style="margin:0 0 12px;color:#b91c1c;">Critical Alert</h2>
+                <p style="margin:0 0 14px;color:#111827;">${message}</p>
+                <p style="margin:0;color:#6b7280;font-size:13px;">This message was generated automatically by AgriSense.</p>
+              </div>
+            </body>
+          </html>
+        `,
+      };
+      const info = await transporter.sendMail(mailOptions);
+      return { success: true, messageId: info.messageId };
+    } catch (error: any) {
+      throw new Error(`Failed to send critical alert email: ${error?.message ?? "unknown error"}`);
+    }
+  },
+});

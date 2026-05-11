@@ -696,7 +696,7 @@ export default function Profile() {
             )}
           </motion.button>
 
-          {/* الزرار بتاع تسجيل الخروج */}
+          {/* logout */}
           <motion.button
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}

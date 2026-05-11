@@ -22,6 +22,7 @@ const applicationTables = {
     plantId: v.optional(v.id("plants")),
     isActive: v.boolean(),
     createdAt: v.number(),
+    cropStartedAt: v.optional(v.number()),
     // ✅ per-device thresholds
     customMinMoisture: v.optional(v.number()),
     customMaxMoisture: v.optional(v.number()),
@@ -39,6 +40,13 @@ const applicationTables = {
     theme: v.optional(v.string()),
     language: v.optional(v.string()),
     notificationsEnabled: v.optional(v.boolean()),
+    lastNotificationsViewedAt: v.optional(v.number()),
+    escalationDelayMinutes: v.optional(v.number()),
+    externalAlertsEnabled: v.optional(v.boolean()),
+    externalAlertEmail: v.optional(v.string()),
+    externalAlertPhone: v.optional(v.string()),
+    externalAlertWhatsapp: v.optional(v.string()),
+    pushWebhookUrl: v.optional(v.string()),
   }).index("by_user", ["userId"]),
 
   readings: defineTable({
@@ -64,6 +72,48 @@ const applicationTables = {
   })
     .index("by_user", ["userId"])
     .index("by_device", ["deviceId"]),
+
+  fertilizationSessions: defineTable({
+    userId: v.id("users"),
+    deviceId: v.id("devices"),
+    startedAt: v.number(),
+    expectedEndAt: v.number(),
+    stoppedAt: v.optional(v.number()),
+    durationMinutes: v.number(),
+    status: v.string(),
+    stopReason: v.optional(v.string()),
+  })
+    .index("by_device", ["deviceId"])
+    .index("by_user", ["userId"]),
+
+  fertilizerSchedules: defineTable({
+    cropName: v.string(),
+    cropKey: v.string(),
+    weeksLabel: v.string(),
+    startWeek: v.number(),
+    endWeek: v.optional(v.number()),
+    applicationTiming: v.string(),
+    nitrogenKgPerFed: v.number(),
+    phosphorusKgPerFed: v.number(),
+    potassiumKgPerFed: v.number(),
+    calciumKgPerFed: v.number(),
+    magnesiumKgPerFed: v.number(),
+    criticalRemarks: v.string(),
+  })
+    .index("by_crop", ["cropKey"])
+    .index("by_crop_week", ["cropKey", "startWeek"]),
+
+  cultivationGuides: defineTable({
+    cropName: v.string(),
+    cropKey: v.string(),
+    bestPlantingSeason: v.string(),
+    wateringFrequency: v.string(),
+    criticalHeavyWateringPhase: v.string(),
+    stressingPeriod: v.string(),
+    bestHarvestTimeWeeks: v.string(),
+    harvestSigns: v.string(),
+    spacingCm: v.string(),
+  }).index("by_crop", ["cropKey"]),
 };
 
 export default defineSchema({

@@ -45,7 +45,7 @@ function getMoistureStatus(v: number, min = 30, max = 70) {
 }
 
 function getFlowStatus(v: number) {
-  if (v === 0) return { label: "Stopped", color: "#6b7280" };
+  if (v === 0) return { label: "No Flow", color: "#f97316" };
   if (v < 2) return { label: "Low", color: "#fbbf24" };
   return { label: "Flowing", color: "#4ade80" };
 }
@@ -66,6 +66,7 @@ export default function DeviceDetails({
   const [activeTab, setActiveTab] = useState<Tab>("live");
   const [scrolled, setScrolled] = useState(false);
   const [pumpLoading, setPumpLoading] = useState(false);
+  const [fertilizeLoading, setFertilizeLoading] = useState(false);
 
   const device = useQuery(
     api.devices.getDevice,
@@ -81,6 +82,7 @@ export default function DeviceDetails({
   );
   const fetchReading = useAction(api.readings.fetchAndSaveReading);
   const controlPump = useAction(api.readings.controlPump);
+  const startFertilization = useAction(api.readings.startFertilization);
 
   const refresh = useCallback(async () => {
     if (deviceId) {
@@ -112,12 +114,34 @@ export default function DeviceDetails({
       });
       await refresh();
       toast.success(
-        `Pump ${!latest.pumpStatus ? "started" : "stopped"} manually`,
+        `Valve ${!latest.pumpStatus ? "opened" : "closed"} manually`,
       );
     } catch {
-      toast.error("Failed to control pump");
+      toast.error("Failed to control valve");
     } finally {
       setPumpLoading(false);
+    }
+  };
+
+  const handleFertilize = async () => {
+    if (!deviceId) return;
+    const confirmed = window.confirm(
+      "Start fertilization cycle now?\nSafety mode will auto-stop on high temperature, zero flow, or max duration.",
+    );
+    if (!confirmed) return;
+    setFertilizeLoading(true);
+    try {
+      await startFertilization({
+        deviceId: deviceId as Id<"devices">,
+        durationMinutes: 10,
+        confirmed: true,
+      });
+      await refresh();
+      toast.success("Fertilization started. Check notifications for dosing details.");
+    } catch {
+      toast.error("Failed to start fertilization");
+    } finally {
+      setFertilizeLoading(false);
     }
   };
 
@@ -433,7 +457,7 @@ export default function DeviceDetails({
                           letterSpacing: "0.05em",
                         }}
                       >
-                        Irrigation Pump
+                        Irrigation Valve
                       </div>
                       <div
                         style={{
@@ -442,7 +466,7 @@ export default function DeviceDetails({
                           color: latest.pumpStatus ? "#4ade80" : "#e8f5e9",
                         }}
                       >
-                        {latest.pumpStatus ? "RUNNING" : "OFF"}
+                        {latest.pumpStatus ? "ON" : "OFF"}
                       </div>
                     </div>
                   </div>
@@ -493,8 +517,27 @@ export default function DeviceDetails({
                   }}
                 >
                   <Activity size={14} color="var(--info-color)" /> {}
-                  Toggle to remotely control your pump.
+                  Toggle to remotely control your irrigation valve.
                 </div>
+
+                <button
+                  onClick={handleFertilize}
+                  disabled={fertilizeLoading}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(163,230,53,0.35)",
+                    background: "rgba(163,230,53,0.12)",
+                    color: "#bef264",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: fertilizeLoading ? "not-allowed" : "pointer",
+                    opacity: fertilizeLoading ? 0.7 : 1,
+                  }}
+                >
+                  {fertilizeLoading ? "Starting..." : "Fertilize"}
+                </button>
               </motion.div>
             </motion.div>
           )}

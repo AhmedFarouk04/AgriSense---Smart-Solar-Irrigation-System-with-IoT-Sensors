@@ -1,6 +1,22 @@
 import { mutation, query, action } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { internal } from "./_generated/api";
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+function assertValidInitialWeek(initialCropWeek?: number) {
+  if (initialCropWeek === undefined) return;
+  if (!Number.isFinite(initialCropWeek)) throw new Error("Invalid crop week");
+  if (initialCropWeek < 1 || initialCropWeek > 104) {
+    throw new Error("Crop week must be between 1 and 104");
+  }
+}
+
+function toCropStartedAt(initialCropWeek?: number) {
+  if (initialCropWeek === undefined) return undefined;
+  return Date.now() - (Math.floor(initialCropWeek) - 1) * WEEK_MS;
+}
 
 export const addDevice = mutation({
   args: {
@@ -8,6 +24,7 @@ export const addDevice = mutation({
     firebaseUrl: v.string(),
     firebaseSecret: v.string(),
     plantId: v.optional(v.id("plants")),
+    initialCropWeek: v.optional(v.number()),
     areaM2: v.optional(v.number()),
     notes: v.optional(v.string()),
   },
@@ -30,6 +47,7 @@ export const addDevice = mutation({
 
     if (!trimmedSecret || trimmedSecret.length < 10)
       throw new Error("Invalid Firebase secret");
+    assertValidInitialWeek(args.initialCropWeek);
 
     const existing = await ctx.db
       .query("devices")
@@ -44,6 +62,9 @@ export const addDevice = mutation({
     if (existing.some((d) => d.firebaseUrl === trimmedUrl))
       throw new Error("This Firebase database is already linked");
 
+    const createdAt = Date.now();
+    const cropStartedAt = toCropStartedAt(args.initialCropWeek);
+
     const deviceId = await ctx.db.insert("devices", {
       userId,
       name: trimmedName,
@@ -51,7 +72,8 @@ export const addDevice = mutation({
       firebaseSecret: trimmedSecret,
       plantId: args.plantId,
       isActive: true,
-      createdAt: Date.now(),
+      createdAt,
+      cropStartedAt,
       areaM2: args.areaM2,
       notes: args.notes,
     });
@@ -60,8 +82,18 @@ export const addDevice = mutation({
       userId,
       deviceId,
       type: "device_added",
-      message: `Zone "${trimmedName}" was added`,
-      timestamp: Date.now(),
+      message: `Zone "${trimmedName}" was added${args.initialCropWeek ? ` (crop starts at week ${Math.floor(args.initialCropWeek)})` : ""}.`,
+      data: {
+        cropWeekAtSetup: args.initialCropWeek
+          ? Math.floor(args.initialCropWeek)
+          : undefined,
+        cropStartedAt,
+      },
+      timestamp: createdAt,
+    });
+
+    await ctx.scheduler.runAfter(0, internal.readings.pollDevice, {
+      deviceId,
     });
 
     return { success: true, deviceId };
@@ -106,7 +138,8 @@ export const updateDevice = mutation({
     customMinMoisture: v.optional(v.number()),
     customMaxMoisture: v.optional(v.number()),
     customOptimalTemp: v.optional(v.number()),
-    // ✅ per-device info
+    initialCropWeek: v.optional(v.number()),
+
     areaM2: v.optional(v.number()),
     notes: v.optional(v.string()),
   },
@@ -117,6 +150,7 @@ export const updateDevice = mutation({
     const device = await ctx.db.get(args.deviceId);
     if (!device || device.userId !== userId)
       throw new Error("Device not found");
+    assertValidInitialWeek(args.initialCropWeek);
 
     const patch: any = {};
 
@@ -135,10 +169,29 @@ export const updateDevice = mutation({
       patch.customMaxMoisture = args.customMaxMoisture;
     if (args.customOptimalTemp !== undefined)
       patch.customOptimalTemp = args.customOptimalTemp;
+    if (args.initialCropWeek !== undefined)
+      patch.cropStartedAt = toCropStartedAt(args.initialCropWeek);
     if (args.areaM2 !== undefined) patch.areaM2 = args.areaM2;
     if (args.notes !== undefined) patch.notes = args.notes;
 
     await ctx.db.patch(args.deviceId, patch);
+
+    if (args.isActive !== undefined && args.isActive !== device.isActive) {
+      await ctx.db.insert("events", {
+        userId,
+        deviceId: args.deviceId,
+        type: "zone_status",
+        message: `Zone \"${patch.name ?? device.name}\" was ${args.isActive ? "activated" : "paused"}.`,
+        timestamp: Date.now(),
+      });
+    }
+
+    if (args.isActive === true && !device.isActive) {
+      await ctx.scheduler.runAfter(0, internal.readings.pollDevice, {
+        deviceId: args.deviceId,
+      });
+    }
+
     return { success: true };
   },
 });
@@ -205,3 +258,4 @@ export const testConnection = action({
     }
   },
 });
+

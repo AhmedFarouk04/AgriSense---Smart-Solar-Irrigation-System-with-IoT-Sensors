@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Bell,
@@ -14,8 +14,8 @@ import {
   Trash2,
   CheckCircle2,
   Zap,
+  Sprout,
 } from "lucide-react";
-import { AgriSenseLogo } from "../components/Logo";
 
 const nav = (p: string) => {
   window.history.pushState({}, "", p);
@@ -39,13 +39,97 @@ function timeAgo(ts: number) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+function formatDataKey(key: string) {
+  const map: Record<string, string> = {
+    weekNumber: "Week",
+    cropWeekAtSetup: "Crop Week At Setup",
+    weeksLabel: "Week Range",
+    applicationTiming: "Phase",
+    criticalRemarks: "Remarks",
+    nutrientSummary: "Fertilizer",
+    wateringFrequency: "Watering",
+    zoneAreaM2: "Zone Area m2",
+    nutrientKgPerFed: "Nutrients kg/fed",
+    zoneDoseKg: "Zone Dose kg",
+    lastIrrigationAt: "Last Irrigation",
+    nextIrrigationAt: "Next Irrigation",
+    nextReviewAt: "Next Review",
+    nextCheckAt: "Next Check",
+    recommendedEndAt: "Recommended End",
+    fertilizationStartedAt: "Fertilization Start",
+    durationMinutes: "Duration min",
+    recommendedAction: "Recommended Action",
+    runtimeMinutes: "Runtime min",
+    moisture: "Moisture",
+    temperature: "Temp C",
+    flowRate: "Flow L/min",
+  };
+  return map[key] ?? key;
+}
+
+function formatDataValue(key: string, value: unknown) {
+  if (value === undefined || value === null) return "-";
+
+  if (
+    typeof value === "number" &&
+    (key.endsWith("At") || key.toLowerCase().includes("timestamp"))
+  ) {
+    return new Date(value).toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    (key === "nutrientKgPerFed" || key === "zoneDoseKg")
+  ) {
+    const values = value as Record<string, number>;
+    return `N:${values.nitrogen ?? 0}, P:${values.phosphorus ?? 0}, K:${values.potassium ?? 0}, Ca:${values.calcium ?? 0}, Mg:${values.magnesium ?? 0}`;
+  }
+
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+
+  return String(value);
+}
+
 function getEventStyle(type: string) {
   const styles: Record<string, any> = {
+    valve_control: {
+      icon: <Power size={16} />,
+      color: "#4ade80",
+      bg: "rgba(74,222,128,0.1)",
+      border: "rgba(74,222,128,0.2)",
+    },
     pump_control: {
       icon: <Power size={16} />,
       color: "#4ade80",
       bg: "rgba(74,222,128,0.1)",
       border: "rgba(74,222,128,0.2)",
+    },
+    irrigation_started: {
+      icon: <Droplets size={16} />,
+      color: "#06b6d4",
+      bg: "rgba(6,182,212,0.12)",
+      border: "rgba(6,182,212,0.25)",
+    },
+    irrigation_stopped: {
+      icon: <Power size={16} />,
+      color: "#22d3ee",
+      bg: "rgba(34,211,238,0.12)",
+      border: "rgba(34,211,238,0.28)",
+    },
+    zone_status: {
+      icon: <Wifi size={16} />,
+      color: "#60a5fa",
+      bg: "rgba(96,165,250,0.12)",
+      border: "rgba(96,165,250,0.28)",
     },
     device_added: {
       icon: <Plus size={16} />,
@@ -59,7 +143,49 @@ function getEventStyle(type: string) {
       bg: "rgba(248,113,113,0.1)",
       border: "rgba(248,113,113,0.2)",
     },
-    critical_alert: {
+    fertilizer_plan: {
+      icon: <Sprout size={16} />,
+      color: "#22d3ee",
+      bg: "rgba(34,211,238,0.12)",
+      border: "rgba(34,211,238,0.28)",
+    },
+    fertilization_started: {
+      icon: <Sprout size={16} />,
+      color: "#a3e635",
+      bg: "rgba(163,230,53,0.14)",
+      border: "rgba(163,230,53,0.30)",
+    },
+    fertilization_completed: {
+      icon: <CheckCircle2 size={16} />,
+      color: "#4ade80",
+      bg: "rgba(74,222,128,0.12)",
+      border: "rgba(74,222,128,0.28)",
+    },
+    fertilization_safety_stop: {
+      icon: <AlertTriangle size={16} />,
+      color: "#ef4444",
+      bg: "rgba(239,68,68,0.15)",
+      border: "rgba(239,68,68,0.35)",
+    },
+    critical_escalation: {
+      icon: <Zap size={16} />,
+      color: "#ef4444",
+      bg: "rgba(239,68,68,0.15)",
+      border: "rgba(239,68,68,0.35)",
+    },
+    weekly_agronomy_plan: {
+      icon: <Sprout size={16} />,
+      color: "#4ade80",
+      bg: "rgba(74,222,128,0.12)",
+      border: "rgba(74,222,128,0.28)",
+    },
+    tank_empty_suspected: {
+      icon: <AlertTriangle size={16} />,
+      color: "#f97316",
+      bg: "rgba(249,115,22,0.12)",
+      border: "rgba(249,115,22,0.28)",
+    },
+    alert: {
       icon: <Zap size={16} />,
       color: "#ef4444",
       bg: "rgba(239,68,68,0.15)",
@@ -85,6 +211,7 @@ export default function Notifications() {
   const events = useQuery(api.users.getEvents);
   const devices = useQuery(api.devices.getDevices);
   const clearEvents = useMutation(api.users.clearEvents);
+  const markViewed = useMutation(api.users.markNotificationsViewed);
   const [scrolled, setScrolled] = useState(false);
   const [filter, setFilter] = useState("all");
 
@@ -92,8 +219,9 @@ export default function Notifications() {
     if (events && events.length > 0) {
       localStorage.setItem("lastViewedNotifications", Date.now().toString());
       window.dispatchEvent(new Event("notifications_viewed"));
+      markViewed({}).catch(() => {});
     }
-  }, [events]);
+  }, [events, markViewed]);
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 24);
@@ -101,21 +229,38 @@ export default function Notifications() {
     return () => window.removeEventListener("scroll", h);
   }, []);
 
-  const deviceMap = Object.fromEntries(
-    (devices ?? []).map((d) => [d._id, d.name]),
-  );
+  const deviceMap = Object.fromEntries((devices ?? []).map((d) => [d._id, d.name]));
 
   const filtered = (events ?? []).filter((e: any) => {
     if (filter === "all") return true;
-    if (filter === "pump_control") return e.type === "pump_control";
-    if (filter === "device_added") return e.type === "device_added";
 
     if (filter === "alert") {
       return (
         e.type === "alert" ||
         e.type === "low_moisture" ||
+        e.type === "tank_empty_suspected" ||
+        e.type === "critical_escalation" ||
+        e.type === "fertilization_safety_stop" ||
         e.type.includes("error")
       );
+    }
+
+    if (filter === "operations") {
+      return [
+        "pump_control",
+        "valve_control",
+        "irrigation_started",
+        "irrigation_stopped",
+        "zone_status",
+      ].includes(e.type);
+    }
+
+    if (filter === "plans") {
+      return [
+        "weekly_agronomy_plan",
+        "fertilizer_plan",
+        "fertilization_started",
+      ].includes(e.type);
     }
 
     return e.type === filter;
@@ -141,7 +286,6 @@ export default function Notifications() {
         fontFamily: "var(--font-body)",
       }}
     >
-      {/* Background Decor */}
       <div
         style={{
           position: "fixed",
@@ -150,10 +294,7 @@ export default function Notifications() {
           pointerEvents: "none",
         }}
       >
-        <div
-          className="grid-pattern"
-          style={{ position: "absolute", inset: 0, opacity: 0.3 }}
-        />
+        <div className="grid-pattern" style={{ position: "absolute", inset: 0, opacity: 0.3 }} />
         {PARTICLES.map((p, i) => (
           <motion.div
             key={i}
@@ -187,7 +328,7 @@ export default function Notifications() {
       >
         <div
           style={{
-            maxWidth: 800,
+            maxWidth: 900,
             margin: "0 auto",
             display: "flex",
             alignItems: "center",
@@ -222,8 +363,7 @@ export default function Notifications() {
                 color: "var(--text-primary)",
               }}
             >
-              {" "}
-              <Bell size={18} color="var(--brand-500)" /> Notifications{" "}
+              <Bell size={18} color="var(--brand-500)" /> Notifications
             </h1>
           </div>
           <button
@@ -248,14 +388,13 @@ export default function Notifications() {
 
       <main
         style={{
-          maxWidth: 700,
+          maxWidth: 900,
           margin: "0 auto",
           padding: "30px 24px",
           position: "relative",
           zIndex: 1,
         }}
       >
-        {/* Filters */}
         <div
           style={{
             display: "flex",
@@ -266,13 +405,10 @@ export default function Notifications() {
           }}
         >
           {[
-            { id: "all", label: "All Activity" },
+            { id: "all", label: "All" },
             { id: "alert", label: "Alerts", icon: <AlertTriangle size={14} /> },
-            {
-              id: "pump_control",
-              label: "Pump Logs",
-              icon: <Power size={14} />,
-            },
+            { id: "operations", label: "Operations", icon: <Power size={14} /> },
+            { id: "plans", label: "Plans", icon: <Sprout size={14} /> },
           ].map((f) => (
             <button
               key={f.id}
@@ -286,8 +422,7 @@ export default function Notifications() {
                     ? `1px solid var(--brand-500)`
                     : `1px solid var(--border-card)`,
                 background: filter === f.id ? "var(--glass-bg)" : "transparent",
-                color:
-                  filter === f.id ? "var(--brand-500)" : "var(--text-faint)",
+                color: filter === f.id ? "var(--brand-500)" : "var(--text-faint)",
                 cursor: "pointer",
                 fontSize: 13,
                 fontWeight: 600,
@@ -303,13 +438,7 @@ export default function Notifications() {
         </div>
 
         {events === undefined ? (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              padding: "60px",
-            }}
-          >
+          <div style={{ display: "flex", justifyContent: "center", padding: "60px" }}>
             <div
               style={{
                 width: 30,
@@ -335,15 +464,9 @@ export default function Notifications() {
                 margin: "0 auto 20px",
               }}
             >
-              <CheckCircle2
-                size={40}
-                color="var(--brand-500)"
-                style={{ opacity: 0.3 }}
-              />
+              <CheckCircle2 size={40} color="var(--brand-500)" style={{ opacity: 0.3 }} />
             </div>
-            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
-              All caught up!
-            </h2>
+            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>All caught up!</h2>
             <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>
               No new notifications in this category.
             </p>
@@ -364,20 +487,17 @@ export default function Notifications() {
                   gap: 10,
                 }}
               >
-                {date}{" "}
-                <div
-                  style={{
-                    flex: 1,
-                    height: 1,
-                    background: "var(--border-base)",
-                  }}
-                />
+                {date}
+                <div style={{ flex: 1, height: 1, background: "var(--border-base)" }} />
               </h3>
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: 12 }}
-              >
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {evs.map((e: any) => {
                   const s = getEventStyle(e.type);
+                  const dataEntries = Object.entries(e.data ?? {})
+                    .filter(([, v]) => v !== undefined && v !== null)
+                    .slice(0, 8);
+
                   return (
                     <motion.div
                       initial={{ opacity: 0, x: -10 }}
@@ -407,6 +527,7 @@ export default function Notifications() {
                       >
                         {s.icon}
                       </div>
+
                       <div style={{ flex: 1 }}>
                         <p
                           style={{
@@ -418,13 +539,8 @@ export default function Notifications() {
                         >
                           {e.message}
                         </p>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                          }}
-                        >
+
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           {e.deviceId && (
                             <span
                               style={{
@@ -436,18 +552,41 @@ export default function Notifications() {
                                 fontWeight: 700,
                               }}
                             >
-                              📍 {deviceMap[e.deviceId]}
+                              Zone: {deviceMap[e.deviceId]}
                             </span>
                           )}
-                          <span
-                            style={{
-                              fontSize: 11,
-                              color: "var(--text-faint)",
-                            }}
-                          >
+                          <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
                             {timeAgo(e.timestamp)}
                           </span>
                         </div>
+
+                        {dataEntries.length > 0 && (
+                          <div
+                            style={{
+                              marginTop: 10,
+                              display: "grid",
+                              gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+                              gap: 6,
+                            }}
+                          >
+                            {dataEntries.map(([k, v]) => (
+                              <div
+                                key={k}
+                                style={{
+                                  padding: "6px 8px",
+                                  borderRadius: 8,
+                                  background: "var(--glass-bg)",
+                                  border: "1px solid var(--border-card)",
+                                  fontSize: 11,
+                                  color: "var(--text-faint)",
+                                }}
+                              >
+                                <strong style={{ color: "var(--text-muted)" }}>{formatDataKey(k)}:</strong>{" "}
+                                {formatDataValue(k, v)}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   );

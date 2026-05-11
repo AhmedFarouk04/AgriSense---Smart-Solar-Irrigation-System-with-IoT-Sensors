@@ -1,12 +1,10 @@
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap");
+﻿@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* =========================================
-   🌙 DARK THEME (Default) - IMPROVED
-========================================= */
+/* Dark theme (default) */
 :root {
   --bg-page: #070d09;
   --bg-nav: rgba(7, 13, 9, 0.85);
@@ -67,12 +65,10 @@
   --grad-brand: linear-gradient(135deg, #16a34a 0%, #0ea5e9 100%);
   --badge-bg: rgba(255, 255, 255, 0.05);
 
-  /* ===== STEP BAR COLORS ===== */
   --step-inactive-text: rgba(255, 255, 255, 0.25);
   --step-completed-text: rgba(255, 255, 255, 0.6);
   --step-inactive-bg: rgba(255, 255, 255, 0.06);
 
-  /* ===== STATUS & INFO COLORS ===== */
   --info-bg: rgba(56, 189, 248, 0.06);
   --info-border: rgba(56, 189, 248, 0.15);
   --info-text: rgba(147, 210, 255, 0.8);
@@ -93,15 +89,12 @@
   --warning-text: #fbbf24;
   --warning-color: #fbbf24;
 
-  /* ===== SHADOWS ===== */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.2);
 }
 
-/* =========================================
-   🌿 FOREST LIGHT THEME - IMPROVED
-========================================= */
+/* Forest light theme */
 .theme-forest {
   --bg-page: #fdfffe;
   --bg-soft: #f8fbf9;
@@ -135,12 +128,10 @@
   --grad-brand: linear-gradient(135deg, #16a34a 0%, #0ea5e9 100%);
   --badge-bg: rgba(22, 163, 74, 0.12);
 
-  /* ===== STEP BAR COLORS - LIGHT ===== */
   --step-inactive-text: #9bb5a3;
   --step-completed-text: #2a5530;
   --step-inactive-bg: rgba(22, 163, 74, 0.1);
 
-  /* ===== STATUS & INFO COLORS - Light Theme ===== */
   --info-bg: rgba(56, 189, 248, 0.1);
   --info-border: rgba(56, 189, 248, 0.25);
   --info-text: #0284c7;
@@ -221,7 +212,6 @@ body {
   animation-delay: 4s;
 }
 
-/* Responsive Grid Utilities */
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -246,7 +236,6 @@ body {
   display: none !important;
 }
 
-/* Mobile Screens (Phones) */
 @media (max-width: 768px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
@@ -289,3 +278,4 @@ body {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+

@@ -1,21 +1,19 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import { Menu, X, Sun, Moon } from "lucide-react"; // ✅ تم إضافة Sun و Moon
+import { Menu, X, Sun, Moon } from "lucide-react"; 
 import { AgriSenseLogo } from "./Logo";
-import { useTheme } from "../../ThemeContext"; // ✅ استدعاء الـ ThemeContext
+import { useTheme } from "../../ThemeContext";
 
 interface NavbarProps {
   scrolled: boolean;
-  isDark: boolean; // سيبناها عشان لو بتتبعت من بره متعملش Error
+  isDark: boolean; 
 }
 
 export function Navbar({ scrolled, isDark }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // ✅ جلب حالة الثيم ودالة التغيير
   const { theme, setTheme } = useTheme();
 
-  // ✅ دالة التبديل بضغطة زر
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "forest" : "dark");
   };
@@ -123,7 +121,7 @@ export function Navbar({ scrolled, isDark }: NavbarProps) {
 
         {/* Auth + Burger + Theme Toggle */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {/* ✅ زرار تغيير الثيم الجديد */}
+          {}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

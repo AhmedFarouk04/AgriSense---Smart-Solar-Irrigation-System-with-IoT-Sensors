@@ -96,7 +96,6 @@ export default function Login() {
     }
   };
 
-  // Simplified borderColor — no more isDark dependency
   const borderColor = (field: "email" | "password", focused = false) => {
     if (errors[field]) return "var(--error-color)";
     return focused ? "var(--brand-500)" : "var(--border-card)";
@@ -104,7 +103,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex">
-      {/* ===== LEFT PANEL (static dark green — intentionally not theme-aware) ===== */}
+      {}
       <div
         className="hidden lg:flex lg:w-[46%] flex-col justify-between p-14 relative overflow-hidden"
         style={{
@@ -244,7 +243,7 @@ export default function Login() {
         </motion.div>
       </div>
 
-      {/* ===== RIGHT PANEL ===== */}
+      {/* RIGHT PANEL  */}
       <div
         className="flex-1 flex items-center justify-center p-6 lg:p-14 relative overflow-hidden"
         style={{

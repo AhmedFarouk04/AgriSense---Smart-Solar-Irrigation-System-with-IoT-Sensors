@@ -7,16 +7,20 @@ import {
   ArrowLeft,
   Settings as SettingsIcon,
   Bell,
+  Mail,
+  Phone,
+  MessageCircle,
+  Webhook,
   Moon,
   Globe,
   Shield,
   LogOut,
   ChevronRight,
-  Sun, // ✅ ضفنا أيقونة الشمس
+  Sun, 
 } from "lucide-react";
 import { AgriSenseLogo } from "../components/Logo";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useTheme } from "./ThemeContext"; // ✅ استدعاء الـ Hook
+import { useTheme } from "./ThemeContext"; 
 
 const nav = (p: string) => {
   window.history.pushState({}, "", p);
@@ -172,16 +176,27 @@ export default function Settings() {
   const userSettings = useQuery(api.users.getSettings);
   const updateSettings = useMutation(api.users.updateSettings);
 
-  // ✅ استدعاء حالة الثيم
   const { theme, setTheme } = useTheme();
 
   const [scrolled, setScrolled] = useState(false);
   const [notifications, setNotifications] = useState(true);
+  const [externalAlertsEnabled, setExternalAlertsEnabled] = useState(true);
+  const [escalationDelayMinutes, setEscalationDelayMinutes] = useState(20);
+  const [externalEmail, setExternalEmail] = useState("");
+  const [externalPhone, setExternalPhone] = useState("");
+  const [externalWhatsapp, setExternalWhatsapp] = useState("");
+  const [pushWebhookUrl, setPushWebhookUrl] = useState("");
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     if (userSettings) {
       setNotifications(userSettings.notificationsEnabled ?? true);
+      setExternalAlertsEnabled(userSettings.externalAlertsEnabled ?? true);
+      setEscalationDelayMinutes(userSettings.escalationDelayMinutes ?? 20);
+      setExternalEmail(userSettings.externalAlertEmail ?? "");
+      setExternalPhone(userSettings.externalAlertPhone ?? "");
+      setExternalWhatsapp(userSettings.externalAlertWhatsapp ?? "");
+      setPushWebhookUrl(userSettings.pushWebhookUrl ?? "");
     }
   }, [userSettings]);
 
@@ -211,11 +226,19 @@ export default function Settings() {
     }
   };
 
+  const saveExternalSettings = async (patch: Record<string, any>) => {
+    try {
+      await updateSettings(patch);
+      toast.success("Alert settings updated");
+    } catch {
+      toast.error("Failed to update alert settings");
+    }
+  };
+
   return (
     <div
       style={{
         minHeight: "100vh",
-        // ✅ تم مسح الخلفية الثابتة (بتتجاب أوتوماتيك من الـ body في CSS)
       }}
     >
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -365,7 +388,7 @@ export default function Settings() {
             <SettingRow
               icon={<Bell size={16} />}
               title="Push Notifications"
-              subtitle="Alerts for pump events and sensor warnings"
+              subtitle="Alerts for valve events and sensor warnings"
             >
               <Toggle
                 value={notifications}
@@ -380,6 +403,152 @@ export default function Settings() {
               <Toggle
                 value={notifications}
                 onChange={handleToggleNotifications}
+              />
+            </SettingRow>
+            <SettingRow
+              icon={<Bell size={16} />}
+              title="External Critical Alerts"
+              subtitle="Send critical alerts through email/SMS/WhatsApp/push webhook"
+            >
+              <Toggle
+                value={externalAlertsEnabled}
+                onChange={(v) => {
+                  setExternalAlertsEnabled(v);
+                  saveExternalSettings({ externalAlertsEnabled: v });
+                }}
+              />
+            </SettingRow>
+            <SettingRow
+              icon={<Shield size={16} />}
+              title="Escalation Delay"
+              subtitle="If not viewed in this time, warning escalates to critical"
+            >
+              <select
+                value={escalationDelayMinutes}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setEscalationDelayMinutes(v);
+                  saveExternalSettings({ escalationDelayMinutes: v });
+                }}
+                style={{
+                  background: "var(--glass-bg)",
+                  border: "1px solid var(--border-card)",
+                  borderRadius: 10,
+                  color: "var(--text-primary)",
+                  padding: "6px 10px",
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+              >
+                {[10, 15, 20, 30, 45, 60].map((m) => (
+                  <option key={m} value={m}>
+                    {m} min
+                  </option>
+                ))}
+              </select>
+            </SettingRow>
+            <SettingRow
+              icon={<Mail size={16} />}
+              title="Alert Email"
+              subtitle="Optional override for critical alert emails"
+            >
+              <input
+                value={externalEmail}
+                onChange={(e) => setExternalEmail(e.target.value)}
+                onBlur={() =>
+                  saveExternalSettings({
+                    externalAlertEmail: externalEmail.trim() || undefined,
+                  })
+                }
+                placeholder="name@example.com"
+                style={{
+                  width: 210,
+                  maxWidth: "100%",
+                  background: "var(--glass-bg)",
+                  border: "1px solid var(--border-card)",
+                  borderRadius: 10,
+                  color: "var(--text-primary)",
+                  padding: "7px 10px",
+                  fontSize: 12,
+                }}
+              />
+            </SettingRow>
+            <SettingRow
+              icon={<Phone size={16} />}
+              title="Alert SMS Phone"
+              subtitle="E.164 format preferred (e.g. +2010...)"
+            >
+              <input
+                value={externalPhone}
+                onChange={(e) => setExternalPhone(e.target.value)}
+                onBlur={() =>
+                  saveExternalSettings({
+                    externalAlertPhone: externalPhone.trim() || undefined,
+                  })
+                }
+                placeholder="+2010..."
+                style={{
+                  width: 190,
+                  maxWidth: "100%",
+                  background: "var(--glass-bg)",
+                  border: "1px solid var(--border-card)",
+                  borderRadius: 10,
+                  color: "var(--text-primary)",
+                  padding: "7px 10px",
+                  fontSize: 12,
+                }}
+              />
+            </SettingRow>
+            <SettingRow
+              icon={<MessageCircle size={16} />}
+              title="Alert WhatsApp Phone"
+              subtitle="Optional number for WhatsApp alerts"
+            >
+              <input
+                value={externalWhatsapp}
+                onChange={(e) => setExternalWhatsapp(e.target.value)}
+                onBlur={() =>
+                  saveExternalSettings({
+                    externalAlertWhatsapp: externalWhatsapp.trim() || undefined,
+                  })
+                }
+                placeholder="+2010..."
+                style={{
+                  width: 190,
+                  maxWidth: "100%",
+                  background: "var(--glass-bg)",
+                  border: "1px solid var(--border-card)",
+                  borderRadius: 10,
+                  color: "var(--text-primary)",
+                  padding: "7px 10px",
+                  fontSize: 12,
+                }}
+              />
+            </SettingRow>
+            <SettingRow
+              icon={<Webhook size={16} />}
+              title="Push Webhook URL"
+              subtitle="Optional endpoint for external push integrations"
+            >
+              <input
+                value={pushWebhookUrl}
+                onChange={(e) => setPushWebhookUrl(e.target.value)}
+                onBlur={() =>
+                  saveExternalSettings({
+                    pushWebhookUrl: pushWebhookUrl.trim() || undefined,
+                  })
+                }
+                placeholder="https://..."
+                style={{
+                  width: 220,
+                  maxWidth: "100%",
+                  background: "var(--glass-bg)",
+                  border: "1px solid var(--border-card)",
+                  borderRadius: 10,
+                  color: "var(--text-primary)",
+                  padding: "7px 10px",
+                  fontSize: 12,
+                }}
               />
             </SettingRow>
           </Section>
@@ -401,7 +570,7 @@ export default function Settings() {
                 {["dark", "forest"].map((t) => (
                   <button
                     key={t}
-                    onClick={() => setTheme(t as "dark" | "forest")} // ✅ تغيير الثيم من هنا
+                    onClick={() => setTheme(t as "dark" | "forest")} 
                     style={{
                       padding: "6px 14px",
                       borderRadius: 99,

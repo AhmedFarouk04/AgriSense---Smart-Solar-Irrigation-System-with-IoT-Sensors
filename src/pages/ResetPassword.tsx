@@ -280,7 +280,7 @@ export default function ResetPassword() {
 
   return (
     <div className="min-h-screen flex">
-      {/* ── LEFT PANEL — static dark branding ── */}
+      {/*  LEFT PANEL — static dark branding  */}
       <div
         className="hidden lg:flex lg:w-[46%] flex-col justify-between p-14 relative overflow-hidden"
         style={{
@@ -405,7 +405,7 @@ export default function ResetPassword() {
         <div className="relative z-10" />
       </div>
 
-      {/* ── RIGHT PANEL — theme-aware via CSS variables ── */}
+      {}
       <div
         className="flex-1 flex items-center justify-center p-6 lg:p-14 relative overflow-hidden"
         style={{

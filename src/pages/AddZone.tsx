@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useMutation, useAction, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,6 +13,8 @@ import {
   Link,
   Lock,
   Tag,
+  Ruler,
+  CalendarDays,
   Loader2,
 } from "lucide-react";
 import { AgriSenseLogo } from "../components/Logo";
@@ -240,6 +242,8 @@ export default function AddZone() {
   const [firebaseUrl, setFirebaseUrl] = useState("");
   const [firebaseSecret, setFirebaseSecret] = useState("");
   const [plantId, setPlantId] = useState<string>("");
+  const [initialCropWeek, setInitialCropWeek] = useState("1");
+  const [areaM2, setAreaM2] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<"idle" | "ok" | "warn" | "fail">(
@@ -253,6 +257,27 @@ export default function AddZone() {
     if (!trimmed) e.name = "Zone name is required";
     else if (trimmed.length < 2) e.name = "Minimum 2 characters";
     else if (trimmed.length > 50) e.name = "Maximum 50 characters";
+
+    const area = areaM2.trim();
+    if (area) {
+      const areaValue = Number(area);
+      if (!Number.isFinite(areaValue) || areaValue <= 0) {
+        e.areaM2 = "Area must be a positive number";
+      }
+    }
+
+    if (plantId) {
+      const weekValue = Number(initialCropWeek);
+      if (!initialCropWeek.trim()) e.initialCropWeek = "Current crop week is required";
+      else if (
+        !Number.isFinite(weekValue) ||
+        weekValue < 1 ||
+        weekValue > 104
+      ) {
+        e.initialCropWeek = "Week must be between 1 and 104";
+      }
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -309,8 +334,10 @@ export default function AddZone() {
         firebaseUrl: firebaseUrl.trim().replace(/\/$/, ""),
         firebaseSecret: firebaseSecret.trim(),
         plantId: plantId ? (plantId as any) : undefined,
+        initialCropWeek: plantId ? Number(initialCropWeek) : undefined,
+        areaM2: areaM2.trim() ? Number(areaM2) : undefined,
       });
-      toast.success(`Zone "${name.trim()}" added successfully! 🌱`);
+      toast.success(`Zone "${name.trim()}" added successfully! ðŸŒ±`);
       nav("/dashboard");
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to add zone");
@@ -330,7 +357,7 @@ export default function AddZone() {
         flexDirection: "column",
       }}
     >
-      {/* ── Background decorations */}
+      {/* â”€â”€ Background decorations */}
       <div
         style={{
           position: "fixed",
@@ -380,7 +407,7 @@ export default function AddZone() {
         ))}
       </div>
 
-      {/* ── Header */}
+      {/* â”€â”€ Header */}
       <header
         style={{
           position: "sticky",
@@ -464,7 +491,7 @@ export default function AddZone() {
         </motion.a>
       </header>
 
-      {/* ── Main */}
+      {}
       <main
         style={{
           flex: 1,
@@ -561,7 +588,18 @@ export default function AddZone() {
                       />
                       <select
                         value={plantId}
-                        onChange={(e) => setPlantId(e.target.value)}
+                        onChange={(e) => {
+                          const nextPlant = e.target.value;
+                          setPlantId(nextPlant);
+                          if (!nextPlant) setInitialCropWeek("1");
+                          if (errors.initialCropWeek || errors.areaM2) {
+                            setErrors((prev) => ({
+                              ...prev,
+                              initialCropWeek: "",
+                              areaM2: "",
+                            }));
+                          }
+                        }}
                         style={{
                           ...inputStyle,
                           appearance: "none",
@@ -589,9 +627,48 @@ export default function AddZone() {
                         marginTop: 5,
                       }}
                     >
-                      Used for smart irrigation recommendations
+                      Used for smart irrigation and fertilization recommendations
                     </p>
                   </div>
+
+                  <InputField
+                    label="Zone Area (mÂ²) (optional)"
+                    icon={<Ruler size={16} />}
+                    value={areaM2}
+                    onChange={(v) => {
+                      setAreaM2(v);
+                      if (errors.areaM2) setErrors((e) => ({ ...e, areaM2: "" }));
+                    }}
+                    placeholder="e.g. 420"
+                    type="number"
+                    hint="Used to calculate fertilizer dose for this specific zone"
+                    error={errors.areaM2}
+                  />
+
+                  <InputField
+                    label="Current Crop Week *"
+                    icon={<CalendarDays size={16} />}
+                    value={initialCropWeek}
+                    onChange={(v) => {
+                      setInitialCropWeek(v);
+                      if (errors.initialCropWeek)
+                        setErrors((e) => ({ ...e, initialCropWeek: "" }));
+                    }}
+                    placeholder="1"
+                    type="number"
+                    hint={
+                      plantId
+                        ? "Set the real week if the crop was planted earlier"
+                        : "Select crop type first"
+                    }
+                    error={errors.initialCropWeek}
+                    disabled={!plantId}
+                  />
+                  {!plantId && (
+                    <p style={{ fontSize: 12, color: "var(--text-faint)", marginTop: -14 }}>
+                      Crop week becomes required only after selecting a crop.
+                    </p>
+                  )}
                 </motion.div>
               )}
 
@@ -633,8 +710,8 @@ export default function AddZone() {
                       lineHeight: 1.6,
                     }}
                   >
-                    💡 Find these in your Firebase console under{" "}
-                    <strong>Realtime Database → Rules → Data</strong>
+                    ðŸ’¡ Find these in your Firebase console under{" "}
+                    <strong>Realtime Database â†’ Rules â†’ Data</strong>
                   </div>
 
                   <InputField
@@ -663,7 +740,7 @@ export default function AddZone() {
                     }}
                     placeholder="Your Firebase auth secret token"
                     type="password"
-                    hint="Found in Firebase → Project Settings → Service Accounts → Database Secrets"
+                    hint="Found in Firebase â†’ Project Settings â†’ Service Accounts â†’ Database Secrets"
                     error={errors.firebaseSecret}
                   />
 
@@ -723,7 +800,7 @@ export default function AddZone() {
                     ) : testResult === "ok" ? (
                       <>
                         <Wifi size={15} color="var(--success-color)" />
-                        <span>Connected ✓</span>
+                        <span>Connected âœ“</span>
                       </>
                     ) : testResult === "warn" ? (
                       <>
@@ -733,7 +810,7 @@ export default function AddZone() {
                     ) : testResult === "fail" ? (
                       <>
                         <WifiOff size={15} />
-                        <span>Connection failed — retry</span>
+                        <span>Connection failed â€” retry</span>
                       </>
                     ) : (
                       <>
@@ -785,13 +862,25 @@ export default function AddZone() {
                           firebaseUrl.trim().replace(/\/$/, "").slice(0, 48) +
                           "...",
                       },
-                      { label: "Secret", value: "••••••••••••" },
+                      { label: "Secret", value: "************" },
                       {
                         label: "Crop Type",
                         value: plantId
                           ? ((plants ?? []).find((p: any) => p._id === plantId)
-                              ?.name ?? "—")
+                              ?.name ?? "-")
                           : "None selected",
+                      },
+                      {
+                        label: "Current Crop Week",
+                        value: plantId
+                          ? `Week ${Math.max(1, Number(initialCropWeek) || 1)}`
+                          : "N/A",
+                      },
+                      {
+                        label: "Zone Area",
+                        value: areaM2.trim()
+                          ? `${areaM2.trim()} m²`
+                          : "Not provided",
                       },
                     ].map((row, i) => (
                       <div
@@ -945,7 +1034,6 @@ export default function AddZone() {
   );
 }
 
-// Add this at the very end of the file, outside the component
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "13px 14px 13px 42px",
@@ -958,3 +1046,6 @@ const inputStyle: React.CSSProperties = {
   outline: "none",
   transition: "all 0.2s",
 };
+
+
+

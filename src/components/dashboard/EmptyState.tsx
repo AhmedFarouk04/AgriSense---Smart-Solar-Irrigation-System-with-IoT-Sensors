@@ -113,8 +113,8 @@ export function EmptyState() {
           },
           {
             icon: "⚡",
-            title: "Pump Control",
-            desc: "Turn irrigation on/off from anywhere",
+            title: "Valve Control",
+            desc: "Open/close irrigation valve remotely",
           },
           {
             icon: "📊",
@@ -156,3 +156,4 @@ export function EmptyState() {
     </motion.div>
   );
 }
+

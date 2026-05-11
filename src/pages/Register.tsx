@@ -343,7 +343,6 @@ export default function Register() {
     }
   };
 
-  // Simplified inputBase — no more tk object
   const inputBase = (field: keyof typeof errors): React.CSSProperties => ({
     width: "100%",
     padding: "14px 16px 14px 44px",
@@ -359,7 +358,7 @@ export default function Register() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex" }}>
-      {/* ===== LEFT PANEL (static dark green — intentionally not theme-aware) ===== */}
+      {/* LEFT PANEL (static dark green — intentionally not theme-aware)  */}
       <div
         className="hidden lg:flex lg:w-[46%] flex-col justify-between p-14 relative overflow-hidden"
         style={{
@@ -576,7 +575,7 @@ export default function Register() {
         </motion.div>
       </div>
 
-      {/* ===== RIGHT PANEL ===== */}
+      {/* RIGHT PANEL  */}
       <div
         className="flex-1 flex items-center justify-center p-6 pt-20 lg:pt-14 lg:p-14 relative overflow-hidden"
         style={{

@@ -5,8 +5,8 @@ export const CustomTooltip = ({ active, payload, label }: any) => {
   return (
     <div
       style={{
-        background: "var(--bg-card)", // ✅
-        border: "1px solid var(--border-card)", // ✅
+        background: "var(--bg-card)", 
+        border: "1px solid var(--border-card)", 
         borderRadius: 10,
         padding: "8px 14px",
         fontSize: 12,
@@ -15,7 +15,7 @@ export const CustomTooltip = ({ active, payload, label }: any) => {
     >
       <div
         style={{
-          color: "var(--text-faint)", // ✅
+          color: "var(--text-faint)", 
           marginBottom: 4,
         }}
       >

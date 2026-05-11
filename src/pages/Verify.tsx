@@ -108,7 +108,6 @@ export default function Verify() {
   const fmt = (s: number) =>
     `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
-  // ── Digit box styles — computed per-cell, pure CSS variables ──
   const digitStyle = (digit: string): React.CSSProperties => ({
     width: 52,
     height: 58,
@@ -136,7 +135,6 @@ export default function Verify() {
         : "var(--shadow-sm)",
   });
 
-  // ── Done screen ──
   if (done)
     return (
       <div
@@ -193,7 +191,7 @@ export default function Verify() {
 
   return (
     <div className="min-h-screen flex">
-      {/* ── LEFT PANEL — static dark, intentionally not theme-aware ── */}
+      {/*  LEFT PANEL — static dark, intentionally not theme-aware  */}
       <div
         className="hidden lg:flex lg:w-[46%] flex-col justify-center p-14 relative overflow-hidden"
         style={{
@@ -331,7 +329,7 @@ export default function Verify() {
         </motion.div>
       </div>
 
-      {/* ── RIGHT PANEL — theme-aware via CSS variables ── */}
+      {}
       <div
         className="flex-1 flex items-center justify-center p-6 lg:p-14 relative"
         style={{

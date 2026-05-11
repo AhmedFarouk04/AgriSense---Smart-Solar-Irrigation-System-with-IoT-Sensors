@@ -1,16 +1,9 @@
 @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap");
 
-/* ╔═══════════════════════════════════════════════════════════════╗
-   ║                     ║
-   ║                                                             
-   ║  "theme-dark"                    
-   ║  "theme-ocean"                        
-   ║  "theme-ivory"                        
-   ║  "theme-earth"                             
-   ╚═══════════════════════════════════════════════════════════════╝ */
+
 
 :root,
-.theme-forest {
+.theme-dark {
   --bg-page: #070d09;
   --bg-soft: #0d1a10;
   --bg-card: #0f1f12;
@@ -98,9 +91,7 @@
   --particle-3: #fbbf24;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   🌿 FOREST LIGHT — أخضر فاتح كريمي
-══════════════════════════════════════════════════════════════════ */
+
 .theme-forest {
   --bg-page: #fdfffe;
   --bg-soft: #f6fbf7;
@@ -184,9 +175,7 @@
   --particle-3: #f59e0b;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   🌊 OCEAN BREEZE — أزرق سماوي ناعم
-══════════════════════════════════════════════════════════════════ */
+
 .theme-ocean {
   --bg-page: #f7fbff;
   --bg-soft: #edf6fd;
@@ -270,9 +259,7 @@
   --particle-3: #f59e0b;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   🌸 IVORY & SAGE — أبيض عاجي زيتوني
-══════════════════════════════════════════════════════════════════ */
+
 .theme-ivory {
   --bg-page: #fafaf7;
   --bg-soft: #f2f4ee;
@@ -362,9 +349,7 @@
   --particle-3: #d4a843;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   ☀️ WARM EARTH — بيج ذهبي دافي
-══════════════════════════════════════════════════════════════════ */
+/* Warm earth theme */
 .theme-earth {
   --bg-page: #fdf8f0;
   --bg-soft: #f8f0e0;
@@ -448,9 +433,7 @@
   --particle-3: #0ea5e9;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   SHARED TOKENS — ثابتة في كل الـ themes
-══════════════════════════════════════════════════════════════════ */
+
 :root {
   --font-display: "Playfair Display", Georgia, serif;
   --font-body: "DM Sans", system-ui, sans-serif;
@@ -472,9 +455,7 @@
   --z-toast: 200;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   RESET & BASE
-══════════════════════════════════════════════════════════════════ */
+
 *,
 *::before,
 *::after {
@@ -512,9 +493,7 @@ svg {
   max-width: 100%;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   TYPOGRAPHY
-══════════════════════════════════════════════════════════════════ */
+
 .fd {
   font-family: var(--font-display);
   letter-spacing: -0.025em;
@@ -532,9 +511,7 @@ svg {
   background-clip: text;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   BADGE
-══════════════════════════════════════════════════════════════════ */
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -562,9 +539,7 @@ svg {
   animation: pulse-dot 2.5s ease-in-out infinite;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   ANIMATIONS
-══════════════════════════════════════════════════════════════════ */
+
 @keyframes pulse-dot {
   0%,
   100% {
@@ -650,9 +625,7 @@ svg {
   animation: spin-slow 40s linear infinite;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   GLASS CARD
-══════════════════════════════════════════════════════════════════ */
+
 .glass-card {
   background: var(--glass-bg);
   backdrop-filter: blur(20px);
@@ -682,9 +655,7 @@ svg {
   box-shadow: var(--shadow-lg), var(--glow);
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   SHINE
-══════════════════════════════════════════════════════════════════ */
+
 .shine {
   position: relative;
   overflow: hidden;
@@ -707,9 +678,7 @@ svg {
   transition: transform 0.7s var(--ease-out-expo);
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   NAVBAR LINKS
-══════════════════════════════════════════════════════════════════ */
+
 .nav-a {
   position: relative;
   color: var(--nav-link);
@@ -737,9 +706,7 @@ svg {
   width: 100%;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   SCROLLBAR & SELECTION
-══════════════════════════════════════════════════════════════════ */
+
 ::-webkit-scrollbar {
   width: 5px;
 }
@@ -756,9 +723,7 @@ svg {
   color: var(--selection-color);
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   STAT CARD
-══════════════════════════════════════════════════════════════════ */
+
 .stat-card {
   background: var(--stat-bg);
   border: 1px solid var(--stat-border);
@@ -787,9 +752,7 @@ svg {
   box-shadow: var(--shadow-md), var(--glow);
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   BUTTONS
-══════════════════════════════════════════════════════════════════ */
+
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -851,9 +814,7 @@ svg {
   box-shadow: var(--shadow-md);
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   SECTION LABEL
-══════════════════════════════════════════════════════════════════ */
+
 .section-label {
   display: inline-flex;
   align-items: center;
@@ -875,9 +836,7 @@ svg {
   border-radius: 2px;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   FEATURE CARD
-══════════════════════════════════════════════════════════════════ */
+
 .feat-card {
   background: var(--grad-card);
   border: 1px solid var(--border-card);
@@ -895,9 +854,7 @@ svg {
   box-shadow: var(--shadow-lg), var(--glow);
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   STEP NUMBER
-══════════════════════════════════════════════════════════════════ */
+
 .step-num {
   width: 52px;
   height: 52px;
@@ -916,9 +873,7 @@ svg {
   z-index: 1;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   DIVIDER & PATTERNS
-══════════════════════════════════════════════════════════════════ */
+
 .divider {
   height: 1px;
   background: linear-gradient(
@@ -943,9 +898,7 @@ svg {
   background-size: 28px 28px;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   TAGS, ICON WRAP, SHIMMER, FOCUS
-══════════════════════════════════════════════════════════════════ */
+
 .tag {
   display: inline-flex;
   align-items: center;
@@ -993,6 +946,7 @@ svg {
   border-radius: 4px;
 }
 
+
 @media (max-width: 768px) {
   .hide-mob {
     display: none !important;
@@ -1017,19 +971,17 @@ svg {
   }
 }
 
-/* Footer Grid Default (Desktop) */
+
 .footer-grid {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr 1fr;
   gap: 48px;
 }
 
-/* Hide Burger Menu on Desktop */
 .burger-btn {
   display: none !important;
 }
 
-/* Mobile & Tablet Styles */
 @media (max-width: 768px) {
   .hide-mob {
     display: none !important;

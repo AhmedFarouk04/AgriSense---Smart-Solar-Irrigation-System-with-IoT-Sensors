@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   BarChart2,
@@ -13,6 +14,8 @@ import {
   Calendar,
   Layers,
   Leaf,
+  Download,
+  FileText,
 } from "lucide-react";
 import {
   LineChart,
@@ -44,6 +47,36 @@ interface Reading {
   flowRate: number;
 }
 
+type NutrientTotals = {
+  nitrogen: number;
+  phosphorus: number;
+  potassium: number;
+  calcium: number;
+  magnesium: number;
+};
+
+function sumNutrientDoses(events: any[]): NutrientTotals {
+  return events.reduce(
+    (acc, event) => {
+      const dose = event?.data?.zoneDoseKg;
+      if (!dose) return acc;
+      acc.nitrogen += Number(dose.nitrogen ?? 0);
+      acc.phosphorus += Number(dose.phosphorus ?? 0);
+      acc.potassium += Number(dose.potassium ?? 0);
+      acc.calcium += Number(dose.calcium ?? 0);
+      acc.magnesium += Number(dose.magnesium ?? 0);
+      return acc;
+    },
+    {
+      nitrogen: 0,
+      phosphorus: 0,
+      potassium: 0,
+      calcium: 0,
+      magnesium: 0,
+    } as NutrientTotals,
+  );
+}
+
 const PARTICLES = [
   { x: 8, y: 22, size: 7, color: "var(--particle-1)", delay: 0 },
   { x: 85, y: 15, size: 5, color: "var(--particle-2)", delay: 0.8 },
@@ -62,7 +95,6 @@ function fmt(ts: number, range: Range) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-// ✅ CustomTooltip — كل الألوان بـ CSS variables
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
@@ -130,7 +162,7 @@ function StatCard({
     <motion.div
       whileHover={{ y: -4 }}
       style={{
-        background: "var(--bg-card)", // ✅
+        background: "var(--bg-card)", 
         border: "1px solid var(--border-card)",
         borderRadius: 16,
         padding: "18px",
@@ -186,6 +218,8 @@ export default function Reports() {
   const [range, setRange] = useState<Range>("24h");
   const [scrolled, setScrolled] = useState(false);
   const [deviceOpen, setDeviceOpen] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   useEffect(() => {
     if (devices?.length && !selectedDeviceId)
@@ -201,6 +235,18 @@ export default function Reports() {
   const readings = useQuery(
     range === "24h" ? api.readings.getReadings24h : api.readings.getReadings7d,
     selectedDeviceId ? { deviceId: selectedDeviceId as Id<"devices"> } : "skip",
+  );
+
+  const rangeStart = Date.now() - (range === "24h" ? 24 : 7 * 24) * 60 * 60 * 1000;
+  const reportEvents = useQuery(
+    api.events.getEventsByDeviceRange,
+    selectedDeviceId
+      ? {
+          deviceId: selectedDeviceId as Id<"devices">,
+          startTs: rangeStart,
+          endTs: Date.now(),
+        }
+      : "skip",
   );
 
   const chartData = (() => {
@@ -250,6 +296,140 @@ export default function Reports() {
     ) ?? 0;
 
   const selectedDevice = devices?.find((d) => d._id === selectedDeviceId);
+  const irrigationEvents = (reportEvents ?? []).filter(
+    (e: any) => e.type === "irrigation_started",
+  );
+  const alertEvents = (reportEvents ?? []).filter((e: any) =>
+    ["alert", "tank_empty_suspected", "critical_escalation", "fertilization_safety_stop"].includes(
+      e.type,
+    ),
+  );
+  const fertilizationStartEvents = (reportEvents ?? []).filter(
+    (e: any) => e.type === "fertilization_started",
+  );
+  const fertilizationEvents = (reportEvents ?? []).filter((e: any) =>
+    ["fertilization_started", "fertilization_completed"].includes(e.type),
+  );
+  const nutrientTotals = sumNutrientDoses(fertilizationStartEvents);
+
+  const exportExcel = async () => {
+    if (!selectedDevice || !readings?.length) {
+      toast.error("No report data available for export");
+      return;
+    }
+    setExportingExcel(true);
+    try {
+      const XLSX = await import("xlsx");
+      const header = [
+        "Timestamp",
+        "Moisture (%)",
+        "Temperature (C)",
+        "Flow (L/min)",
+      ];
+      const rows = (readings as Reading[]).map((r) => [
+        new Date(r.timestamp).toLocaleString(),
+        r.moisture,
+        r.temperature,
+        r.flowRate,
+      ]);
+      const summaryRows = [
+        ["Metric", "Value"],
+        ["Range", range],
+        ["Zone", selectedDevice.name],
+        ["Total Water (L)", Number(totalWater.toFixed(2))],
+        ["Irrigation Cycles", irrigationEvents.length],
+        ["Avg Moisture (%)", Number(avg(moistureVals).toFixed(2))],
+        ["Avg Temperature (C)", Number(avg(tempVals).toFixed(2))],
+        ["Avg Flow (L/min)", Number(avg(flowVals).toFixed(2))],
+        ["Alerts Count", alertEvents.length],
+        ["Fertilization Events", fertilizationEvents.length],
+        ["N Dose (kg/zone)", Number(nutrientTotals.nitrogen.toFixed(2))],
+        ["P Dose (kg/zone)", Number(nutrientTotals.phosphorus.toFixed(2))],
+        ["K Dose (kg/zone)", Number(nutrientTotals.potassium.toFixed(2))],
+        ["Ca Dose (kg/zone)", Number(nutrientTotals.calcium.toFixed(2))],
+        ["Mg Dose (kg/zone)", Number(nutrientTotals.magnesium.toFixed(2))],
+      ];
+
+      const eventsRows = [
+        ["Time", "Type", "Message"],
+        ...(reportEvents ?? []).map((e: any) => [
+          new Date(e.timestamp).toLocaleString(),
+          e.type,
+          e.message,
+        ]),
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([header, ...rows]), "Readings");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryRows), "Summary");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(eventsRows), "Events");
+      XLSX.writeFile(
+        wb,
+        `${selectedDevice.name.replace(/\s+/g, "_")}_${range}_report.xlsx`,
+      );
+      toast.success("Excel report exported");
+    } catch {
+      toast.error("Failed to export Excel report");
+    } finally {
+      setExportingExcel(false);
+    }
+  };
+
+  const exportPdf = async () => {
+    if (!selectedDevice || !readings?.length) {
+      toast.error("No report data available for export");
+      return;
+    }
+    setExportingPdf(true);
+    try {
+      const { jsPDF } = await import("jspdf");
+      const autoTable = (await import("jspdf-autotable")).default;
+      const doc = new jsPDF();
+      const title = `AgriSense ${range === "24h" ? "Daily" : "Weekly"} Report`;
+      doc.setFontSize(14);
+      doc.text(title, 14, 14);
+      doc.setFontSize(10);
+      doc.text(`Zone: ${selectedDevice.name}`, 14, 21);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 27);
+
+      autoTable(doc, {
+        startY: 34,
+        head: [["Metric", "Value"]],
+        body: [
+          ["Range", range],
+          ["Total Water (L)", totalWater.toFixed(1)],
+          ["Irrigation Cycles", String(irrigationEvents.length)],
+          ["Alerts", String(alertEvents.length)],
+          ["Fertilization Events", String(fertilizationEvents.length)],
+          ["N Dose (kg/zone)", nutrientTotals.nitrogen.toFixed(2)],
+          ["P Dose (kg/zone)", nutrientTotals.phosphorus.toFixed(2)],
+          ["K Dose (kg/zone)", nutrientTotals.potassium.toFixed(2)],
+          ["Ca Dose (kg/zone)", nutrientTotals.calcium.toFixed(2)],
+          ["Mg Dose (kg/zone)", nutrientTotals.magnesium.toFixed(2)],
+        ],
+        styles: { fontSize: 9 },
+      });
+
+      autoTable(doc, {
+        startY: (doc as any).lastAutoTable.finalY + 8,
+        head: [["Time", "Moisture %", "Temp C", "Flow L/min"]],
+        body: (readings as Reading[]).slice(-35).map((r) => [
+          new Date(r.timestamp).toLocaleString(),
+          r.moisture.toFixed(1),
+          r.temperature.toFixed(1),
+          r.flowRate.toFixed(2),
+        ]),
+        styles: { fontSize: 8 },
+      });
+
+      doc.save(`${selectedDevice.name.replace(/\s+/g, "_")}_${range}_report.pdf`);
+      toast.success("PDF report exported");
+    } catch {
+      toast.error("Failed to export PDF report");
+    } finally {
+      setExportingPdf(false);
+    }
+  };
 
   return (
     <div
@@ -289,7 +469,7 @@ export default function Reports() {
         ))}
       </div>
 
-      {/* ✅ Header — كل الألوان بـ CSS variables */}
+      {}
       <header
         style={{
           position: "sticky",
@@ -318,9 +498,9 @@ export default function Reports() {
                 width: 34,
                 height: 34,
                 borderRadius: 10,
-                background: "var(--glass-bg)", // ✅
-                border: "1px solid var(--border-card)", // ✅
-                color: "var(--text-primary)", // ✅
+                background: "var(--glass-bg)", 
+                border: "1px solid var(--border-card)", 
+                color: "var(--text-primary)", 
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
@@ -335,7 +515,7 @@ export default function Reports() {
                   fontSize: 16,
                   fontWeight: 800,
                   margin: 0,
-                  color: "var(--text-primary)", // ✅
+                  color: "var(--text-primary)", 
                 }}
               >
                 Analytics Reports
@@ -343,7 +523,7 @@ export default function Reports() {
               <p
                 style={{
                   fontSize: 10,
-                  color: "var(--text-faint)", // ✅
+                  color: "var(--text-faint)", 
                   textTransform: "uppercase",
                   letterSpacing: "0.1em",
                   margin: 0,
@@ -429,16 +609,16 @@ export default function Reports() {
               }}
             >
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                {/* ✅ Device Dropdown Button */}
+                {}
                 <div style={{ position: "relative" }}>
                   <button
                     onClick={() => setDeviceOpen(!deviceOpen)}
                     style={{
-                      background: "var(--glass-bg)", // ✅
-                      border: "1px solid var(--border-card)", // ✅
+                      background: "var(--glass-bg)", 
+                      border: "1px solid var(--border-card)", 
                       padding: "10px 16px",
                       borderRadius: 12,
-                      color: "var(--text-primary)", // ✅
+                      color: "var(--text-primary)", 
                       display: "flex",
                       alignItems: "center",
                       gap: 10,
@@ -468,8 +648,8 @@ export default function Reports() {
                             top: "100%",
                             left: 0,
                             marginTop: 8,
-                            background: "var(--bg-card)", // ✅
-                            border: "1px solid var(--border-card)", // ✅
+                            background: "var(--bg-card)", 
+                            border: "1px solid var(--border-card)", 
                             borderRadius: 12,
                             overflow: "hidden",
                             minWidth: 200,
@@ -492,7 +672,7 @@ export default function Reports() {
                                     ? "rgba(74,222,128,0.1)"
                                     : "transparent",
                                 border: "none",
-                                color: "var(--text-primary)", // ✅
+                                color: "var(--text-primary)", 
                                 textAlign: "left",
                                 cursor: "pointer",
                                 fontSize: 13,
@@ -507,14 +687,14 @@ export default function Reports() {
                   </AnimatePresence>
                 </div>
 
-                {/* ✅ Range Toggle (24H / 7 Days) */}
+                {}
                 <div
                   style={{
                     display: "flex",
-                    background: "var(--glass-bg)", // ✅
+                    background: "var(--glass-bg)", 
                     borderRadius: 12,
                     padding: 4,
-                    border: "1px solid var(--border-card)", // ✅
+                    border: "1px solid var(--border-card)", 
                   }}
                 >
                   {(["24h", "7d"] as Range[]).map((r) => (
@@ -529,8 +709,8 @@ export default function Reports() {
                         fontWeight: 700,
                         cursor: "pointer",
                         background:
-                          range === r ? "var(--brand-600)" : "transparent", // ✅
-                        color: range === r ? "white" : "var(--text-faint)", // ✅
+                          range === r ? "var(--brand-600)" : "transparent", 
+                        color: range === r ? "white" : "var(--text-faint)", 
                         transition: "0.2s",
                       }}
                     >
@@ -538,15 +718,59 @@ export default function Reports() {
                     </button>
                   ))}
                 </div>
+
+                <button
+                  onClick={exportExcel}
+                  disabled={!readings?.length || exportingExcel}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 12px",
+                    borderRadius: 10,
+                    border: "1px solid var(--border-card)",
+                    background: "var(--glass-bg)",
+                    color: "var(--text-primary)",
+                    cursor: readings?.length && !exportingExcel ? "pointer" : "not-allowed",
+                    opacity: readings?.length && !exportingExcel ? 1 : 0.5,
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  <Download size={14} />
+                  {exportingExcel ? "Exporting..." : "Excel"}
+                </button>
+
+                <button
+                  onClick={exportPdf}
+                  disabled={!readings?.length || exportingPdf}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 12px",
+                    borderRadius: 10,
+                    border: "1px solid var(--border-card)",
+                    background: "var(--glass-bg)",
+                    color: "var(--text-primary)",
+                    cursor: readings?.length && !exportingPdf ? "pointer" : "not-allowed",
+                    opacity: readings?.length && !exportingPdf ? 1 : 0.5,
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  <FileText size={14} />
+                  {exportingPdf ? "Exporting..." : "PDF"}
+                </button>
               </div>
 
-              {/* ✅ Calendar label */}
+              {}
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
-                  color: "var(--text-faint)", // ✅
+                  color: "var(--text-faint)", 
                   fontSize: 12,
                 }}
               >
@@ -571,8 +795,8 @@ export default function Reports() {
                   style={{
                     width: 40,
                     height: 40,
-                    border: "3px solid var(--border-card)", // ✅
-                    borderTopColor: "var(--brand-500)", // ✅
+                    border: "3px solid var(--border-card)", 
+                    borderTopColor: "var(--brand-500)", 
                     borderRadius: "50%",
                     animation: "spin 1s linear infinite",
                   }}
@@ -617,6 +841,27 @@ export default function Reports() {
                     color="#a78bfa"
                     icon={Droplets}
                   />
+                  <StatCard
+                    label="Alerts"
+                    value={alertEvents.length}
+                    unit="events"
+                    color="#f87171"
+                    icon={BarChart2}
+                  />
+                  <StatCard
+                    label="Irrigation Cycles"
+                    value={irrigationEvents.length}
+                    unit="cycles"
+                    color="#22d3ee"
+                    icon={Droplets}
+                  />
+                  <StatCard
+                    label="Fertilization"
+                    value={fertilizationEvents.length}
+                    unit="events"
+                    color="#4ade80"
+                    icon={Leaf}
+                  />
                 </div>
 
                 <div
@@ -626,11 +871,11 @@ export default function Reports() {
                     gap: 20,
                   }}
                 >
-                  {/* ✅ Soil Moisture Chart */}
+                  {/*  Soil Moisture Chart */}
                   <div
                     style={{
-                      background: "var(--bg-card)", // ✅
-                      border: "1px solid var(--border-card)", // ✅
+                      background: "var(--bg-card)", 
+                      border: "1px solid var(--border-card)", 
                       borderRadius: 24,
                       padding: "24px",
                     }}
@@ -643,7 +888,7 @@ export default function Reports() {
                         display: "flex",
                         alignItems: "center",
                         gap: 10,
-                        color: "var(--text-primary)", // ✅
+                        color: "var(--text-primary)", 
                       }}
                     >
                       <Droplets size={16} color="#38bdf8" /> Soil Moisture
@@ -673,21 +918,21 @@ export default function Reports() {
                         </defs>
                         <CartesianGrid
                           strokeDasharray="3 3"
-                          stroke="var(--border-card)" // ✅
+                          stroke="var(--border-card)" 
                           vertical={false}
                         />
                         <XAxis
                           dataKey="time"
                           axisLine={false}
                           tickLine={false}
-                          tick={{ fill: "var(--text-faint)", fontSize: 11 }} // ✅
+                          tick={{ fill: "var(--text-faint)", fontSize: 11 }} 
                           minTickGap={30}
                         />
                         <YAxis
                           domain={[0, 100]}
                           axisLine={false}
                           tickLine={false}
-                          tick={{ fill: "var(--text-faint)", fontSize: 11 }} // ✅
+                          tick={{ fill: "var(--text-faint)", fontSize: 11 }} 
                         />
                         <Tooltip content={<CustomTooltip />} />
                         <ReferenceLine
@@ -722,11 +967,11 @@ export default function Reports() {
                       gap: 20,
                     }}
                   >
-                    {/* ✅ Temperature Chart */}
+                    {/*  Temperature Chart */}
                     <div
                       style={{
-                        background: "var(--bg-card)", // ✅
-                        border: "1px solid var(--border-card)", // ✅
+                        background: "var(--bg-card)", 
+                        border: "1px solid var(--border-card)", 
                         borderRadius: 24,
                         padding: "24px",
                       }}
@@ -736,7 +981,7 @@ export default function Reports() {
                           fontSize: 14,
                           fontWeight: 700,
                           marginBottom: 20,
-                          color: "var(--text-secondary)", // ✅
+                          color: "var(--text-secondary)", 
                         }}
                       >
                         Temperature Variance
@@ -745,7 +990,7 @@ export default function Reports() {
                         <LineChart data={chartData}>
                           <CartesianGrid
                             strokeDasharray="3 3"
-                            stroke="var(--border-card)" // ✅
+                            stroke="var(--border-card)" 
                             vertical={false}
                           />
                           <XAxis
@@ -758,7 +1003,7 @@ export default function Reports() {
                           <YAxis
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: "var(--text-faint)", fontSize: 11 }} // ✅
+                            tick={{ fill: "var(--text-faint)", fontSize: 11 }} 
                           />
                           <Tooltip content={<CustomTooltip />} />
                           <Line
@@ -774,11 +1019,11 @@ export default function Reports() {
                       </ResponsiveContainer>
                     </div>
 
-                    {/* ✅ Water Consumption Chart */}
+                    {/* Water Consumption Chart */}
                     <div
                       style={{
-                        background: "var(--bg-card)", // ✅
-                        border: "1px solid var(--border-card)", // ✅
+                        background: "var(--bg-card)", 
+                        border: "1px solid var(--border-card)", 
                         borderRadius: 24,
                         padding: "24px",
                       }}
@@ -788,7 +1033,7 @@ export default function Reports() {
                           fontSize: 14,
                           fontWeight: 700,
                           marginBottom: 20,
-                          color: "var(--text-secondary)", // ✅
+                          color: "var(--text-secondary)", 
                         }}
                       >
                         Water Consumption
@@ -797,7 +1042,7 @@ export default function Reports() {
                         <BarChart data={chartData}>
                           <CartesianGrid
                             strokeDasharray="3 3"
-                            stroke="var(--border-card)" // ✅
+                            stroke="var(--border-card)" 
                             vertical={false}
                           />
                           <XAxis
@@ -810,7 +1055,7 @@ export default function Reports() {
                           <YAxis
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: "var(--text-faint)", fontSize: 11 }} // ✅
+                            tick={{ fill: "var(--text-faint)", fontSize: 11 }} 
                           />
                           <Tooltip content={<CustomTooltip />} />
                           <Bar

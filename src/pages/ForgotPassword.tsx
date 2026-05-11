@@ -45,7 +45,7 @@ export default function ForgotPassword() {
         setEmailError("No account found with this email address");
       } else {
         sessionStorage.setItem("resetEmail", email.trim().toLowerCase());
-        setSubmitted(true); // ✅ نقلنا اليوزر لحالة النجاح
+        setSubmitted(true); 
       }
     } catch {
       toast.error("Failed to send reset code. Try again.");
@@ -259,7 +259,7 @@ export default function ForgotPassword() {
                       color: emailError ? "#f87171" : "var(--text-faint)",
                     }}
                   />
-                  {/* ✅ دمجنا onBlur هنا عشان نعالج الـ Error */}
+                  {}
                   <input
                     type="email"
                     inputMode="email"
