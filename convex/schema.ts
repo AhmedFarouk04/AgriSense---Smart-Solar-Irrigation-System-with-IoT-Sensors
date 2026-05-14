@@ -10,6 +10,11 @@ export default defineSchema({
     codeExpires: v.optional(v.number()),
     emailVerificationTime: v.optional(v.number()),
     phone: v.optional(v.string()),
+    farmName: v.optional(v.string()),
+    farmArea: v.optional(v.number()),
+    farmAreaUnit: v.optional(v.string()),
+    location: v.optional(v.string()),
+    role: v.optional(v.string()),
   }),
 
   devices: defineTable({
