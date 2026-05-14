@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
@@ -113,9 +113,6 @@ export default function DeviceDetails({
         state: !latest.pumpStatus,
       });
       await refresh();
-      toast.success(
-        `Valve ${!latest.pumpStatus ? "opened" : "closed"} manually`,
-      );
     } catch {
       toast.error("Failed to control valve");
     } finally {
@@ -137,7 +134,6 @@ export default function DeviceDetails({
         confirmed: true,
       });
       await refresh();
-      toast.success("Fertilization started. Check notifications for dosing details.");
     } catch {
       toast.error("Failed to start fertilization");
     } finally {
@@ -170,12 +166,16 @@ export default function DeviceDetails({
     );
   }
 
-  const chartData = (readings24h ?? []).map((r) => ({
-    time: fmt(r.timestamp),
-    moisture: r.moisture,
-    temperature: r.temperature,
-    flow: r.flowRate,
-  }));
+  const chartData = useMemo(() => {
+    if (!readings24h?.length) return [];
+    const step = Math.max(1, Math.ceil(readings24h.length / 100));
+    return readings24h.filter((_, i) => i % step === 0).map((r) => ({
+      time: fmt(r.timestamp),
+      moisture: r.moisture,
+      temperature: r.temperature,
+      flow: r.flowRate,
+    }));
+  }, [readings24h]);
 
   const minMoist = device?.customMinMoisture ?? 30;
   const maxMoist = device?.customMaxMoisture ?? 70;
@@ -527,9 +527,9 @@ export default function DeviceDetails({
                     width: "100%",
                     padding: "10px 12px",
                     borderRadius: 12,
-                    border: "1px solid rgba(163,230,53,0.35)",
-                    background: "rgba(163,230,53,0.12)",
-                    color: "#bef264",
+                    border: "1px solid rgba(34, 197, 94, 0.3)",
+                    background: "rgba(34, 197, 94, 0.1)",
+                    color: "var(--brand-500)",
                     fontSize: 13,
                     fontWeight: 700,
                     cursor: fertilizeLoading ? "not-allowed" : "pointer",

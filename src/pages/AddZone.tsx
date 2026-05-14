@@ -1,5 +1,5 @@
-﻿import { useState } from "react";
-import { useMutation, useAction, useQuery } from "convex/react";
+﻿﻿﻿import { useState } from "react";
+import { useMutation, useAction, useQuery, useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -235,6 +235,7 @@ export default function AddZone() {
   const plants = useQuery(api.Plants.getPlants);
   const addDevice = useMutation(api.devices.addDevice);
   const testConnection = useAction(api.devices.testConnection);
+  const convex = useConvex();
   const [scrolled, setScrolled] = useState(false);
 
   const [step, setStep] = useState<Step>(1);
@@ -250,13 +251,23 @@ export default function AddZone() {
     "idle",
   );
   const [saving, setSaving] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+  const [backendError, setBackendError] = useState("");
 
-  const validateStep1 = () => {
+  const validateStep1 = async () => {
     const e: Record<string, string> = {};
     const trimmed = name.trim();
     if (!trimmed) e.name = "Zone name is required";
     else if (trimmed.length < 2) e.name = "Minimum 2 characters";
     else if (trimmed.length > 50) e.name = "Maximum 50 characters";
+    else {
+      const exists = await convex.query(api.devices.checkDeviceName, {
+        name: trimmed,
+      });
+      if (exists) {
+        e.name = "Zone name already exists";
+      }
+    }
 
     const area = areaM2.trim();
     if (area) {
@@ -266,9 +277,11 @@ export default function AddZone() {
       }
     }
 
-    if (plantId) {
+    if (!plantId) {
+      e.plantId = "Crop type is required";
+    } else {
       const weekValue = Number(initialCropWeek);
-      if (!initialCropWeek.trim()) e.initialCropWeek = "Current crop week is required";
+      if (!initialCropWeek.trim()) e.initialCropWeek = "Crop week is required";
       else if (
         !Number.isFinite(weekValue) ||
         weekValue < 1 ||
@@ -321,26 +334,54 @@ export default function AddZone() {
     }
   };
 
-  const handleNext = () => {
-    if (step === 1 && validateStep1()) setStep(2);
-    if (step === 2 && validateStep2()) setStep(3);
+  const handleNext = async () => {
+    if (step === 1) {
+      setIsChecking(true);
+      const isValid = await validateStep1();
+      setIsChecking(false);
+      if (isValid) setStep(2);
+    } else if (step === 2) {
+      if (validateStep2()) setStep(3);
+    }
   };
 
   const handleSubmit = async () => {
+    setBackendError("");
     setSaving(true);
     try {
       await addDevice({
         name: name.trim(),
         firebaseUrl: firebaseUrl.trim().replace(/\/$/, ""),
         firebaseSecret: firebaseSecret.trim(),
-        plantId: plantId ? (plantId as any) : undefined,
-        initialCropWeek: plantId ? Number(initialCropWeek) : undefined,
+        plantId: plantId as any,
+        initialCropWeek: Number(initialCropWeek),
         areaM2: areaM2.trim() ? Number(areaM2) : undefined,
       });
-      toast.success(`Zone "${name.trim()}" added successfully! ðŸŒ±`);
+      toast.success("Zone added successfully");
       nav("/dashboard");
     } catch (err: any) {
-      toast.error(err?.message ?? "Failed to add zone");
+      const msg = err?.message?.toLowerCase() || "";
+      if (msg.includes("firebase url")) {
+        setStep(2);
+        setErrors((prev) => ({ ...prev, firebaseUrl: "Invalid Firebase URL" }));
+      } else if (msg.includes("secret")) {
+        setStep(2);
+        setErrors((prev) => ({
+          ...prev,
+          firebaseSecret: "Invalid Firebase secret",
+        }));
+      } else if (msg.includes("zone name")) {
+        setStep(1);
+        setErrors((prev) => ({
+          ...prev,
+          name: "A zone with this name already exists",
+        }));
+      } else {
+        setBackendError(
+          err?.message?.replace(/^.*Error:\s*/i, "") ||
+            "Could not save zone. Please try again.",
+        );
+      }
     } finally {
       setSaving(false);
     }
@@ -572,7 +613,7 @@ export default function AddZone() {
                         marginBottom: 8,
                       }}
                     >
-                      Crop Type (optional)
+                      Crop Type *
                     </label>
                     <div style={{ position: "relative" }}>
                       <Leaf
@@ -592,13 +633,12 @@ export default function AddZone() {
                           const nextPlant = e.target.value;
                           setPlantId(nextPlant);
                           if (!nextPlant) setInitialCropWeek("1");
-                          if (errors.initialCropWeek || errors.areaM2) {
-                            setErrors((prev) => ({
-                              ...prev,
-                              initialCropWeek: "",
-                              areaM2: "",
-                            }));
-                          }
+                          setErrors((prev) => ({
+                            ...prev,
+                            plantId: "", // مسح خطأ الـ Crop Type فوراً
+                            initialCropWeek: "",
+                            areaM2: "",
+                          }));
                         }}
                         style={{
                           ...inputStyle,
@@ -620,15 +660,20 @@ export default function AddZone() {
                         ))}
                       </select>
                     </div>
-                    <p
-                      style={{
-                        fontSize: 12,
-                        color: "var(--text-faint)",
-                        marginTop: 5,
-                      }}
-                    >
-                      Used for smart irrigation and fertilization recommendations
-                    </p>
+                    {errors.plantId && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        style={{
+                          fontSize: 12,
+                          color: "var(--error-color)",
+                          marginTop: 5,
+                          fontWeight: 500,
+                        }}
+                      >
+                        {errors.plantId}
+                      </motion.p>
+                    )}
                   </div>
 
                   <InputField
@@ -637,7 +682,8 @@ export default function AddZone() {
                     value={areaM2}
                     onChange={(v) => {
                       setAreaM2(v);
-                      if (errors.areaM2) setErrors((e) => ({ ...e, areaM2: "" }));
+                      if (errors.areaM2)
+                        setErrors((e) => ({ ...e, areaM2: "" }));
                     }}
                     placeholder="e.g. 420"
                     type="number"
@@ -664,11 +710,6 @@ export default function AddZone() {
                     error={errors.initialCropWeek}
                     disabled={!plantId}
                   />
-                  {!plantId && (
-                    <p style={{ fontSize: 12, color: "var(--text-faint)", marginTop: -14 }}>
-                      Crop week becomes required only after selecting a crop.
-                    </p>
-                  )}
                 </motion.div>
               )}
 
@@ -830,6 +871,20 @@ export default function AddZone() {
                   transition={{ duration: 0.3 }}
                   style={{ display: "flex", flexDirection: "column", gap: 20 }}
                 >
+                  {backendError && (
+                    <div
+                      style={{
+                        padding: "12px 16px",
+                        background: "var(--error-bg)",
+                        border: "1px solid var(--error-border)",
+                        borderRadius: 12,
+                        fontSize: 13,
+                        color: "var(--error-color)",
+                      }}
+                    >
+                      {backendError}
+                    </div>
+                  )}
                   <div>
                     <h2
                       style={{
@@ -966,6 +1021,7 @@ export default function AddZone() {
                   }}
                   whileTap={{ scale: 0.985 }}
                   onClick={handleNext}
+                  disabled={isChecking}
                   style={{
                     flex: 1,
                     padding: "13px",
@@ -975,14 +1031,27 @@ export default function AddZone() {
                     color: "white",
                     fontSize: 14,
                     fontWeight: 700,
-                    cursor: "pointer",
+                    cursor: isChecking ? "not-allowed" : "pointer",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 6,
+                    opacity: isChecking ? 0.7 : 1,
                   }}
                 >
-                  Continue <ChevronRight size={16} />
+                  {isChecking ? (
+                    <>
+                      <Loader2
+                        size={15}
+                        style={{ animation: "spin 0.8s linear infinite" }}
+                      />
+                      Checking...
+                    </>
+                  ) : (
+                    <>
+                      Continue <ChevronRight size={16} />
+                    </>
+                  )}
                 </motion.button>
               ) : (
                 <motion.button
@@ -1046,6 +1115,3 @@ const inputStyle: React.CSSProperties = {
   outline: "none",
   transition: "all 0.2s",
 };
-
-
-

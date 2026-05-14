@@ -150,6 +150,7 @@ export const sendCriticalAlertEmail = internalAction({
   },
   handler: async (_ctx, args) => {
     const { email, subject, message } = args;
+    console.log(`🚨 Attempting to send critical alert email to: ${email}`);
     try {
       const mailOptions = {
         from: `"AgriSense Alerts" <${process.env.EMAIL_USER}>`,
@@ -168,9 +169,15 @@ export const sendCriticalAlertEmail = internalAction({
         `,
       };
       const info = await transporter.sendMail(mailOptions);
+      console.log(
+        `✅ Critical alert email sent successfully! Message ID: ${info.messageId}`,
+      );
       return { success: true, messageId: info.messageId };
     } catch (error: any) {
-      throw new Error(`Failed to send critical alert email: ${error?.message ?? "unknown error"}`);
+      console.error("❌ Failed to send critical alert email:", error);
+      throw new Error(
+        `Failed to send critical alert email: ${error?.message ?? "unknown error"}`,
+      );
     }
   },
 });

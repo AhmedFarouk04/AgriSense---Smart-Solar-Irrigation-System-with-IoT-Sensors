@@ -76,19 +76,38 @@ export function EmptyState() {
         water flow in real-time.
       </p>
       <motion.button
+        animate={{
+          scale: [1, 1.02, 1],
+        }}
+        transition={{
+          duration: 1.8,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
         whileHover={{
-          scale: 1.04,
-          boxShadow: "0 8px 32px rgba(22,163,74,0.35)",
+          scale: 1.05,
+          boxShadow:
+            "0 0 0 6px rgba(74,222,128,0.16), 0 14px 34px rgba(34,211,238,0.33)",
         }}
         whileTap={{ scale: 0.97 }}
         onClick={() => nav("/add-zone")}
-        className="btn-primary"
         style={{
           position: "relative",
           zIndex: 1,
           display: "flex",
           alignItems: "center",
           gap: 8,
+          padding: "14px 34px",
+          borderRadius: 999,
+          border: "1px solid rgba(125,211,252,0.45)",
+          background: "linear-gradient(135deg, #4ade80 0%, #22d3ee 100%)",
+          color: "#062a18",
+          fontSize: 15,
+          fontWeight: 800,
+          letterSpacing: "-0.01em",
+          boxShadow:
+            "0 0 0 1px rgba(74,222,128,0.12), 0 10px 26px rgba(74,222,128,0.35)",
+          cursor: "pointer",
         }}
       >
         <Plus size={18} /> Add Your First Zone

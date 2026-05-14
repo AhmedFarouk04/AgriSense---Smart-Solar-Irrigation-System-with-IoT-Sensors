@@ -13,8 +13,7 @@ function assertValidInitialWeek(initialCropWeek?: number) {
   }
 }
 
-function toCropStartedAt(initialCropWeek?: number) {
-  if (initialCropWeek === undefined) return undefined;
+function toCropStartedAt(initialCropWeek: number) {
   return Date.now() - (Math.floor(initialCropWeek) - 1) * WEEK_MS;
 }
 
@@ -23,8 +22,8 @@ export const addDevice = mutation({
     name: v.string(),
     firebaseUrl: v.string(),
     firebaseSecret: v.string(),
-    plantId: v.optional(v.id("plants")),
-    initialCropWeek: v.optional(v.number()),
+    plantId: v.id("plants"),
+    initialCropWeek: v.number(),
     areaM2: v.optional(v.number()),
     notes: v.optional(v.string()),
   },
@@ -54,17 +53,16 @@ export const addDevice = mutation({
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
+    // 1. Unique check is ONLY on the Zone Name (firebaseUrl can be reused)
     if (
       existing.some((d) => d.name.toLowerCase() === trimmedName.toLowerCase())
     )
       throw new Error("A zone with this name already exists");
 
-    if (existing.some((d) => d.firebaseUrl === trimmedUrl))
-      throw new Error("This Firebase database is already linked");
-
     const createdAt = Date.now();
     const cropStartedAt = toCropStartedAt(args.initialCropWeek);
 
+    // 2. Insert exactly matching the schema fields
     const deviceId = await ctx.db.insert("devices", {
       userId,
       name: trimmedName,
@@ -88,6 +86,9 @@ export const addDevice = mutation({
           ? Math.floor(args.initialCropWeek)
           : undefined,
         cropStartedAt,
+        source: "zone_created",
+        suppressToast: true,
+        displayMode: "in_app_only",
       },
       timestamp: createdAt,
     });
@@ -97,6 +98,21 @@ export const addDevice = mutation({
     });
 
     return { success: true, deviceId };
+  },
+});
+
+export const checkDeviceName = query({
+  args: { name: v.string() },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return false;
+    const trimmedName = args.name.trim().toLowerCase();
+    if (!trimmedName) return false;
+    const existing = await ctx.db
+      .query("devices")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    return existing.some((d) => d.name.toLowerCase() === trimmedName);
   },
 });
 
@@ -142,6 +158,7 @@ export const updateDevice = mutation({
 
     areaM2: v.optional(v.number()),
     notes: v.optional(v.string()),
+    isSimulationMode: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -173,6 +190,8 @@ export const updateDevice = mutation({
       patch.cropStartedAt = toCropStartedAt(args.initialCropWeek);
     if (args.areaM2 !== undefined) patch.areaM2 = args.areaM2;
     if (args.notes !== undefined) patch.notes = args.notes;
+    if (args.isSimulationMode !== undefined)
+      patch.isSimulationMode = args.isSimulationMode;
 
     await ctx.db.patch(args.deviceId, patch);
 
@@ -258,4 +277,3 @@ export const testConnection = action({
     }
   },
 });
-

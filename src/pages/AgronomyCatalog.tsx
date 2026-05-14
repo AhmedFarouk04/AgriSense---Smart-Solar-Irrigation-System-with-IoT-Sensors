@@ -13,9 +13,7 @@ type Tab = "fertilizer" | "cultivation";
 
 const SHEET_LINKS = {
   fertilizer: "/agronomy/Detailed_Fertilizer_Schedule.xlsx",
-  cultivation: encodeURI(
-    "/agronomy/جدول زراعة مفصل للخضروات والفواكه.xlsx",
-  ),
+  cultivation: encodeURI("/agronomy/جدول زراعة مفصل للخضروات والفواكه.xlsx"),
 };
 
 export default function AgronomyCatalog() {
@@ -62,6 +60,7 @@ export default function AgronomyCatalog() {
       }}
     >
       <header
+        className="header-container"
         style={{
           position: "sticky",
           top: 0,
@@ -83,7 +82,10 @@ export default function AgronomyCatalog() {
             gap: 16,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div
+            className="header-left"
+            style={{ display: "flex", alignItems: "center", gap: 12 }}
+          >
             <button
               onClick={() => nav("/dashboard")}
               style={{
@@ -120,8 +122,18 @@ export default function AgronomyCatalog() {
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <div
+            className="header-actions"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
+            }}
+          >
             <a
+              className="nav-action-btn"
               href={SHEET_LINKS.fertilizer}
               download
               style={{
@@ -139,9 +151,12 @@ export default function AgronomyCatalog() {
               }}
             >
               <Download size={13} />
-              Detailed_Fertilizer_Schedule
+              <span className="hide-on-mobile">
+                Detailed_Fertilizer_Schedule
+              </span>
             </a>
             <a
+              className="nav-action-btn"
               href={SHEET_LINKS.cultivation}
               download
               style={{
@@ -159,9 +174,13 @@ export default function AgronomyCatalog() {
               }}
             >
               <Download size={13} />
-              جدول زراعة مفصل
+              <span className="hide-on-mobile">جدول زراعة مفصل</span>
             </a>
-            <Filter size={14} color="var(--text-faint)" />
+            <Filter
+              className="hide-on-mobile"
+              size={14}
+              color="var(--text-faint)"
+            />
             <select
               value={cropFilter}
               onChange={(e) => setCropFilter(e.target.value)}
@@ -246,7 +265,13 @@ export default function AgronomyCatalog() {
           >
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ textAlign: "left", fontSize: 12, color: "var(--text-faint)" }}>
+                <tr
+                  style={{
+                    textAlign: "left",
+                    fontSize: 12,
+                    color: "var(--text-faint)",
+                  }}
+                >
                   <th style={{ padding: "10px" }}>Crop</th>
                   <th style={{ padding: "10px" }}>Weeks</th>
                   <th style={{ padding: "10px" }}>Phase</th>
@@ -260,16 +285,25 @@ export default function AgronomyCatalog() {
               </thead>
               <tbody>
                 {filteredFertilizer.map((row: any) => (
-                  <tr key={row._id} style={{ borderTop: "1px solid var(--border-card)" }}>
-                    <td style={{ padding: "10px", fontWeight: 700 }}>{row.cropName}</td>
+                  <tr
+                    key={row._id}
+                    style={{ borderTop: "1px solid var(--border-card)" }}
+                  >
+                    <td style={{ padding: "10px", fontWeight: 700 }}>
+                      {row.cropName}
+                    </td>
                     <td style={{ padding: "10px" }}>{row.weeksLabel}</td>
                     <td style={{ padding: "10px" }}>{row.applicationTiming}</td>
                     <td style={{ padding: "10px" }}>{row.nitrogenKgPerFed}</td>
-                    <td style={{ padding: "10px" }}>{row.phosphorusKgPerFed}</td>
+                    <td style={{ padding: "10px" }}>
+                      {row.phosphorusKgPerFed}
+                    </td>
                     <td style={{ padding: "10px" }}>{row.potassiumKgPerFed}</td>
                     <td style={{ padding: "10px" }}>{row.calciumKgPerFed}</td>
                     <td style={{ padding: "10px" }}>{row.magnesiumKgPerFed}</td>
-                    <td style={{ padding: "10px", minWidth: 260 }}>{row.criticalRemarks}</td>
+                    <td style={{ padding: "10px", minWidth: 260 }}>
+                      {row.criticalRemarks}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -289,7 +323,13 @@ export default function AgronomyCatalog() {
           >
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ textAlign: "left", fontSize: 12, color: "var(--text-faint)" }}>
+                <tr
+                  style={{
+                    textAlign: "left",
+                    fontSize: 12,
+                    color: "var(--text-faint)",
+                  }}
+                >
                   <th style={{ padding: "10px" }}>Crop</th>
                   <th style={{ padding: "10px" }}>Best planting season</th>
                   <th style={{ padding: "10px" }}>Watering frequency</th>
@@ -302,14 +342,27 @@ export default function AgronomyCatalog() {
               </thead>
               <tbody>
                 {filteredCultivation.map((row: any) => (
-                  <tr key={row._id} style={{ borderTop: "1px solid var(--border-card)" }}>
-                    <td style={{ padding: "10px", fontWeight: 700 }}>{row.cropName}</td>
-                    <td style={{ padding: "10px" }}>{row.bestPlantingSeason}</td>
+                  <tr
+                    key={row._id}
+                    style={{ borderTop: "1px solid var(--border-card)" }}
+                  >
+                    <td style={{ padding: "10px", fontWeight: 700 }}>
+                      {row.cropName}
+                    </td>
+                    <td style={{ padding: "10px" }}>
+                      {row.bestPlantingSeason}
+                    </td>
                     <td style={{ padding: "10px" }}>{row.wateringFrequency}</td>
-                    <td style={{ padding: "10px" }}>{row.criticalHeavyWateringPhase}</td>
+                    <td style={{ padding: "10px" }}>
+                      {row.criticalHeavyWateringPhase}
+                    </td>
                     <td style={{ padding: "10px" }}>{row.stressingPeriod}</td>
-                    <td style={{ padding: "10px" }}>{row.bestHarvestTimeWeeks}</td>
-                    <td style={{ padding: "10px", minWidth: 260 }}>{row.harvestSigns}</td>
+                    <td style={{ padding: "10px" }}>
+                      {row.bestHarvestTimeWeeks}
+                    </td>
+                    <td style={{ padding: "10px", minWidth: 260 }}>
+                      {row.harvestSigns}
+                    </td>
                     <td style={{ padding: "10px" }}>{row.spacingCm}</td>
                   </tr>
                 ))}

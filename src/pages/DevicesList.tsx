@@ -116,6 +116,7 @@ export default function DevicesList() {
 
       {/* Header */}
       <header
+        className="header-container"
         style={{
           position: "sticky",
           top: 0,
@@ -137,7 +138,10 @@ export default function DevicesList() {
             justifyContent: "space-between",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div
+            className="header-left"
+            style={{ display: "flex", alignItems: "center", gap: 14 }}
+          >
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -183,8 +187,12 @@ export default function DevicesList() {
               </div>
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div
+            className="header-actions"
+            style={{ display: "flex", alignItems: "center", gap: 12 }}
+          >
             <motion.button
+              className="nav-action-btn"
               whileHover={{
                 scale: 1.04,
                 boxShadow: "0 6px 20px rgba(22,163,74,0.3)",
@@ -565,10 +573,16 @@ export default function DevicesList() {
                           fontWeight: 600,
                         }}
                       >
-                        {new Date(device.createdAt).toLocaleDateString(
-                          "en-US",
-                          { month: "short", day: "numeric", year: "numeric" },
-                        )}
+                        {device.createdAt
+                          ? new Date(device.createdAt).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              },
+                            )
+                          : "Unknown"}
                       </span>
                     </div>
                     {device.notes && (

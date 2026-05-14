@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+﻿﻿﻿import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
@@ -16,6 +16,7 @@ import {
   Trash2,
   Save,
   AlertTriangle,
+  Code2,
 } from "lucide-react";
 import { AgriSenseLogo } from "../components/Logo";
 
@@ -38,6 +39,44 @@ function resolveCurrentCropWeek(cropStartedAt?: number, createdAt?: number) {
   const anchor = cropStartedAt ?? createdAt ?? Date.now();
   return Math.max(1, Math.floor((Date.now() - anchor) / WEEK_MS) + 1);
 }
+
+export const showCleanToast = (
+  title: string,
+  subtitle?: string,
+  type: "success" | "error" | "info" | "warning" = "info",
+) => {
+  if (type === "warning") toast.warning(title, { description: subtitle });
+  else if (type === "error") toast.error(title, { description: subtitle });
+  else if (type === "success") toast.success(title, { description: subtitle });
+  else toast.info(title, { description: subtitle });
+};
+
+export const showCleanErrorToast = (error: any) => {
+  // Strict Error Parser to strip ALL Convex/Server internals
+  let msg = error?.message || "An unexpected error occurred.";
+
+  // 1. Cut off stack traces (usually start with "at handler" or "called by")
+  msg = msg.split(/\n\s*at /)[0];
+  msg = msg.split(/called by/i)[0];
+
+  // 2. Remove Convex wrappers and technical terms
+  msg = msg.replace(/\[CONVEX.*?\]/g, "");
+  msg = msg.replace(/Server Error/gi, "");
+  msg = msg.replace(/Uncaught Error:/gi, "");
+  msg = msg.replace(/Request ID:.*/gi, "");
+  msg = msg.replace(/^[⚠️⚠✅ℹ️🧪🛑]+\s*/, "");
+  msg = msg.trim();
+
+  // Split cleanly
+  const parts = msg
+    .split("\n")
+    .map((s: string) => s.trim())
+    .filter(Boolean);
+  const title = parts[0] || "Error";
+  const subtitle = parts.slice(1).join(" ");
+
+  showCleanToast(title, subtitle, "warning");
+};
 
 export default function DeviceSettings({
   deviceId,
@@ -81,7 +120,10 @@ export default function DeviceSettings({
       setName(device.name);
       setPlantId(device.plantId ?? "");
       setInitialCropWeek(
-        resolveCurrentCropWeek(device.cropStartedAt, device.createdAt).toString(),
+        resolveCurrentCropWeek(
+          device.cropStartedAt,
+          device.createdAt,
+        ).toString(),
       );
       setAreaM2(device.areaM2?.toString() ?? "");
       setNotes(device.notes ?? "");
@@ -183,9 +225,13 @@ export default function DeviceSettings({
           ? Number(customOptimalTemp)
           : undefined,
       });
-      toast.success("Zone settings saved! âœ…");
+      showCleanToast(
+        "Settings Saved",
+        "Zone configuration updated successfully",
+        "success",
+      );
     } catch (err: any) {
-      toast.error(err?.message ?? "Failed to save");
+      showCleanErrorToast(err);
     } finally {
       setSaving(false);
     }
@@ -196,10 +242,14 @@ export default function DeviceSettings({
     setDeleting(true);
     try {
       await deleteDevice({ deviceId: device._id });
-      toast.success(`Zone "${device.name}" deleted`);
+      showCleanToast(
+        "Zone Deleted",
+        `"${device.name}" has been removed`,
+        "success",
+      );
       nav("/dashboard");
     } catch (err: any) {
-      toast.error(err?.message ?? "Failed to delete");
+      showCleanErrorToast(err);
     } finally {
       setDeleting(false);
     }
@@ -449,7 +499,11 @@ export default function DeviceSettings({
           }
         >
           <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 14,
+            }}
           >
             <Field
               label="Min Moisture (%)"
@@ -518,8 +572,73 @@ export default function DeviceSettings({
           </Field>
         </Section>
 
+        {/* ── Developer Tools ── */}
+        <Section title="Developer Tools" icon={<Code2 size={16} />}>
+          <Field
+            label="Simulation Mode"
+            hint="Disables Firebase polling and relies solely on fake test data. Lifecycle events will not be triggered."
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <button
+                onClick={async () => {
+                  try {
+                    await updateDevice({
+                      deviceId: device._id,
+                      isSimulationMode: !device.isSimulationMode,
+                    });
+                    showCleanToast(
+                      `Simulation Mode ${!device.isSimulationMode ? "Enabled" : "Disabled"}`,
+                      "",
+                      "success",
+                    );
+                  } catch (e) {
+                    showCleanErrorToast(e);
+                  }
+                }}
+                style={{
+                  padding: "10px 18px",
+                  borderRadius: 10,
+                  background: device.isSimulationMode
+                    ? "#f59e0b"
+                    : "var(--glass-bg)",
+                  color: device.isSimulationMode
+                    ? "#fff"
+                    : "var(--text-primary)",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  border: device.isSimulationMode
+                    ? "none"
+                    : "1px solid var(--border-card)",
+                  transition: "all 0.2s",
+                }}
+              >
+                {device.isSimulationMode
+                  ? "Simulation Active"
+                  : "Enable Simulation"}
+              </button>
+            </div>
+          </Field>
+        </Section>
+
         {/* â”€â”€ Connection Info (read only) */}
         <Section title="Connection" icon={<Settings size={16} />}>
+          <Field label="Device ID (For Testing/API)">
+            <div
+              style={{
+                ...inputStyle,
+                color: "var(--text-muted)",
+                cursor: "text",
+                userSelect: "all",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                fontFamily: "monospace",
+              }}
+              title="Double click to select and copy"
+            >
+              {device._id}
+            </div>
+          </Field>
           <Field label="Firebase URL">
             <div
               style={{
@@ -570,7 +689,10 @@ export default function DeviceSettings({
                 marginLeft: "auto",
               }}
             >
-              Created {new Date(device.createdAt).toLocaleDateString()}
+              Created{" "}
+              {device.createdAt
+                ? new Date(device.createdAt).toLocaleDateString()
+                : "Unknown"}
             </span>
           </div>
         </Section>
@@ -832,4 +954,3 @@ const inputStyle: React.CSSProperties = {
   outline: "none",
   fontFamily: "var(--font-body)",
 };
-

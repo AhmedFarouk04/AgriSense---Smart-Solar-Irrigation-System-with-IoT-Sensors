@@ -157,7 +157,135 @@ export const updateSettings = mutation({
     }
   },
 });
-// ضيف ده في آخر ملف convex/users.ts
+
+export function cleanEventDataForUI(event: any) {
+  const e = { ...event };
+
+  // Preserve suppressToast flag before stripping internal data for the UI
+  if (e.data && e.data.suppressToast) {
+    e.suppressToast = true;
+  }
+
+  if (e.data) {
+    const d = { ...e.data };
+    const isInitial =
+      d.source === "zone_created" || d.displayMode === "in_app_only";
+
+    // 1. إخفاء الـ Internal Metadata بالكامل
+    const internalKeys = [
+      "source",
+      "suppressToast",
+      "displayMode",
+      "skipEscalation",
+      "nextCheckAt",
+      "sessionId",
+      "sourceEventId",
+      "sourceType",
+      "actionTaken",
+      "nextAction",
+      "target",
+      "zoneAreaM2",
+      "safetyMode",
+      "nutrients",
+      "nutrientSummary",
+      "weekNumber",
+      "weeksLabel",
+    ];
+    for (const key of internalKeys) delete d[key];
+
+    // 2. معالجة القراءات المبدئية
+    if (isInitial) {
+      if (d.moisture === 0) d.moisture = "Waiting for sensor data";
+      if (d.flowRate === 0) d.flowRate = "Waiting for sensor data";
+      if (d.temperature === 0) d.temperature = "Waiting for sensor data";
+    } else {
+      if (typeof d.moisture === "number") d.moisture = `${d.moisture}%`;
+      if (typeof d.flowRate === "number") d.flowRate = `${d.flowRate} L/min`;
+      if (typeof d.temperature === "number")
+        d.temperature = `${d.temperature}°C`;
+    }
+
+    // 3. تنسيق التواريخ
+    const formatDate = (ts: number) =>
+      new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(ts));
+
+    const readableData: Record<string, any> = {};
+    for (const [k, v] of Object.entries(d)) {
+      if (v === undefined || v === null) continue;
+
+      let newKey = k;
+      let newValue = v;
+
+      if (k === "lastIrrigationAt") {
+        newKey = "Last Irrigation";
+        newValue =
+          v === "none" || v === 0
+            ? "No irrigation sessions yet"
+            : formatDate(v as number);
+      } else if (k === "nextIrrigationAt") {
+        newKey = "Next Irrigation";
+        newValue = formatDate(v as number);
+      } else if (k === "nextReviewAt") {
+        newKey = "Next Review";
+        newValue = formatDate(v as number);
+      } else if (k === "wateringFrequency" || k === "wateringCadence") {
+        newKey = "Watering Cadence";
+      } else if (k === "criticalRemarks" || k === "remarks") {
+        newKey = "Remarks";
+      } else if (k === "applicationTiming" || k === "phase") {
+        newKey = "Phase";
+      } else if (k === "weeksLabel" || k === "weekRange") {
+        newKey = "Week Range";
+      } else if (k === "weekNumber") {
+        newKey = "Week Number";
+      } else if (k === "nextPhase") {
+        newKey = "Next Phase";
+      } else if (k === "nutrientKgPerFed" || k === "doseKgPerFed") {
+        newKey = "Dose (kg/fed)";
+        const nv = v as any;
+        newValue = `N:${nv.nitrogen} P:${nv.phosphorus} K:${nv.potassium} Ca:${nv.calcium} Mg:${nv.magnesium}`;
+      } else if (k === "zoneDoseKg") {
+        newKey = "Zone Dose (kg)";
+        const nv = v as any;
+        newValue = `N:${nv.nitrogen} P:${nv.phosphorus} K:${nv.potassium} Ca:${nv.calcium} Mg:${nv.magnesium}`;
+      } else if (k === "runtimeMinutes") {
+        newKey = "Runtime (min)";
+      } else if (k.endsWith("At") && typeof v === "number") {
+        newKey =
+          k.charAt(0).toUpperCase() +
+          k
+            .slice(1, -2)
+            .replace(/([A-Z])/g, " $1")
+            .trim();
+        newValue = formatDate(v as number);
+      } else if (k === "moisture" || k === "temperature" || k === "flowRate") {
+        newKey =
+          k.charAt(0).toUpperCase() +
+          k
+            .slice(1)
+            .replace(/([A-Z])/g, " $1")
+            .trim();
+      } else {
+        newKey =
+          k.charAt(0).toUpperCase() +
+          k
+            .slice(1)
+            .replace(/([A-Z])/g, " $1")
+            .trim();
+      }
+
+      readableData[newKey] = newValue;
+    }
+
+    e.data = Object.keys(readableData).length > 0 ? readableData : undefined;
+  }
+  return e;
+}
 
 export const getEvents = query({
   args: {},
@@ -165,11 +293,13 @@ export const getEvents = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
 
-    return await ctx.db
+    const events = await ctx.db
       .query("events")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .order("desc")
       .take(100);
+
+    return events.map(cleanEventDataForUI);
   },
 });
 

@@ -2,6 +2,7 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { cleanEventDataForUI } from "./users";
 
 export const getEvents = query({
   args: {},
@@ -9,11 +10,13 @@ export const getEvents = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
 
-    return await ctx.db
+    const events = await ctx.db
       .query("events")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .order("desc")
       .take(100);
+
+    return events.map(cleanEventDataForUI);
   },
 });
 
@@ -35,8 +38,8 @@ export const getEventsByDeviceRange = query({
       .order("desc")
       .take(300);
 
-    return events.filter(
-      (e) => e.timestamp >= args.startTs && e.timestamp <= args.endTs,
-    );
+    return events
+      .filter((e) => e.timestamp >= args.startTs && e.timestamp <= args.endTs)
+      .map(cleanEventDataForUI);
   },
 });

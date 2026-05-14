@@ -236,6 +236,10 @@ body {
   display: none !important;
 }
 
+.mobile-only-flex {
+  display: none !important;
+}
+
 @media (max-width: 768px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
@@ -244,16 +248,33 @@ body {
     grid-template-columns: 1fr;
   }
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Mobile Header Optimizations */
+  .header-container {
+    padding: 10px 16px !important;
+  }
+  .header-left {
+    gap: 10px !important;
   }
   .header-actions {
-    gap: 8px !important;
+    gap: 6px !important;
+  }
+  .nav-action-btn {
+    padding: 0 8px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    width: auto !important;
   }
   .hide-on-mobile {
     display: none !important;
   }
   .hide-mob {
     display: none !important;
+  }
+  .mobile-only-flex {
+    display: flex !important;
   }
   .burger-btn {
     display: flex !important;
@@ -269,6 +290,28 @@ body {
   }
 }
 
+/* Extra small devices */
+@media (max-width: 430px) {
+  .header-container {
+    padding: 8px 12px !important;
+  }
+  .header-left {
+    gap: 6px !important;
+  }
+  .header-actions {
+    gap: 4px !important;
+  }
+  .nav-action-btn {
+    padding: 0 6px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+  }
+  .nav-action-btn svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+}
+
 /* Tablet Screens */
 @media (min-width: 769px) and (max-width: 1024px) {
   .dashboard-grid {
@@ -278,4 +321,3 @@ body {
     grid-template-columns: repeat(3, 1fr);
   }
 }
-

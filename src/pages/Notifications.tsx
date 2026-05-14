@@ -15,6 +15,8 @@ import {
   CheckCircle2,
   Zap,
   Sprout,
+  Thermometer,
+  WifiOff,
 } from "lucide-react";
 
 const nav = (p: string) => {
@@ -41,6 +43,7 @@ function timeAgo(ts: number) {
 
 function formatDataKey(key: string) {
   const map: Record<string, string> = {
+    cropName: "Crop",
     weekNumber: "Week",
     cropWeekAtSetup: "Crop Week At Setup",
     weeksLabel: "Week Range",
@@ -56,7 +59,10 @@ function formatDataKey(key: string) {
     nextReviewAt: "Next Review",
     nextCheckAt: "Next Check",
     recommendedEndAt: "Recommended End",
+    expectedEndAt: "Expected End",
     fertilizationStartedAt: "Fertilization Start",
+    stoppedAt: "Actual End",
+    plannedDurationMinutes: "Planned Duration min",
     durationMinutes: "Duration min",
     recommendedAction: "Recommended Action",
     runtimeMinutes: "Runtime min",
@@ -80,6 +86,7 @@ function formatDataValue(key: string, value: unknown) {
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      second: "2-digit",
     });
   }
 
@@ -125,6 +132,24 @@ function getEventStyle(type: string) {
       bg: "rgba(34,211,238,0.12)",
       border: "rgba(34,211,238,0.28)",
     },
+    high_temperature: {
+      icon: <Thermometer size={16} />,
+      color: "#ef4444",
+      bg: "rgba(239,68,68,0.15)",
+      border: "rgba(239,68,68,0.35)",
+    },
+    moisture_recovered: {
+      icon: <Droplets size={16} />,
+      color: "#4ade80",
+      bg: "rgba(74,222,128,0.12)",
+      border: "rgba(74,222,128,0.28)",
+    },
+    temp_recovered: {
+      icon: <Thermometer size={16} />,
+      color: "#4ade80",
+      bg: "rgba(74,222,128,0.12)",
+      border: "rgba(74,222,128,0.28)",
+    },
     zone_status: {
       icon: <Wifi size={16} />,
       color: "#60a5fa",
@@ -167,6 +192,12 @@ function getEventStyle(type: string) {
       bg: "rgba(239,68,68,0.15)",
       border: "rgba(239,68,68,0.35)",
     },
+    irrigation_safety_stop: {
+      icon: <AlertTriangle size={16} />,
+      color: "#ef4444",
+      bg: "rgba(239,68,68,0.15)",
+      border: "rgba(239,68,68,0.35)",
+    },
     critical_escalation: {
       icon: <Zap size={16} />,
       color: "#ef4444",
@@ -184,6 +215,18 @@ function getEventStyle(type: string) {
       color: "#f97316",
       bg: "rgba(249,115,22,0.12)",
       border: "rgba(249,115,22,0.28)",
+    },
+    low_flow_warning: {
+      icon: <AlertTriangle size={16} />,
+      color: "#fbbf24",
+      bg: "rgba(251,191,36,0.15)",
+      border: "rgba(251,191,36,0.35)",
+    },
+    flow_recovered: {
+      icon: <Droplets size={16} />,
+      color: "#4ade80",
+      bg: "rgba(74,222,128,0.12)",
+      border: "rgba(74,222,128,0.28)",
     },
     alert: {
       icon: <Zap size={16} />,
@@ -214,6 +257,20 @@ export default function Notifications() {
   const markViewed = useMutation(api.users.markNotificationsViewed);
   const [scrolled, setScrolled] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [visibleCount, setVisibleCount] = useState(50);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     if (events && events.length > 0) {
@@ -229,7 +286,9 @@ export default function Notifications() {
     return () => window.removeEventListener("scroll", h);
   }, []);
 
-  const deviceMap = Object.fromEntries((devices ?? []).map((d) => [d._id, d.name]));
+  const deviceMap = Object.fromEntries(
+    (devices ?? []).map((d) => [d._id, d.name]),
+  );
 
   const filtered = (events ?? []).filter((e: any) => {
     if (filter === "all") return true;
@@ -238,9 +297,15 @@ export default function Notifications() {
       return (
         e.type === "alert" ||
         e.type === "low_moisture" ||
+        e.type === "moisture_recovered" ||
         e.type === "tank_empty_suspected" ||
+        e.type === "low_flow_warning" ||
+        e.type === "flow_recovered" ||
         e.type === "critical_escalation" ||
         e.type === "fertilization_safety_stop" ||
+        e.type === "irrigation_safety_stop" ||
+        e.type === "high_temperature" ||
+        e.type === "temp_recovered" ||
         e.type.includes("error")
       );
     }
@@ -266,7 +331,9 @@ export default function Notifications() {
     return e.type === filter;
   });
 
-  const grouped = filtered.reduce((acc: any, event: any) => {
+  const visibleFiltered = filtered.slice(0, visibleCount);
+
+  const grouped = visibleFiltered.reduce((acc: any, event: any) => {
     const date = new Date(event.timestamp).toLocaleDateString("en-US", {
       weekday: "long",
       month: "short",
@@ -294,7 +361,10 @@ export default function Notifications() {
           pointerEvents: "none",
         }}
       >
-        <div className="grid-pattern" style={{ position: "absolute", inset: 0, opacity: 0.3 }} />
+        <div
+          className="grid-pattern"
+          style={{ position: "absolute", inset: 0, opacity: 0.3 }}
+        />
         {PARTICLES.map((p, i) => (
           <motion.div
             key={i}
@@ -313,10 +383,36 @@ export default function Notifications() {
         ))}
       </div>
 
+      {/* Offline Banner */}
+      {isOffline && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            background: "#ef4444",
+            color: "white",
+            zIndex: 9999,
+            padding: "8px",
+            textAlign: "center",
+            fontSize: "13px",
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+          }}
+        >
+          <WifiOff size={16} /> Connection Lost. Displaying offline data.
+        </div>
+      )}
+
       <header
+        className="header-container"
         style={{
           position: "sticky",
-          top: 0,
+          top: isOffline ? 36 : 0,
           zIndex: 100,
           background: scrolled ? "var(--bg-nav)" : "transparent",
           backdropFilter: scrolled ? "blur(32px)" : "none",
@@ -335,7 +431,7 @@ export default function Notifications() {
             justifyContent: "space-between",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div className="header-left" style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <button
               onClick={() => nav("/dashboard")}
               style={{
@@ -367,6 +463,7 @@ export default function Notifications() {
             </h1>
           </div>
           <button
+            className="header-actions"
             onClick={() => clearEvents()}
             style={{
               background: "transparent",
@@ -396,18 +493,24 @@ export default function Notifications() {
         }}
       >
         <div
+          className="no-scrollbar"
           style={{
             display: "flex",
             gap: 10,
             marginBottom: 30,
             overflowX: "auto",
             paddingBottom: 10,
+            WebkitOverflowScrolling: "touch",
           }}
         >
           {[
             { id: "all", label: "All" },
             { id: "alert", label: "Alerts", icon: <AlertTriangle size={14} /> },
-            { id: "operations", label: "Operations", icon: <Power size={14} /> },
+            {
+              id: "operations",
+              label: "Operations",
+              icon: <Power size={14} />,
+            },
             { id: "plans", label: "Plans", icon: <Sprout size={14} /> },
           ].map((f) => (
             <button
@@ -422,7 +525,8 @@ export default function Notifications() {
                     ? `1px solid var(--brand-500)`
                     : `1px solid var(--border-card)`,
                 background: filter === f.id ? "var(--glass-bg)" : "transparent",
-                color: filter === f.id ? "var(--brand-500)" : "var(--text-faint)",
+                color:
+                  filter === f.id ? "var(--brand-500)" : "var(--text-faint)",
                 cursor: "pointer",
                 fontSize: 13,
                 fontWeight: 600,
@@ -438,7 +542,13 @@ export default function Notifications() {
         </div>
 
         {events === undefined ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: "60px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              padding: "60px",
+            }}
+          >
             <div
               style={{
                 width: 30,
@@ -464,9 +574,15 @@ export default function Notifications() {
                 margin: "0 auto 20px",
               }}
             >
-              <CheckCircle2 size={40} color="var(--brand-500)" style={{ opacity: 0.3 }} />
+              <CheckCircle2
+                size={40}
+                color="var(--brand-500)"
+                style={{ opacity: 0.3 }}
+              />
             </div>
-            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>All caught up!</h2>
+            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
+              All caught up!
+            </h2>
             <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>
               No new notifications in this category.
             </p>
@@ -488,15 +604,53 @@ export default function Notifications() {
                 }}
               >
                 {date}
-                <div style={{ flex: 1, height: 1, background: "var(--border-base)" }} />
+                <div
+                  style={{
+                    flex: 1,
+                    height: 1,
+                    background: "var(--border-base)",
+                  }}
+                />
               </h3>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 12 }}
+              >
                 {evs.map((e: any) => {
                   const s = getEventStyle(e.type);
-                  const dataEntries = Object.entries(e.data ?? {})
-                    .filter(([, v]) => v !== undefined && v !== null)
-                    .slice(0, 8);
+
+                  const hiddenKeys = [
+                    "detailedMessage",
+                    "nutrientSummary",
+                    "durationMinutes",
+                    "flowRate",
+                    "moisture",
+                    "temperature",
+                    "suppressToast",
+                    "displayMode",
+                    "source",
+                    "isSimulation",
+                  ];
+
+                  if (
+                    (e.data?.stopReason &&
+                      e.data.stopReason !== "max_duration" &&
+                      e.data.stopReason !== "completed") ||
+                    e.type === "fertilization_stopped" ||
+                    e.type === "fertilization_safety_stop"
+                  ) {
+                    hiddenKeys.push("expectedEndAt", "recommendedEndAt");
+                  }
+
+                  const otherDataEntries = Object.entries(e.data ?? {}).filter(
+                    ([k, v]) =>
+                      v !== undefined && v !== null && !hiddenKeys.includes(k),
+                  );
+
+                  const hasDetails =
+                    e.data?.detailedMessage ||
+                    e.data?.nutrientSummary ||
+                    otherDataEntries.length > 0;
 
                   return (
                     <motion.div
@@ -529,18 +683,41 @@ export default function Notifications() {
                       </div>
 
                       <div style={{ flex: 1 }}>
-                        <p
+                        <div
                           style={{
-                            fontSize: 14,
-                            fontWeight: 600,
-                            marginBottom: 6,
-                            color: "var(--text-primary)",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 4,
+                            marginBottom: 8,
                           }}
                         >
-                          {e.message}
-                        </p>
+                          {(e.message || "")
+                            .split("\n")
+                            .map((line: string, idx: number) => (
+                              <span
+                                key={idx}
+                                style={{
+                                  fontSize: idx === 0 ? 14 : 12,
+                                  fontWeight: idx === 0 ? 700 : 500,
+                                  color:
+                                    idx === 0
+                                      ? "var(--text-primary)"
+                                      : "var(--text-faint)",
+                                }}
+                              >
+                                {line}
+                              </span>
+                            ))}
+                        </div>
 
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            marginBottom: e.data ? 12 : 0,
+                          }}
+                        >
                           {e.deviceId && (
                             <span
                               style={{
@@ -555,37 +732,210 @@ export default function Notifications() {
                               Zone: {deviceMap[e.deviceId]}
                             </span>
                           )}
-                          <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
+                          <span
+                            style={{ fontSize: 11, color: "var(--text-faint)" }}
+                          >
                             {timeAgo(e.timestamp)}
                           </span>
                         </div>
 
-                        {dataEntries.length > 0 && (
+                        {e.data && (
                           <div
                             style={{
-                              marginTop: 10,
-                              display: "grid",
-                              gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+                              display: "flex",
+                              flexWrap: "wrap",
                               gap: 6,
                             }}
                           >
-                            {dataEntries.map(([k, v]) => (
-                              <div
-                                key={k}
+                            {e.data.durationMinutes !== undefined && (
+                              <span
                                 style={{
-                                  padding: "6px 8px",
-                                  borderRadius: 8,
+                                  fontSize: 11,
                                   background: "var(--glass-bg)",
                                   border: "1px solid var(--border-card)",
-                                  fontSize: 11,
-                                  color: "var(--text-faint)",
+                                  color: "var(--text-primary)",
+                                  padding: "4px 8px",
+                                  borderRadius: 8,
+                                  fontWeight: 600,
                                 }}
                               >
-                                <strong style={{ color: "var(--text-muted)" }}>{formatDataKey(k)}:</strong>{" "}
-                                {formatDataValue(k, v)}
-                              </div>
-                            ))}
+                                ⏱ {e.data.durationMinutes} min
+                              </span>
+                            )}
+                            {e.data.flowRate !== undefined && (
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  background: "var(--glass-bg)",
+                                  border: "1px solid var(--border-card)",
+                                  color: "var(--text-primary)",
+                                  padding: "4px 8px",
+                                  borderRadius: 8,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                💧 {e.data.flowRate} L/min
+                              </span>
+                            )}
+                            {e.data.moisture !== undefined && (
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  background: "var(--glass-bg)",
+                                  border: "1px solid var(--border-card)",
+                                  color: "var(--text-primary)",
+                                  padding: "4px 8px",
+                                  borderRadius: 8,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                🌱 Moisture: {e.data.moisture}%
+                              </span>
+                            )}
+                            {e.data.temperature !== undefined && (
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  background: "var(--glass-bg)",
+                                  border: "1px solid var(--border-card)",
+                                  color: "var(--text-primary)",
+                                  padding: "4px 8px",
+                                  borderRadius: 8,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                🌡️ Temp: {e.data.temperature}°C
+                              </span>
+                            )}
+                            {e.data.isSimulation && (
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  background: "rgba(245, 158, 11, 0.1)",
+                                  border: "1px solid rgba(245, 158, 11, 0.2)",
+                                  color: "#d97706",
+                                  padding: "4px 8px",
+                                  borderRadius: 8,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                🧪 Test / Simulation
+                              </span>
+                            )}
                           </div>
+                        )}
+
+                        {hasDetails && (
+                          <details style={{ marginTop: 12 }}>
+                            <summary
+                              style={{
+                                fontSize: 12,
+                                color: "var(--brand-500)",
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                userSelect: "none",
+                                display: "inline-flex",
+                                alignItems: "center",
+                              }}
+                            >
+                              Show Details
+                            </summary>
+                            <div
+                              style={{
+                                marginTop: 12,
+                                padding: 16,
+                                background: "var(--glass-bg)",
+                                border: "1px solid var(--border-card)",
+                                borderRadius: 12,
+                                fontSize: 12,
+                                color: "var(--text-secondary)",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 12,
+                              }}
+                            >
+                              {e.data.detailedMessage && (
+                                <p
+                                  style={{
+                                    lineHeight: 1.6,
+                                    color: "var(--text-primary)",
+                                    fontSize: 13,
+                                  }}
+                                >
+                                  {e.data.detailedMessage}
+                                </p>
+                              )}
+                              {e.data.nutrientSummary && (
+                                <div
+                                  style={{
+                                    paddingTop: 12,
+                                    borderTop: "1px solid var(--border-base)",
+                                    fontFamily: "monospace",
+                                    color: "var(--text-faint)",
+                                    lineHeight: 1.5,
+                                  }}
+                                >
+                                  <strong
+                                    style={{
+                                      color: "var(--text-muted)",
+                                      display: "block",
+                                      marginBottom: 4,
+                                    }}
+                                  >
+                                    Dose:
+                                  </strong>
+                                  {e.data.nutrientSummary}
+                                </div>
+                              )}
+                              {otherDataEntries.length > 0 && (
+                                <div
+                                  style={{
+                                    marginTop: 8,
+                                    paddingTop: 16,
+                                    borderTop:
+                                      "1px solid rgba(255,255,255,0.05)",
+                                    display: "grid",
+                                    gridTemplateColumns:
+                                      "repeat(auto-fit, minmax(140px, 1fr))",
+                                    gap: 16,
+                                    lineHeight: 1.5,
+                                  }}
+                                >
+                                  {otherDataEntries.map(([k, v]) => (
+                                    <div
+                                      key={k}
+                                      style={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: 3,
+                                      }}
+                                    >
+                                      <span
+                                        style={{
+                                          color: "var(--text-faint)",
+                                          fontSize: 11,
+                                          textTransform: "uppercase",
+                                          letterSpacing: "0.02em",
+                                          fontWeight: 700,
+                                        }}
+                                      >
+                                        {formatDataKey(k)}
+                                      </span>
+                                      <span
+                                        style={{
+                                          color: "var(--text-primary)",
+                                          fontSize: 13,
+                                          fontWeight: 500,
+                                        }}
+                                      >
+                                        {formatDataValue(k, v)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </details>
                         )}
                       </div>
                     </motion.div>
@@ -594,6 +944,27 @@ export default function Notifications() {
               </div>
             </div>
           ))
+        )}
+
+        {filtered.length > visibleCount && (
+          <div style={{ textAlign: "center", marginTop: 40 }}>
+            <button
+              onClick={() => setVisibleCount((prev) => prev + 50)}
+              style={{
+                background: "var(--glass-bg)",
+                border: "1px solid var(--border-card)",
+                color: "var(--text-primary)",
+                padding: "10px 24px",
+                borderRadius: 12,
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "0.2s",
+              }}
+            >
+              Load More ({filtered.length - visibleCount} remaining)
+            </button>
+          </div>
         )}
       </main>
     </div>

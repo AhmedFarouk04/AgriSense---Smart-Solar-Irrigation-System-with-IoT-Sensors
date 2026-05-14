@@ -1,6 +1,6 @@
 import { useQuery, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { AreaChart, Area, ReferenceLine } from "recharts";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -19,6 +19,7 @@ import {
   ChevronDown,
   Settings as SettingsIcon,
   HelpCircle,
+  Loader2,
   PlusCircle,
   ListIcon,
   Sprout,
@@ -75,6 +76,44 @@ function getFlowStatus(v: number) {
   return { label: "Flowing", color: "#4ade80" };
 }
 
+export const showCleanToast = (
+  title: string,
+  subtitle?: string,
+  type: "success" | "error" | "info" | "warning" = "info",
+) => {
+  if (type === "warning") toast.warning(title, { description: subtitle });
+  else if (type === "error") toast.error(title, { description: subtitle });
+  else if (type === "success") toast.success(title, { description: subtitle });
+  else toast.info(title, { description: subtitle });
+};
+
+export const showCleanErrorToast = (error: any) => {
+  // Strict Error Parser to strip ALL Convex/Server internals
+  let msg = error?.message || "An unexpected error occurred.";
+
+  // 1. Cut off stack traces (usually start with "at handler" or "called by")
+  msg = msg.split(/\n\s*at /)[0];
+  msg = msg.split(/called by/i)[0];
+
+  // 2. Remove Convex wrappers and technical terms
+  msg = msg.replace(/\[CONVEX.*?\]/g, "");
+  msg = msg.replace(/Server Error/gi, "");
+  msg = msg.replace(/Uncaught Error:/gi, "");
+  msg = msg.replace(/Request ID:.*/gi, "");
+  msg = msg.replace(/^[⚠️⚠✅ℹ️🧪🛑]+\s*/, "");
+  msg = msg.trim();
+
+  // Split cleanly
+  const parts = msg
+    .split("\n")
+    .map((s: string) => s.trim())
+    .filter(Boolean);
+  const title = parts[0] || "Error";
+  const subtitle = parts.slice(1).join(" ");
+
+  showCleanToast(title, subtitle, "warning");
+};
+
 function fmt(ts: number) {
   return new Date(ts).toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -96,13 +135,23 @@ function timeAgo(ts: number) {
 function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
   const latest = useQuery(api.readings.getLatestReading, { deviceId });
   const readings24h = useQuery(api.readings.getReadings24h, { deviceId });
-  const moistureForecast = useQuery(api.readings.getMoistureForecast, { deviceId });
+  const moistureForecast = useQuery(api.readings.getMoistureForecast, {
+    deviceId,
+  });
   const deviceDetails = useQuery(api.devices.getDevice, { deviceId });
   const fetchReading = useAction(api.readings.fetchAndSaveReading);
   const controlPump = useAction(api.readings.controlPump);
   const startFertilization = useAction(api.readings.startFertilization);
   const [pumpLoading, setPumpLoading] = useState(false);
   const [fertilizeLoading, setFertilizeLoading] = useState(false);
+  const [showFertilizeConfirm, setShowFertilizeConfirm] = useState(false);
+  const [showFertilizeError, setShowFertilizeError] = useState(false);
+
+  const activeSession = useQuery(api.readings.getActiveFertilizationSession, {
+    deviceId,
+  });
+  // Defensive guard: Ensure UI accurately reflects OFF state even before DB syncs
+  const isFertilizing = !!activeSession && latest?.pumpStatus === true;
 
   const refresh = useCallback(async () => {
     try {
@@ -122,37 +171,69 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
     try {
       await controlPump({ deviceId, state: !latest.pumpStatus });
       await refresh();
-      toast.success(`Valve ${!latest.pumpStatus ? "opened" : "closed"}`);
-    } catch {
-      toast.error("Failed to control valve");
+    } catch (err) {
+      showCleanErrorToast(err);
     } finally {
       setPumpLoading(false);
     }
   };
 
   const handleFertilize = async () => {
-    const confirmed = window.confirm(
-      "Start fertilization cycle now?\nSafety mode will auto-stop on high temperature, zero flow, or max duration.",
-    );
-    if (!confirmed) return;
-    setFertilizeLoading(true);
+    if (
+      !latest ||
+      !latest.pumpStatus ||
+      (latest.flowRate < 0.1 && !deviceDetails?.isSimulationMode)
+    ) {
+      setShowFertilizeError(true);
+      return;
+    }
+    setShowFertilizeConfirm(true);
+  };
+
+  const confirmStartFertilization = async () => {
+    setShowFertilizeConfirm(false); // Close the confirmation modal
+    setFertilizeLoading(true); // Start loading state
     try {
-      await startFertilization({ deviceId, durationMinutes: 10, confirmed: true });
+      await startFertilization({
+        deviceId,
+        durationMinutes: 10,
+        confirmed: true,
+      });
       await refresh();
-      toast.success("Fertilization cycle started. Check notifications for dosing details.");
-    } catch {
-      toast.error("Failed to start fertilization");
+    } catch (err: any) {
+      const msg = err?.message || "";
+      if (
+        msg.includes("Water flow is unavailable") ||
+        msg.includes("Pump is OFF") ||
+        msg.includes("Low Flow") ||
+        msg.includes("Low Moisture")
+      ) {
+        setShowFertilizeError(true); // Show the specific error modal
+      } else {
+        showCleanErrorToast(err);
+      }
     } finally {
       setFertilizeLoading(false);
     }
   };
 
-  const chartData = (readings24h ?? []).map((r) => ({
-    time: fmt(r.timestamp),
-    moisture: r.moisture,
-    temperature: r.temperature,
-    flow: r.flowRate,
-  }));
+  const chartData = useMemo(() => {
+    if (!readings24h?.length) return [];
+    const step = Math.max(1, Math.ceil(readings24h.length / 100));
+    return readings24h
+      .filter((_, i) => i % step === 0)
+      .map((r) => ({
+        time: fmt(r.timestamp),
+        moisture: r.moisture,
+        temperature: r.temperature,
+        flow: r.flowRate,
+      }));
+  }, [readings24h]);
+
+  const avgFlow = useMemo(() => {
+    if (!readings24h?.length) return 0;
+    return readings24h.reduce((s, r) => s + r.flowRate, 0) / readings24h.length;
+  }, [readings24h]);
 
   if (
     latest === undefined ||
@@ -206,13 +287,54 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
   const mStatus = getMoistureStatus(latest.moisture, minMoist, maxMoist);
   const tStatus = getTempStatus(latest.temperature);
   const fStatus = getFlowStatus(latest.flowRate);
-  const avgFlow = readings24h?.length
-    ? readings24h.reduce((s, r) => s + r.flowRate, 0) / readings24h.length
-    : 0;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* ── Live Status Bar ── */}
+      {deviceDetails.isSimulationMode && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "12px 18px",
+            background: "rgba(245, 158, 11, 0.08)",
+            border: "1px solid rgba(245, 158, 11, 0.2)",
+            borderRadius: 14,
+            color: "#d97706",
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          <div
+            style={{
+              padding: "4px",
+              background: "rgba(245,158,11,0.15)",
+              borderRadius: "8px",
+              display: "flex",
+            }}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="6" y="4" width="4" height="16"></rect>
+              <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+          </div>
+          <span>
+            Simulation Mode Active — Live Firebase updates are paused.
+          </span>
+        </motion.div>
+      )}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -220,6 +342,8 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 12,
           padding: "10px 18px",
           background: "var(--bg-card)",
           border: "1px solid var(--border-card)",
@@ -227,7 +351,10 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Wifi size={14} color="#4ade80" />
+          <Wifi
+            size={14}
+            color={deviceDetails.isSimulationMode ? "#f59e0b" : "#4ade80"}
+          />
           <span
             style={{
               fontSize: 12,
@@ -237,6 +364,20 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
           >
             Last update: {timeAgo(latest.timestamp)}
           </span>
+          {deviceDetails.isSimulationMode && (
+            <span
+              style={{
+                fontSize: 10,
+                background: "rgba(245, 158, 11, 0.15)",
+                color: "#f59e0b",
+                padding: "2px 6px",
+                borderRadius: 4,
+                fontWeight: 700,
+              }}
+            >
+              Simulated readings
+            </span>
+          )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <div
@@ -244,12 +385,20 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
               width: 6,
               height: 6,
               borderRadius: "50%",
-              background: "#4ade80",
+              background: deviceDetails.isSimulationMode
+                ? "#f59e0b"
+                : "#4ade80",
               animation: "pulse 2s infinite",
             }}
           />
-          <span style={{ fontSize: 12, color: "#4ade80", fontWeight: 600 }}>
-            Live
+          <span
+            style={{
+              fontSize: 12,
+              color: deviceDetails.isSimulationMode ? "#f59e0b" : "#4ade80",
+              fontWeight: 600,
+            }}
+          >
+            {deviceDetails.isSimulationMode ? "Mock Live" : "Live"}
           </span>
         </div>
       </motion.div>
@@ -294,7 +443,7 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
           transition={{ delay: 0.24, duration: 0.5 }}
           style={{
             background: "var(--bg-card)",
-            border: `1px solid ${latest.pumpStatus ? "rgba(74,222,128,0.25)" : "var(--border-card)"}`,
+            border: `1px solid ${isFertilizing ? "var(--brand-500)" : latest.pumpStatus ? "rgba(34,197,94,0.3)" : "var(--border-card)"}`,
             borderRadius: 20,
             padding: "20px 22px",
             display: "flex",
@@ -302,6 +451,10 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
             gap: 12,
             position: "relative",
             overflow: "hidden",
+            boxShadow: isFertilizing
+              ? "0 0 24px rgba(34, 197, 94, 0.15)"
+              : "none",
+            transition: "all 0.5s ease",
           }}
         >
           <div
@@ -393,21 +546,51 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
           </div>
           <button
             onClick={handleFertilize}
-            disabled={fertilizeLoading}
+            disabled={fertilizeLoading || isFertilizing}
             style={{
               width: "100%",
-              padding: "9px 10px",
+              padding: "10px",
               borderRadius: 10,
-              border: "1px solid rgba(163,230,53,0.35)",
-              background: "rgba(163,230,53,0.12)",
-              color: "#bef264",
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: fertilizeLoading ? "not-allowed" : "pointer",
+              border: isFertilizing
+                ? "none"
+                : "1px solid rgba(34, 197, 94, 0.3)",
+              background: isFertilizing
+                ? "var(--grad-brand)"
+                : "rgba(34, 197, 94, 0.1)",
+              color: isFertilizing ? "white" : "var(--brand-500)",
+              fontSize: 13,
+              fontWeight: 800,
+              cursor:
+                fertilizeLoading || isFertilizing ? "not-allowed" : "pointer",
               opacity: fertilizeLoading ? 0.7 : 1,
+              boxShadow: isFertilizing
+                ? "0 4px 15px rgba(34, 197, 94, 0.35)"
+                : "none",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              transition: "all 0.3s ease",
             }}
           >
-            {fertilizeLoading ? "Starting..." : "Fertilize"}
+            {isFertilizing ? (
+              <>
+                <div
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "white",
+                    animation: "pulse 2s infinite",
+                  }}
+                />
+                Running...
+              </>
+            ) : fertilizeLoading ? (
+              "Starting..."
+            ) : (
+              "Fertilize"
+            )}
           </button>
         </motion.div>
       </div>
@@ -510,7 +693,7 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                     opacity={0.5}
                   />
                   <Area
-                    type="monotone"
+                    type="natural"
                     dataKey="moisture"
                     stroke="#38bdf8"
                     strokeWidth={2}
@@ -518,6 +701,7 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                     fill="url(#colorMoisture)"
                     name="Moisture"
                     unit="%"
+                    isAnimationActive={true}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -576,7 +760,7 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Line
-                    type="monotone"
+                    type="natural"
                     dataKey="temperature"
                     stroke="#fbbf24"
                     strokeWidth={2}
@@ -741,6 +925,177 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
           </div>
         ))}
       </motion.div>
+
+      {/* ── Custom Fertilization Modals ── */}
+      {/* Error Modal (No Flow) */}
+      {showFertilizeError && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 50,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "rgba(0,0,0,0.5)",
+            backdropFilter: "blur(4px)",
+            padding: "16px",
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "var(--glass-bg)",
+              border: "1px solid var(--border-card)",
+              borderRadius: "16px",
+              padding: "24px",
+              maxWidth: "320px",
+              width: "100%",
+              boxShadow: "var(--shadow-xl)",
+            }}
+          >
+            <h3
+              style={{
+                fontSize: "18px",
+                fontWeight: "bold",
+                color: "var(--error-color)",
+                marginBottom: "8px",
+              }}
+            >
+              Cannot start fertilization
+            </h3>
+            <p
+              style={{
+                fontSize: "14px",
+                color: "var(--text-muted)",
+                marginBottom: "24px",
+                lineHeight: "1.5",
+              }}
+            >
+              Water flow is currently unavailable.
+              <br />
+              Please start irrigation first.
+            </p>
+            <button
+              onClick={() => setShowFertilizeError(false)}
+              style={{
+                width: "100%",
+                backgroundColor: "var(--bg-main)",
+                color: "var(--text-primary)",
+                fontWeight: "600",
+                padding: "10px",
+                borderRadius: "12px",
+                border: "1px solid var(--border-base)",
+                cursor: "pointer",
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showFertilizeConfirm && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 50,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "rgba(0,0,0,0.5)",
+            backdropFilter: "blur(4px)",
+            padding: "16px",
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "var(--glass-bg)",
+              border: "1px solid var(--border-card)",
+              borderRadius: "16px",
+              padding: "24px",
+              maxWidth: "320px",
+              width: "100%",
+              boxShadow: "var(--shadow-xl)",
+            }}
+          >
+            <h3
+              style={{
+                fontSize: "18px",
+                fontWeight: "bold",
+                color: "var(--text-primary)",
+                marginBottom: "8px",
+              }}
+            >
+              Confirm Fertilization
+            </h3>
+            <p
+              style={{
+                fontSize: "14px",
+                color: "var(--text-muted)",
+                marginBottom: "24px",
+                lineHeight: "1.5",
+              }}
+            >
+              Are you sure you want to start the fertilization session?
+              <br />
+              <span style={{ fontSize: "12px", color: "var(--text-faint)" }}>
+                Safety mode will auto-stop on high temperature, zero flow, or
+                max duration.
+              </span>
+            </p>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <button
+                onClick={() => setShowFertilizeConfirm(false)}
+                style={{
+                  flex: 1,
+                  backgroundColor: "var(--bg-main)",
+                  color: "var(--text-primary)",
+                  fontWeight: "600",
+                  padding: "10px",
+                  borderRadius: "12px",
+                  border: "1px solid var(--border-base)",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmStartFertilization}
+                disabled={fertilizeLoading}
+                style={{
+                  flex: 1,
+                  backgroundColor: "var(--success-color)",
+                  color: "white",
+                  fontWeight: "600",
+                  padding: "10px",
+                  borderRadius: "12px",
+                  border: "none",
+                  cursor: fertilizeLoading ? "not-allowed" : "pointer",
+                  opacity: fertilizeLoading ? 0.7 : 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                }}
+              >
+                {fertilizeLoading ? (
+                  <>
+                    <Loader2
+                      size={15}
+                      style={{ animation: "spin 0.8s linear infinite" }}
+                    />
+                    Starting...
+                  </>
+                ) : (
+                  "Start"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -754,6 +1109,7 @@ export default function Dashboard() {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  // Removed showFertilizeError from here as it's now handled internally by DashboardContent
 
   const [lastViewed, setLastViewed] = useState(() =>
     parseInt(localStorage.getItem("lastViewedNotifications") || "0"),
@@ -849,6 +1205,7 @@ export default function Dashboard() {
 
       {/* Header */}
       <header
+        className="header-container"
         style={{
           position: "sticky",
           top: 0,
@@ -871,7 +1228,10 @@ export default function Dashboard() {
             justifyContent: "space-between",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div
+            className="header-left"
+            style={{ display: "flex", alignItems: "center", gap: 16 }}
+          >
             <motion.a
               href="/dashboard"
               style={{ display: "flex", alignItems: "center", gap: 11 }}
@@ -941,6 +1301,7 @@ export default function Dashboard() {
             {}
             {devices && devices.length > 0 && (
               <motion.button
+                className="nav-action-btn hide-on-mobile"
                 whileHover={{ scale: 1.05 }}
                 onClick={() => nav("/devices")}
                 style={{
@@ -966,6 +1327,7 @@ export default function Dashboard() {
 
             {/* Reports button */}
             <motion.button
+              className="nav-action-btn hide-on-mobile"
               whileHover={{ scale: 1.05 }}
               onClick={() => nav("/reports")}
               style={{
@@ -988,6 +1350,7 @@ export default function Dashboard() {
             </motion.button>
 
             <motion.button
+              className="nav-action-btn hide-on-mobile"
               whileHover={{ scale: 1.05 }}
               onClick={() => nav("/weekly-actions")}
               style={{
@@ -1012,6 +1375,7 @@ export default function Dashboard() {
 
             {/* Notifications button */}
             <motion.button
+              className="nav-action-btn"
               whileHover={{ scale: 1.05 }}
               onClick={() => nav("/notifications")}
               style={{
@@ -1058,6 +1422,7 @@ export default function Dashboard() {
             {/* User Dropdown */}
             <div style={{ position: "relative" }}>
               <motion.button
+                className="nav-action-btn"
                 whileHover={{ scale: 1.05 }}
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 style={{
@@ -1113,6 +1478,24 @@ export default function Dashboard() {
                     >
                       {[
                         {
+                          label: "My Zones",
+                          icon: <ListIcon size={14} />,
+                          path: "/devices",
+                          className: "mobile-only-flex",
+                        },
+                        {
+                          label: "Reports",
+                          icon: <BarChart2 size={14} />,
+                          path: "/reports",
+                          className: "mobile-only-flex",
+                        },
+                        {
+                          label: "Weekly Actions",
+                          icon: <ListChecks size={14} />,
+                          path: "/weekly-actions",
+                          className: "mobile-only-flex",
+                        },
+                        {
                           label: "My Profile",
                           icon: <UserIcon size={14} />,
                           path: "/profile",
@@ -1135,6 +1518,7 @@ export default function Dashboard() {
                       ].map((item) => (
                         <button
                           key={item.path}
+                          className={item.className || ""}
                           onClick={() => {
                             setUserMenuOpen(false);
                             nav(item.path);
@@ -1232,7 +1616,10 @@ export default function Dashboard() {
         ) : devices.length === 0 ? (
           <EmptyState />
         ) : selectedDeviceId ? (
-          <DashboardContent deviceId={selectedDeviceId as Id<"devices">} />
+          <DashboardContent
+            deviceId={selectedDeviceId as Id<"devices">}
+            // Pass down error state if needed, though it's now handled internally by DashboardContent
+          />
         ) : null}
       </main>
 

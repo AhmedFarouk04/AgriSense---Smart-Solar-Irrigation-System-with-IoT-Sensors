@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
@@ -162,7 +162,7 @@ function StatCard({
     <motion.div
       whileHover={{ y: -4 }}
       style={{
-        background: "var(--bg-card)", 
+        background: "var(--bg-card)",
         border: "1px solid var(--border-card)",
         borderRadius: 16,
         padding: "18px",
@@ -237,27 +237,37 @@ export default function Reports() {
     selectedDeviceId ? { deviceId: selectedDeviceId as Id<"devices"> } : "skip",
   );
 
-  const rangeStart = Date.now() - (range === "24h" ? 24 : 7 * 24) * 60 * 60 * 1000;
+  const { startTs, endTs } = useMemo(() => {
+    const now = Date.now();
+    return {
+      startTs: now - (range === "24h" ? 24 : 7 * 24) * 60 * 60 * 1000,
+      endTs: now,
+    };
+  }, [range, selectedDeviceId]);
+
   const reportEvents = useQuery(
     api.events.getEventsByDeviceRange,
     selectedDeviceId
       ? {
           deviceId: selectedDeviceId as Id<"devices">,
-          startTs: rangeStart,
-          endTs: Date.now(),
+          startTs,
+          endTs,
         }
       : "skip",
   );
 
-  const chartData = (() => {
+  const chartData = useMemo(() => {
     if (!readings?.length) return [];
     if (range === "24h") {
-      return (readings as Reading[]).map((r) => ({
-        time: fmt(r.timestamp, "24h"),
-        moisture: r.moisture,
-        temperature: r.temperature,
-        flow: r.flowRate,
-      }));
+      const step = Math.max(1, Math.ceil((readings as Reading[]).length / 100));
+      return (readings as Reading[])
+        .filter((_, i) => i % step === 0)
+        .map((r) => ({
+          time: fmt(r.timestamp, "24h"),
+          moisture: r.moisture,
+          temperature: r.temperature,
+          flow: r.flowRate,
+        }));
     }
     const byDay: Record<string, { m: number[]; t: number[]; f: number[] }> = {};
     (readings as Reading[]).forEach((r) => {
@@ -273,44 +283,70 @@ export default function Reports() {
       temperature: v.t.reduce((a, b) => a + b, 0) / v.t.length,
       flow: v.f.reduce((a, b) => a + b, 0) / v.f.length,
     }));
-  })();
+  }, [readings, range]);
 
-  const avg = (vals: number[]) =>
-    vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-  const moistureVals =
-    (readings as Reading[] | undefined)?.map((r) => r.moisture) ?? [];
-  const tempVals =
-    (readings as Reading[] | undefined)?.map((r) => r.temperature) ?? [];
-  const flowVals =
-    (readings as Reading[] | undefined)?.map((r) => r.flowRate) ?? [];
+  const stats = useMemo(() => {
+    let avgMoisture = 0;
+    let avgTemp = 0;
+    let avgFlow = 0;
+    let totalWater = 0;
 
-  const totalWater =
-    (readings as Reading[] | undefined)?.reduce(
-      (acc: number, curr: Reading, i: number, arr: Reading[]) => {
-        if (i === 0) return 0;
-        const durationMin = (curr.timestamp - arr[i - 1].timestamp) / 60000;
-        if (durationMin > 60) return acc;
-        return acc + curr.flowRate * durationMin;
-      },
-      0,
-    ) ?? 0;
+    const reads = readings as Reading[] | undefined;
+    if (reads?.length) {
+      let mSum = 0,
+        tSum = 0,
+        fSum = 0;
+      for (let i = 0; i < reads.length; i++) {
+        const r = reads[i];
+        mSum += r.moisture;
+        tSum += r.temperature;
+        fSum += r.flowRate;
+        if (i > 0) {
+          const durationMin = (r.timestamp - reads[i - 1].timestamp) / 60000;
+          if (durationMin <= 60) {
+            totalWater += r.flowRate * durationMin;
+          }
+        }
+      }
+      const len = reads.length;
+      avgMoisture = mSum / len;
+      avgTemp = tSum / len;
+      avgFlow = fSum / len;
+    }
+
+    const evts = reportEvents ?? [];
+    const irrigationEvents = evts.filter(
+      (e: any) => e.type === "irrigation_started",
+    );
+    const alertEvents = evts.filter((e: any) =>
+      [
+        "alert",
+        "tank_empty_suspected",
+        "critical_escalation",
+        "fertilization_safety_stop",
+      ].includes(e.type),
+    );
+    const fertilizationStartEvents = evts.filter(
+      (e: any) => e.type === "fertilization_started",
+    );
+    const fertilizationEvents = evts.filter((e: any) =>
+      ["fertilization_started", "fertilization_completed"].includes(e.type),
+    );
+    const nutrientTotals = sumNutrientDoses(fertilizationStartEvents);
+
+    return {
+      avgMoisture,
+      avgTemp,
+      avgFlow,
+      totalWater,
+      irrigationEvents,
+      alertEvents,
+      fertilizationEvents,
+      nutrientTotals,
+    };
+  }, [readings, reportEvents]);
 
   const selectedDevice = devices?.find((d) => d._id === selectedDeviceId);
-  const irrigationEvents = (reportEvents ?? []).filter(
-    (e: any) => e.type === "irrigation_started",
-  );
-  const alertEvents = (reportEvents ?? []).filter((e: any) =>
-    ["alert", "tank_empty_suspected", "critical_escalation", "fertilization_safety_stop"].includes(
-      e.type,
-    ),
-  );
-  const fertilizationStartEvents = (reportEvents ?? []).filter(
-    (e: any) => e.type === "fertilization_started",
-  );
-  const fertilizationEvents = (reportEvents ?? []).filter((e: any) =>
-    ["fertilization_started", "fertilization_completed"].includes(e.type),
-  );
-  const nutrientTotals = sumNutrientDoses(fertilizationStartEvents);
 
   const exportExcel = async () => {
     if (!selectedDevice || !readings?.length) {
@@ -336,18 +372,24 @@ export default function Reports() {
         ["Metric", "Value"],
         ["Range", range],
         ["Zone", selectedDevice.name],
-        ["Total Water (L)", Number(totalWater.toFixed(2))],
-        ["Irrigation Cycles", irrigationEvents.length],
-        ["Avg Moisture (%)", Number(avg(moistureVals).toFixed(2))],
-        ["Avg Temperature (C)", Number(avg(tempVals).toFixed(2))],
-        ["Avg Flow (L/min)", Number(avg(flowVals).toFixed(2))],
-        ["Alerts Count", alertEvents.length],
-        ["Fertilization Events", fertilizationEvents.length],
-        ["N Dose (kg/zone)", Number(nutrientTotals.nitrogen.toFixed(2))],
-        ["P Dose (kg/zone)", Number(nutrientTotals.phosphorus.toFixed(2))],
-        ["K Dose (kg/zone)", Number(nutrientTotals.potassium.toFixed(2))],
-        ["Ca Dose (kg/zone)", Number(nutrientTotals.calcium.toFixed(2))],
-        ["Mg Dose (kg/zone)", Number(nutrientTotals.magnesium.toFixed(2))],
+        ["Total Water (L)", Number(stats.totalWater.toFixed(2))],
+        ["Irrigation Cycles", stats.irrigationEvents.length],
+        ["Avg Moisture (%)", Number(stats.avgMoisture.toFixed(2))],
+        ["Avg Temperature (C)", Number(stats.avgTemp.toFixed(2))],
+        ["Avg Flow (L/min)", Number(stats.avgFlow.toFixed(2))],
+        ["Alerts Count", stats.alertEvents.length],
+        ["Fertilization Events", stats.fertilizationEvents.length],
+        ["N Dose (kg/zone)", Number(stats.nutrientTotals.nitrogen.toFixed(2))],
+        [
+          "P Dose (kg/zone)",
+          Number(stats.nutrientTotals.phosphorus.toFixed(2)),
+        ],
+        ["K Dose (kg/zone)", Number(stats.nutrientTotals.potassium.toFixed(2))],
+        ["Ca Dose (kg/zone)", Number(stats.nutrientTotals.calcium.toFixed(2))],
+        [
+          "Mg Dose (kg/zone)",
+          Number(stats.nutrientTotals.magnesium.toFixed(2)),
+        ],
       ];
 
       const eventsRows = [
@@ -360,9 +402,21 @@ export default function Reports() {
       ];
 
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([header, ...rows]), "Readings");
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryRows), "Summary");
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(eventsRows), "Events");
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.aoa_to_sheet([header, ...rows]),
+        "Readings",
+      );
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.aoa_to_sheet(summaryRows),
+        "Summary",
+      );
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.aoa_to_sheet(eventsRows),
+        "Events",
+      );
       XLSX.writeFile(
         wb,
         `${selectedDevice.name.replace(/\s+/g, "_")}_${range}_report.xlsx`,
@@ -397,15 +451,15 @@ export default function Reports() {
         head: [["Metric", "Value"]],
         body: [
           ["Range", range],
-          ["Total Water (L)", totalWater.toFixed(1)],
-          ["Irrigation Cycles", String(irrigationEvents.length)],
-          ["Alerts", String(alertEvents.length)],
-          ["Fertilization Events", String(fertilizationEvents.length)],
-          ["N Dose (kg/zone)", nutrientTotals.nitrogen.toFixed(2)],
-          ["P Dose (kg/zone)", nutrientTotals.phosphorus.toFixed(2)],
-          ["K Dose (kg/zone)", nutrientTotals.potassium.toFixed(2)],
-          ["Ca Dose (kg/zone)", nutrientTotals.calcium.toFixed(2)],
-          ["Mg Dose (kg/zone)", nutrientTotals.magnesium.toFixed(2)],
+          ["Total Water (L)", stats.totalWater.toFixed(1)],
+          ["Irrigation Cycles", String(stats.irrigationEvents.length)],
+          ["Alerts", String(stats.alertEvents.length)],
+          ["Fertilization Events", String(stats.fertilizationEvents.length)],
+          ["N Dose (kg/zone)", stats.nutrientTotals.nitrogen.toFixed(2)],
+          ["P Dose (kg/zone)", stats.nutrientTotals.phosphorus.toFixed(2)],
+          ["K Dose (kg/zone)", stats.nutrientTotals.potassium.toFixed(2)],
+          ["Ca Dose (kg/zone)", stats.nutrientTotals.calcium.toFixed(2)],
+          ["Mg Dose (kg/zone)", stats.nutrientTotals.magnesium.toFixed(2)],
         ],
         styles: { fontSize: 9 },
       });
@@ -413,16 +467,20 @@ export default function Reports() {
       autoTable(doc, {
         startY: (doc as any).lastAutoTable.finalY + 8,
         head: [["Time", "Moisture %", "Temp C", "Flow L/min"]],
-        body: (readings as Reading[]).slice(-35).map((r) => [
-          new Date(r.timestamp).toLocaleString(),
-          r.moisture.toFixed(1),
-          r.temperature.toFixed(1),
-          r.flowRate.toFixed(2),
-        ]),
+        body: (readings as Reading[])
+          .slice(-35)
+          .map((r) => [
+            new Date(r.timestamp).toLocaleString(),
+            r.moisture.toFixed(1),
+            r.temperature.toFixed(1),
+            r.flowRate.toFixed(2),
+          ]),
         styles: { fontSize: 8 },
       });
 
-      doc.save(`${selectedDevice.name.replace(/\s+/g, "_")}_${range}_report.pdf`);
+      doc.save(
+        `${selectedDevice.name.replace(/\s+/g, "_")}_${range}_report.pdf`,
+      );
       toast.success("PDF report exported");
     } catch {
       toast.error("Failed to export PDF report");
@@ -471,6 +529,7 @@ export default function Reports() {
 
       {}
       <header
+        className="header-container"
         style={{
           position: "sticky",
           top: 0,
@@ -491,16 +550,19 @@ export default function Reports() {
             justifyContent: "space-between",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div
+            className="header-left"
+            style={{ display: "flex", alignItems: "center", gap: 12 }}
+          >
             <button
               onClick={() => nav("/dashboard")}
               style={{
                 width: 34,
                 height: 34,
                 borderRadius: 10,
-                background: "var(--glass-bg)", 
-                border: "1px solid var(--border-card)", 
-                color: "var(--text-primary)", 
+                background: "var(--glass-bg)",
+                border: "1px solid var(--border-card)",
+                color: "var(--text-primary)",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
@@ -515,7 +577,7 @@ export default function Reports() {
                   fontSize: 16,
                   fontWeight: 800,
                   margin: 0,
-                  color: "var(--text-primary)", 
+                  color: "var(--text-primary)",
                 }}
               >
                 Analytics Reports
@@ -523,7 +585,7 @@ export default function Reports() {
               <p
                 style={{
                   fontSize: 10,
-                  color: "var(--text-faint)", 
+                  color: "var(--text-faint)",
                   textTransform: "uppercase",
                   letterSpacing: "0.1em",
                   margin: 0,
@@ -533,7 +595,9 @@ export default function Reports() {
               </p>
             </div>
           </div>
-          <AgriSenseLogo size={32} />
+          <div className="header-actions">
+            <AgriSenseLogo size={32} />
+          </div>
         </div>
       </header>
 
@@ -614,11 +678,11 @@ export default function Reports() {
                   <button
                     onClick={() => setDeviceOpen(!deviceOpen)}
                     style={{
-                      background: "var(--glass-bg)", 
-                      border: "1px solid var(--border-card)", 
+                      background: "var(--glass-bg)",
+                      border: "1px solid var(--border-card)",
                       padding: "10px 16px",
                       borderRadius: 12,
-                      color: "var(--text-primary)", 
+                      color: "var(--text-primary)",
                       display: "flex",
                       alignItems: "center",
                       gap: 10,
@@ -648,8 +712,8 @@ export default function Reports() {
                             top: "100%",
                             left: 0,
                             marginTop: 8,
-                            background: "var(--bg-card)", 
-                            border: "1px solid var(--border-card)", 
+                            background: "var(--bg-card)",
+                            border: "1px solid var(--border-card)",
                             borderRadius: 12,
                             overflow: "hidden",
                             minWidth: 200,
@@ -672,7 +736,7 @@ export default function Reports() {
                                     ? "rgba(74,222,128,0.1)"
                                     : "transparent",
                                 border: "none",
-                                color: "var(--text-primary)", 
+                                color: "var(--text-primary)",
                                 textAlign: "left",
                                 cursor: "pointer",
                                 fontSize: 13,
@@ -691,10 +755,10 @@ export default function Reports() {
                 <div
                   style={{
                     display: "flex",
-                    background: "var(--glass-bg)", 
+                    background: "var(--glass-bg)",
                     borderRadius: 12,
                     padding: 4,
-                    border: "1px solid var(--border-card)", 
+                    border: "1px solid var(--border-card)",
                   }}
                 >
                   {(["24h", "7d"] as Range[]).map((r) => (
@@ -709,8 +773,8 @@ export default function Reports() {
                         fontWeight: 700,
                         cursor: "pointer",
                         background:
-                          range === r ? "var(--brand-600)" : "transparent", 
-                        color: range === r ? "white" : "var(--text-faint)", 
+                          range === r ? "var(--brand-600)" : "transparent",
+                        color: range === r ? "white" : "var(--text-faint)",
                         transition: "0.2s",
                       }}
                     >
@@ -731,7 +795,10 @@ export default function Reports() {
                     border: "1px solid var(--border-card)",
                     background: "var(--glass-bg)",
                     color: "var(--text-primary)",
-                    cursor: readings?.length && !exportingExcel ? "pointer" : "not-allowed",
+                    cursor:
+                      readings?.length && !exportingExcel
+                        ? "pointer"
+                        : "not-allowed",
                     opacity: readings?.length && !exportingExcel ? 1 : 0.5,
                     fontSize: 12,
                     fontWeight: 700,
@@ -753,7 +820,10 @@ export default function Reports() {
                     border: "1px solid var(--border-card)",
                     background: "var(--glass-bg)",
                     color: "var(--text-primary)",
-                    cursor: readings?.length && !exportingPdf ? "pointer" : "not-allowed",
+                    cursor:
+                      readings?.length && !exportingPdf
+                        ? "pointer"
+                        : "not-allowed",
                     opacity: readings?.length && !exportingPdf ? 1 : 0.5,
                     fontSize: 12,
                     fontWeight: 700,
@@ -770,7 +840,7 @@ export default function Reports() {
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
-                  color: "var(--text-faint)", 
+                  color: "var(--text-faint)",
                   fontSize: 12,
                 }}
               >
@@ -795,8 +865,8 @@ export default function Reports() {
                   style={{
                     width: 40,
                     height: 40,
-                    border: "3px solid var(--border-card)", 
-                    borderTopColor: "var(--brand-500)", 
+                    border: "3px solid var(--border-card)",
+                    borderTopColor: "var(--brand-500)",
                     borderRadius: "50%",
                     animation: "spin 1s linear infinite",
                   }}
@@ -815,49 +885,49 @@ export default function Reports() {
                 >
                   <StatCard
                     label="Avg Moisture"
-                    value={avg(moistureVals)}
+                    value={stats.avgMoisture}
                     unit="%"
                     color="#38bdf8"
                     icon={Droplets}
                   />
                   <StatCard
                     label="Avg Temp"
-                    value={avg(tempVals)}
+                    value={stats.avgTemp}
                     unit="°C"
                     color="#fbbf24"
                     icon={Thermometer}
                   />
                   <StatCard
                     label="Avg Flow"
-                    value={avg(flowVals)}
+                    value={stats.avgFlow}
                     unit="L/m"
                     color="#34d399"
                     icon={Wind}
                   />
                   <StatCard
                     label="Total Water Used"
-                    value={totalWater}
+                    value={stats.totalWater}
                     unit="Liters"
                     color="#a78bfa"
                     icon={Droplets}
                   />
                   <StatCard
                     label="Alerts"
-                    value={alertEvents.length}
+                    value={stats.alertEvents.length}
                     unit="events"
                     color="#f87171"
                     icon={BarChart2}
                   />
                   <StatCard
                     label="Irrigation Cycles"
-                    value={irrigationEvents.length}
+                    value={stats.irrigationEvents.length}
                     unit="cycles"
                     color="#22d3ee"
                     icon={Droplets}
                   />
                   <StatCard
                     label="Fertilization"
-                    value={fertilizationEvents.length}
+                    value={stats.fertilizationEvents.length}
                     unit="events"
                     color="#4ade80"
                     icon={Leaf}
@@ -874,8 +944,8 @@ export default function Reports() {
                   {/*  Soil Moisture Chart */}
                   <div
                     style={{
-                      background: "var(--bg-card)", 
-                      border: "1px solid var(--border-card)", 
+                      background: "var(--bg-card)",
+                      border: "1px solid var(--border-card)",
                       borderRadius: 24,
                       padding: "24px",
                     }}
@@ -888,7 +958,7 @@ export default function Reports() {
                         display: "flex",
                         alignItems: "center",
                         gap: 10,
-                        color: "var(--text-primary)", 
+                        color: "var(--text-primary)",
                       }}
                     >
                       <Droplets size={16} color="#38bdf8" /> Soil Moisture
@@ -918,21 +988,21 @@ export default function Reports() {
                         </defs>
                         <CartesianGrid
                           strokeDasharray="3 3"
-                          stroke="var(--border-card)" 
+                          stroke="var(--border-card)"
                           vertical={false}
                         />
                         <XAxis
                           dataKey="time"
                           axisLine={false}
                           tickLine={false}
-                          tick={{ fill: "var(--text-faint)", fontSize: 11 }} 
+                          tick={{ fill: "var(--text-faint)", fontSize: 11 }}
                           minTickGap={30}
                         />
                         <YAxis
                           domain={[0, 100]}
                           axisLine={false}
                           tickLine={false}
-                          tick={{ fill: "var(--text-faint)", fontSize: 11 }} 
+                          tick={{ fill: "var(--text-faint)", fontSize: 11 }}
                         />
                         <Tooltip content={<CustomTooltip />} />
                         <ReferenceLine
@@ -970,8 +1040,8 @@ export default function Reports() {
                     {/*  Temperature Chart */}
                     <div
                       style={{
-                        background: "var(--bg-card)", 
-                        border: "1px solid var(--border-card)", 
+                        background: "var(--bg-card)",
+                        border: "1px solid var(--border-card)",
                         borderRadius: 24,
                         padding: "24px",
                       }}
@@ -981,7 +1051,7 @@ export default function Reports() {
                           fontSize: 14,
                           fontWeight: 700,
                           marginBottom: 20,
-                          color: "var(--text-secondary)", 
+                          color: "var(--text-secondary)",
                         }}
                       >
                         Temperature Variance
@@ -990,7 +1060,7 @@ export default function Reports() {
                         <LineChart data={chartData}>
                           <CartesianGrid
                             strokeDasharray="3 3"
-                            stroke="var(--border-card)" 
+                            stroke="var(--border-card)"
                             vertical={false}
                           />
                           <XAxis
@@ -1003,7 +1073,7 @@ export default function Reports() {
                           <YAxis
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: "var(--text-faint)", fontSize: 11 }} 
+                            tick={{ fill: "var(--text-faint)", fontSize: 11 }}
                           />
                           <Tooltip content={<CustomTooltip />} />
                           <Line
@@ -1022,8 +1092,8 @@ export default function Reports() {
                     {/* Water Consumption Chart */}
                     <div
                       style={{
-                        background: "var(--bg-card)", 
-                        border: "1px solid var(--border-card)", 
+                        background: "var(--bg-card)",
+                        border: "1px solid var(--border-card)",
                         borderRadius: 24,
                         padding: "24px",
                       }}
@@ -1033,7 +1103,7 @@ export default function Reports() {
                           fontSize: 14,
                           fontWeight: 700,
                           marginBottom: 20,
-                          color: "var(--text-secondary)", 
+                          color: "var(--text-secondary)",
                         }}
                       >
                         Water Consumption
@@ -1042,7 +1112,7 @@ export default function Reports() {
                         <BarChart data={chartData}>
                           <CartesianGrid
                             strokeDasharray="3 3"
-                            stroke="var(--border-card)" 
+                            stroke="var(--border-card)"
                             vertical={false}
                           />
                           <XAxis
@@ -1055,7 +1125,7 @@ export default function Reports() {
                           <YAxis
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: "var(--text-faint)", fontSize: 11 }} 
+                            tick={{ fill: "var(--text-faint)", fontSize: 11 }}
                           />
                           <Tooltip content={<CustomTooltip />} />
                           <Bar

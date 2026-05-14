@@ -17,6 +17,7 @@ import type * as devices from "../devices.js";
 import type * as email from "../email.js";
 import type * as events from "../events.js";
 import type * as http from "../http.js";
+import type * as migrations from "../migrations.js";
 import type * as password from "../password.js";
 import type * as passwordMutations from "../passwordMutations.js";
 import type * as readings from "../readings.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   email: typeof email;
   events: typeof events;
   http: typeof http;
+  migrations: typeof migrations;
   password: typeof password;
   passwordMutations: typeof passwordMutations;
   readings: typeof readings;

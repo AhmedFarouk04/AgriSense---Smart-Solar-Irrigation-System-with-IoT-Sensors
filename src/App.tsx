@@ -1,4 +1,9 @@
-import { Authenticated, Unauthenticated, useMutation, useQuery } from "convex/react";
+import {
+  Authenticated,
+  Unauthenticated,
+  useMutation,
+  useQuery,
+} from "convex/react";
 import { api } from "../convex/_generated/api";
 import { Toaster, toast } from "sonner";
 import { useEffect, useState, useRef, Suspense, lazy } from "react";
@@ -23,6 +28,137 @@ const Help = lazy(() => import("./pages/Help"));
 const AgronomyCatalog = lazy(() => import("./pages/AgronomyCatalog"));
 const WeeklyActionCenter = lazy(() => import("./pages/WeeklyActionCenter"));
 
+const CRITICAL_TOAST_TYPES = new Set([
+  "alert",
+  "low_moisture",
+  "tank_empty_suspected",
+  "critical_escalation",
+  "fertilization_safety_stop",
+]);
+
+const QUIET_TOAST_TYPES = new Set([
+  "device_added",
+  "weekly_agronomy_plan",
+  "fertilizer_plan",
+]);
+
+function shouldToastEvent(event: any) {
+  if (event.suppressToast || event.data?.suppressToast) return false;
+  return !QUIET_TOAST_TYPES.has(event.type);
+}
+
+function buildSingleToast(event: any) {
+  let title = "Update";
+  let desc = "";
+  let type: "info" | "success" | "warning" | "error" = "info";
+
+  switch (event.type) {
+    case "tank_empty_suspected":
+      title = "Tank Empty Detected";
+      desc = event.message?.includes("Fertilization")
+        ? "Valve closed • Fertilization stopped"
+        : "Valve closed • Pump protected";
+      type = "error";
+      break;
+    case "high_temperature":
+      title = "High Temperature";
+      desc = event.message?.includes("Fertilization")
+        ? "Session halted • Crop protected"
+        : "Monitoring • High stress risk";
+      type = "warning";
+      break;
+    case "low_moisture":
+      title = "Low Moisture";
+      desc = "Irrigation recommended";
+      type = "warning";
+      break;
+    case "low_flow_warning":
+      title = "Low Flow";
+      desc = "Check tank and filters";
+      type = "warning";
+      break;
+    case "flow_recovered":
+      title = "Flow Recovered";
+      desc = "Operating normally";
+      type = "success";
+      break;
+    case "moisture_recovered":
+      title = "Moisture Recovered";
+      desc = "Optimal level reached";
+      type = "success";
+      break;
+    case "temp_recovered":
+      title = "Temp Normalized";
+      desc = "Operating normally";
+      type = "success";
+      break;
+    case "irrigation_started":
+      title = "Irrigation Started";
+      desc = "Valve opened";
+      type = "info";
+      break;
+    case "irrigation_stopped":
+      title = "Irrigation Stopped";
+      desc = "Valve closed";
+      type = "info";
+      break;
+    case "fertilization_started":
+      title = "Fertilization Started";
+      desc = "Session active";
+      type = "info";
+      break;
+    case "fertilization_completed":
+      title = "Fertilization Done";
+      desc = "Session completed successfully";
+      type = "success";
+      break;
+    case "fertilization_stopped":
+      title = "Fertilization Stopped";
+      desc = "Session halted manually";
+      type = "info";
+      break;
+    case "fertilization_safety_stop":
+    case "irrigation_safety_stop":
+      title = "Safety Stop";
+      desc = "Halted automatically";
+      type = "error";
+      break;
+    case "critical_escalation":
+      title = "Critical Alert";
+      desc = "System requires attention";
+      type = "error";
+      break;
+    default:
+      if (event.message && event.message.includes("\n")) {
+        const parts = event.message.split("\n");
+        title = parts[0].trim();
+        desc = parts.slice(1).join(" ").trim();
+      } else {
+        title = event.message || "Update";
+        desc = "";
+      }
+  }
+
+  // Strip emojis so Sonner native status icons cleanly take over the visual signaling
+  title = title
+    .replace(
+      /[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g,
+      "",
+    )
+    .trim();
+
+  if (desc.length > 55) {
+    desc = desc.substring(0, 52) + "...";
+  }
+
+  return {
+    title,
+    description: desc,
+    type,
+    duration: CRITICAL_TOAST_TYPES.has(event.type) ? 8000 : 5000,
+  };
+}
+
 function AppLoader() {
   return (
     <div
@@ -42,7 +178,7 @@ function AppLoader() {
 function NotificationWatcher() {
   const events = useQuery(api.users.getEvents);
   const settings = useQuery(api.users.getSettings);
-  const previousEventsLength = useRef<number | null>(null);
+  const seenEventIds = useRef<Set<string>>(new Set());
   const audioEnabled = useRef(false);
 
   useEffect(() => {
@@ -62,47 +198,67 @@ function NotificationWatcher() {
     if (events === undefined) return;
     const notificationsEnabled = settings?.notificationsEnabled ?? true;
 
-    if (previousEventsLength.current === null) {
-      previousEventsLength.current = events.length;
+    if (seenEventIds.current.size === 0) {
+      events.forEach((event: any) => {
+        seenEventIds.current.add(String(event._id));
+      });
       return;
     }
 
-    if (events.length > previousEventsLength.current) {
-      const newEvents = events.slice(
-        0,
-        events.length - previousEventsLength.current,
-      );
-      const hasCriticalAlert = newEvents.some((e: any) =>
-        [
-          "alert",
-          "low_moisture",
-          "tank_empty_suspected",
-          "critical_escalation",
-          "fertilization_safety_stop",
-        ].includes(e.type),
-      );
+    const unseenEvents = events.filter(
+      (event: any) => !seenEventIds.current.has(String(event._id)),
+    );
+    if (unseenEvents.length === 0) return;
 
-      if (notificationsEnabled && hasCriticalAlert) {
-        if (audioEnabled.current) {
-          const audio = new Audio("/alert.mp3");
-          audio.volume = 1.0;
-          audio.play().catch(() => {
-            toast.error("New critical alert detected!");
-          });
-        } else {
-          toast.error("New critical alert detected!");
-        }
-      }
+    unseenEvents.forEach((event: any) => {
+      seenEventIds.current.add(String(event._id));
+    });
 
-      if (notificationsEnabled) {
-        const latestFirst = newEvents.slice(0, 3);
-        latestFirst.forEach((event: any) => {
-          toast(event.message, { duration: 5000 });
-        });
-      }
+    // Keep the dedupe set bounded to recent events only.
+    if (seenEventIds.current.size > 300) {
+      const recentIds = new Set(
+        events.slice(0, 200).map((event: any) => String(event._id)),
+      );
+      seenEventIds.current = recentIds;
     }
 
-    previousEventsLength.current = events.length;
+    if (!notificationsEnabled) return;
+
+    const sortedUnseen = unseenEvents
+      .slice()
+      .sort((a: any, b: any) => b.timestamp - a.timestamp);
+    const toastEvents = sortedUnseen.filter(shouldToastEvent);
+    if (toastEvents.length === 0) return;
+
+    const hasCriticalAlert = toastEvents.some((e: any) =>
+      CRITICAL_TOAST_TYPES.has(e.type),
+    );
+
+    if (hasCriticalAlert && audioEnabled.current) {
+      const audio = new Audio("/alert.mp3");
+      audio.volume = 1.0;
+      audio.play().catch(() => {});
+    }
+
+    // Individually emit minimal toasts (reversing so latest drops in from top naturally)
+    toastEvents
+      .slice(0, 3)
+      .reverse()
+      .forEach((event: any) => {
+        const payload = buildSingleToast(event);
+        const options = {
+          id: `event-${String(event._id)}`,
+          description: payload.description,
+          duration: payload.duration,
+        };
+
+        if (payload.type === "error") toast.error(payload.title, options);
+        else if (payload.type === "warning")
+          toast.warning(payload.title, options);
+        else if (payload.type === "success")
+          toast.success(payload.title, options);
+        else toast.info(payload.title, options);
+      });
   }, [events, settings]);
 
   return null;
@@ -193,7 +349,20 @@ export default function App() {
   return (
     <ThemeProvider>
       <div className="min-h-screen flex flex-col" dir="ltr">
-        <Toaster position="top-center" richColors />
+        <Toaster
+          position="top-right"
+          richColors
+          visibleToasts={3}
+          expand={true}
+          gap={12}
+          toastOptions={{
+            style: {
+              maxWidth: "320px",
+              padding: "14px 16px",
+              borderRadius: "14px",
+            },
+          }}
+        />
 
         <Unauthenticated>
           <Suspense fallback={<AppLoader />}>
