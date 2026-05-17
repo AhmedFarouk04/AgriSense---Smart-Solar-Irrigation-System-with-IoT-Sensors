@@ -15,7 +15,9 @@ export default defineSchema({
     farmAreaUnit: v.optional(v.string()),
     location: v.optional(v.string()),
     role: v.optional(v.string()),
-  }),
+  })
+    .index("email", ["email"])
+    .index("phone", ["phone"]),
 
   devices: defineTable({
     userId: v.id("users"),

@@ -23,31 +23,40 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   ],
 
   callbacks: {
-    async afterUserCreatedOrUpdated(ctx, { userId, existingUserId }) {
-      console.log("🔵 [auth.ts] afterUserCreatedOrUpdated called", {
-        userId,
-        existingUserId,
-        timestamp: new Date().toISOString(),
-      });
+    async afterUserCreatedOrUpdated(
+      ctx,
+      { userId, existingUserId, type, provider },
+    ) {
+      // This callback runs inside the auth write path:
+      // never let non-critical side effects block sign-in.
+      if (existingUserId) return;
 
-      const user = await ctx.db.get(userId);
+      // Keep manual verification for password sign-up only.
+      const isPasswordSignUp =
+        type === "credentials" && provider.id === "password";
+      if (!isPasswordSignUp) return;
 
-      if (!existingUserId) {
-        if (user?.email && !user?.emailVerificationTime) {
-          const code = Math.floor(100000 + Math.random() * 900000).toString();
-          const expires = Date.now() + 5 * 60 * 1000;
+      try {
+        const user = await ctx.db.get(userId);
+        if (!user?.email || user.emailVerificationTime) return;
 
-          await ctx.db.patch(userId, {
-            verificationCode: code,
-            codeExpires: expires,
-          });
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const expires = Date.now() + 5 * 60 * 1000;
 
-          await ctx.scheduler.runAfter(
-            0,
-            internal.email.sendVerificationEmail,
-            { email: user.email, code },
-          );
-        }
+        await ctx.db.patch(userId, {
+          verificationCode: code,
+          codeExpires: expires,
+        });
+
+        await ctx.scheduler.runAfter(0, internal.email.sendVerificationEmail, {
+          email: user.email,
+          code,
+        });
+      } catch (error) {
+        console.error("[auth.ts] post-signup verification hook failed", {
+          userId,
+          error: String((error as Error)?.message ?? error),
+        });
       }
     },
   },
