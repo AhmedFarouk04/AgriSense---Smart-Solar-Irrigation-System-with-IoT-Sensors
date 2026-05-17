@@ -2,6 +2,16 @@ import React from "react";
 
 export const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
+
+  const formattedLabel =
+    typeof label === "number"
+      ? new Date(label).toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        })
+      : label;
+
   return (
     <div
       style={{
@@ -19,7 +29,7 @@ export const CustomTooltip = ({ active, payload, label }: any) => {
           marginBottom: 4,
         }}
       >
-        {label}
+        {formattedLabel}
       </div>
       {payload.map((p: any) => (
         <div key={p.name} style={{ color: p.color, fontWeight: 600 }}>

@@ -122,6 +122,13 @@ function fmt(ts: number) {
   });
 }
 
+const chartTickFormatter = (ts: number) =>
+  new Date(ts).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+
 function timeAgo(ts: number) {
   const diff = Date.now() - ts;
   const s = Math.floor(diff / 1000);
@@ -219,16 +226,22 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
 
   const chartData = useMemo(() => {
     if (!readings24h?.length) return [];
-    const step = Math.max(1, Math.ceil(readings24h.length / 100));
+    const step = Math.max(1, Math.ceil(readings24h.length / 72));
     return readings24h
       .filter((_, i) => i % step === 0)
       .map((r) => ({
-        time: fmt(r.timestamp),
+        time: r.timestamp,
         moisture: r.moisture,
         temperature: r.temperature,
         flow: r.flowRate,
       }));
   }, [readings24h]);
+
+  const maxFlowForChart = useMemo(() => {
+    if (!chartData.length) return 5;
+    const max = Math.max(...chartData.map((d) => d.flow));
+    return Math.max(3, Math.ceil(max + 0.5));
+  }, [chartData]);
 
   const avgFlow = useMemo(() => {
     if (!readings24h?.length) return 0;
@@ -647,7 +660,7 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                   24-hour trend (%)
                 </div>
               </div>
-              <ResponsiveContainer width="100%" height={140}>
+              <ResponsiveContainer width="100%" height={140} debounce={120}>
                 <AreaChart data={chartData} syncId="dashboardCharts">
                   <defs>
                     <linearGradient
@@ -664,6 +677,7 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                   <CartesianGrid
                     strokeDasharray="3 3"
                     stroke="var(--border-card)"
+                    vertical={false}
                   />
                   <XAxis
                     dataKey="time"
@@ -671,6 +685,8 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                     tickLine={false}
                     axisLine={false}
                     minTickGap={30}
+                    interval="preserveStartEnd"
+                    tickFormatter={chartTickFormatter}
                   />
                   <YAxis
                     tick={{ fill: "var(--text-faint)", fontSize: 10 }}
@@ -693,7 +709,7 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                     opacity={0.5}
                   />
                   <Area
-                    type="natural"
+                    type="monotoneX"
                     dataKey="moisture"
                     stroke="#38bdf8"
                     strokeWidth={2}
@@ -701,7 +717,11 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                     fill="url(#colorMoisture)"
                     name="Moisture"
                     unit="%"
-                    isAnimationActive={true}
+                    isAnimationActive={false}
+                    dot={false}
+                    activeDot={{ r: 4, strokeWidth: 0, fill: "#38bdf8" }}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -739,11 +759,18 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                   24-hour readings (°C)
                 </div>
               </div>
-              <ResponsiveContainer width="100%" height={140}>
+              <ResponsiveContainer width="100%" height={140} debounce={120}>
                 <LineChart data={chartData} syncId="dashboardCharts">
+                  <defs>
+                    <linearGradient id="tempGlow" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#fde68a" />
+                      <stop offset="100%" stopColor="#f59e0b" />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
                     stroke="var(--border-card)"
+                    vertical={false}
                   />
                   <XAxis
                     dataKey="time"
@@ -751,20 +778,27 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                     tickLine={false}
                     axisLine={false}
                     minTickGap={30}
+                    interval="preserveStartEnd"
+                    tickFormatter={chartTickFormatter}
                   />
                   <YAxis
                     tick={{ fill: "var(--text-faint)", fontSize: 10 }}
                     tickLine={false}
                     axisLine={false}
                     width={28}
+                    domain={[0, 45]}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Line
-                    type="natural"
+                    type="monotoneX"
                     dataKey="temperature"
-                    stroke="#fbbf24"
+                    stroke="url(#tempGlow)"
                     strokeWidth={2}
                     dot={false}
+                    isAnimationActive={false}
+                    activeDot={{ r: 4, strokeWidth: 0, fill: "#fbbf24" }}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                     name="Temperature"
                     unit="°C"
                   />
@@ -796,8 +830,14 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                 Water Flow Rate
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={120}>
+            <ResponsiveContainer width="100%" height={120} debounce={120}>
               <BarChart data={chartData} syncId="dashboardCharts">
+                <defs>
+                  <linearGradient id="flowBars" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#34d399" stopOpacity={0.95} />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity={0.55} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="var(--border-card)"
@@ -809,12 +849,15 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                   tickLine={false}
                   axisLine={false}
                   minTickGap={30}
+                  interval="preserveStartEnd"
+                  tickFormatter={chartTickFormatter}
                 />
                 <YAxis
                   tick={{ fill: "var(--text-faint)", fontSize: 10 }}
                   tickLine={false}
                   axisLine={false}
                   width={28}
+                  domain={[0, maxFlowForChart]}
                 />
                 <Tooltip
                   content={<CustomTooltip />}
@@ -822,10 +865,12 @@ function DashboardContent({ deviceId }: { deviceId: Id<"devices"> }) {
                 />
                 <Bar
                   dataKey="flow"
-                  fill="#34d399"
+                  fill="url(#flowBars)"
                   radius={[3, 3, 0, 0]}
                   name="Flow"
                   unit=" L/min"
+                  isAnimationActive={false}
+                  maxBarSize={14}
                 />
               </BarChart>
             </ResponsiveContainer>
