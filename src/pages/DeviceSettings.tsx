@@ -276,7 +276,6 @@ export default function DeviceSettings({
         deviceId: device._id,
         isSimulationMode: enable,
       });
-      await fetchReading({ deviceId: device._id });
       showCleanToast(
         enable ? "Simulation Mode Enabled" : "Simulation Mode Disabled",
         enable
@@ -284,6 +283,8 @@ export default function DeviceSettings({
           : "Live Firebase readings resumed.",
         "success",
       );
+      // Fire-and-forget background refresh so UI is never blocked by network latency.
+      fetchReading({ deviceId: device._id }).catch(() => {});
     } catch (e) {
       showCleanErrorToast(e);
     }
@@ -316,12 +317,12 @@ export default function DeviceSettings({
         simulationFlowRate: Math.max(0, normalizedFlowRate),
         simulationPumpStatus: simPumpStatus === "on",
       });
-      await fetchReading({ deviceId: device._id });
       showCleanToast(
         "Manual simulation applied",
         "Custom readings are now active.",
         "success",
       );
+      fetchReading({ deviceId: device._id }).catch(() => {});
     } catch (e) {
       showCleanErrorToast(e);
     } finally {
@@ -337,12 +338,12 @@ export default function DeviceSettings({
         deviceId: device._id,
         freezeSimulationReadings: false,
       });
-      await fetchReading({ deviceId: device._id });
       showCleanToast(
         "Auto simulation restored",
         "Readings are generated automatically again.",
         "success",
       );
+      fetchReading({ deviceId: device._id }).catch(() => {});
     } catch (e) {
       showCleanErrorToast(e);
     } finally {
