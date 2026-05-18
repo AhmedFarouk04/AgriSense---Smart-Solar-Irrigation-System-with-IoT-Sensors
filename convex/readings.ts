@@ -711,6 +711,36 @@ export const fetchAndSaveReadingInternal = internalAction({
       const p = controlState ?? f > 0.05;
       const now = Date.now();
 
+      // Keep simulation mode lightweight: persist readings only and skip
+      // production lifecycle logic (alerts/events/plan evaluation).
+      if (device.isSimulationMode) {
+        const latestSimulationReading = await ctx.runQuery(
+          internal.readings.getLatestReadingInternal,
+          { deviceId: args.deviceId },
+        );
+
+        const shouldSaveSimulationReading =
+          !latestSimulationReading ||
+          latestSimulationReading.pumpStatus !== p ||
+          Math.abs(latestSimulationReading.flowRate - f) > 0.01 ||
+          Math.abs(latestSimulationReading.moisture - m) > 0.01 ||
+          Math.abs(latestSimulationReading.temperature - t) > 0.01;
+
+        if (shouldSaveSimulationReading) {
+          await ctx.runMutation(internal.readings.saveReading, {
+            userId: device.userId,
+            deviceId: args.deviceId,
+            moisture: m,
+            temperature: t,
+            flowRate: f,
+            pumpStatus: p,
+            timestamp: now,
+            isTest: true,
+          });
+        }
+        return;
+      }
+
       const activeSession = await ctx.runQuery(
         internal.readings.getActiveFertilizationSessionByDevice,
         { deviceId: args.deviceId },
