@@ -87,7 +87,7 @@ export default function DeviceSettings({
     api.devices.getDevice,
     deviceId ? { deviceId: deviceId as Id<"devices"> } : "skip",
   );
-  const plants = useQuery(api.Plants.getPlants);
+  const plants = useQuery(api.plants.getPlants);
   const updateDevice = useMutation(api.devices.updateDevice);
   const deleteDevice = useMutation(api.devices.deleteDevice);
 

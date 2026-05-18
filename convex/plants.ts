@@ -162,3 +162,79 @@ export const seedPlants = mutation({
     };
   },
 });
+
+export const getCatalogStatus = query({
+  args: {},
+  handler: async (ctx) => {
+    const plants = await ctx.db.query("plants").collect();
+    const supportedCount = plants.filter((plant) =>
+      SUPPORTED_CROP_NAMES.has(plant.name),
+    ).length;
+
+    return {
+      totalCount: plants.length,
+      supportedCount,
+      expectedSupportedCount: SUPPORTED_CROPS.length,
+      seeded: supportedCount >= SUPPORTED_CROPS.length,
+    };
+  },
+});
+
+export const ensurePlantCatalogSeeded = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const plants = await ctx.db.query("plants").collect();
+    const supportedCount = plants.filter((plant) =>
+      SUPPORTED_CROP_NAMES.has(plant.name),
+    ).length;
+
+    if (supportedCount >= SUPPORTED_CROPS.length) {
+      return {
+        success: true,
+        seededNow: false,
+        supportedCount,
+      };
+    }
+
+    const existingByName = new Map(plants.map((plant) => [plant.name, plant]));
+
+    let inserted = 0;
+    let updated = 0;
+    let removed = 0;
+
+    for (const crop of SUPPORTED_CROPS) {
+      const current = existingByName.get(crop.name);
+      if (current) {
+        await ctx.db.patch(current._id, {
+          nameAr: crop.nameAr,
+          minMoisture: crop.minMoisture,
+          maxMoisture: crop.maxMoisture,
+          minSalinity: crop.minSalinity,
+          maxSalinity: crop.maxSalinity,
+          optimalTemp: crop.optimalTemp,
+          description: crop.description,
+        });
+        updated++;
+      } else {
+        await ctx.db.insert("plants", crop);
+        inserted++;
+      }
+    }
+
+    for (const plant of plants) {
+      if (!SUPPORTED_CROP_NAMES.has(plant.name)) {
+        await ctx.db.delete(plant._id);
+        removed++;
+      }
+    }
+
+    return {
+      success: true,
+      seededNow: true,
+      supportedCount: SUPPORTED_CROPS.length,
+      inserted,
+      updated,
+      removed,
+    };
+  },
+});

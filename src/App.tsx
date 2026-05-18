@@ -290,6 +290,32 @@ function AgronomyBootstrapper() {
   return null;
 }
 
+function PlantsBootstrapper() {
+  const plantsStatus = useQuery(api.plants.getCatalogStatus, {});
+  const ensurePlantsSeeded = useMutation(api.plants.ensurePlantCatalogSeeded);
+  const requestedRef = useRef(false);
+
+  useEffect(() => {
+    if (plantsStatus === undefined || requestedRef.current) return;
+    if (plantsStatus.seeded) return;
+
+    requestedRef.current = true;
+
+    ensurePlantsSeeded({})
+      .then((result: any) => {
+        if (result?.seededNow) {
+          toast.success("Crop catalog has been initialized.");
+        }
+      })
+      .catch(() => {
+        toast.error("Failed to initialize crop catalog.");
+        requestedRef.current = false;
+      });
+  }, [plantsStatus, ensurePlantsSeeded]);
+
+  return null;
+}
+
 function AuthenticatedRouter({ currentPath }: { currentPath: string }) {
   const user = useQuery(api.auth.loggedInUser);
 
@@ -378,6 +404,7 @@ export default function App() {
         <Authenticated>
           <Suspense fallback={<AppLoader />}>
             <AgronomyBootstrapper />
+            <PlantsBootstrapper />
             <NotificationWatcher />
             <AuthenticatedRouter currentPath={currentPath} />
           </Suspense>

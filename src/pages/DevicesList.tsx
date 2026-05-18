@@ -33,7 +33,7 @@ const PARTICLES = [
 
 export default function DevicesList() {
   const devices = useQuery(api.devices.getDevices);
-  const plants = useQuery(api.Plants.getPlants);
+  const plants = useQuery(api.plants.getPlants);
   const deleteDevice = useMutation(api.devices.deleteDevice);
   const [scrolled, setScrolled] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);

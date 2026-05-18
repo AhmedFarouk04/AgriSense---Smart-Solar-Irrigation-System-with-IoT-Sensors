@@ -232,7 +232,7 @@ function InputField({
 }
 
 export default function AddZone() {
-  const plants = useQuery(api.Plants.getPlants);
+  const plants = useQuery(api.plants.getPlants);
   const addDevice = useMutation(api.devices.addDevice);
   const testConnection = useAction(api.devices.testConnection);
   const convex = useConvex();

@@ -8,7 +8,6 @@
  * @module
  */
 
-import type * as Plants from "../Plants.js";
 import type * as agronomy from "../agronomy.js";
 import type * as alerts from "../alerts.js";
 import type * as auth from "../auth.js";
@@ -20,6 +19,7 @@ import type * as http from "../http.js";
 import type * as migrations from "../migrations.js";
 import type * as password from "../password.js";
 import type * as passwordMutations from "../passwordMutations.js";
+import type * as plants from "../plants.js";
 import type * as readings from "../readings.js";
 import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
@@ -32,7 +32,6 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  Plants: typeof Plants;
   agronomy: typeof agronomy;
   alerts: typeof alerts;
   auth: typeof auth;
@@ -44,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   migrations: typeof migrations;
   password: typeof password;
   passwordMutations: typeof passwordMutations;
+  plants: typeof plants;
   readings: typeof readings;
   userSettings: typeof userSettings;
   users: typeof users;
