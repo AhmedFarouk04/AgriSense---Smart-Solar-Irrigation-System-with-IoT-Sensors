@@ -159,6 +159,11 @@ export const updateDevice = mutation({
     areaM2: v.optional(v.number()),
     notes: v.optional(v.string()),
     isSimulationMode: v.optional(v.boolean()),
+    freezeSimulationReadings: v.optional(v.boolean()),
+    simulationMoisture: v.optional(v.number()),
+    simulationTemperature: v.optional(v.number()),
+    simulationFlowRate: v.optional(v.number()),
+    simulationPumpStatus: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -192,6 +197,26 @@ export const updateDevice = mutation({
     if (args.notes !== undefined) patch.notes = args.notes;
     if (args.isSimulationMode !== undefined)
       patch.isSimulationMode = args.isSimulationMode;
+    if (args.freezeSimulationReadings !== undefined)
+      patch.freezeSimulationReadings = args.freezeSimulationReadings;
+    if (args.simulationMoisture !== undefined)
+      patch.simulationMoisture = args.simulationMoisture;
+    if (args.simulationTemperature !== undefined)
+      patch.simulationTemperature = args.simulationTemperature;
+    if (args.simulationFlowRate !== undefined)
+      patch.simulationFlowRate = args.simulationFlowRate;
+    if (args.simulationPumpStatus !== undefined)
+      patch.simulationPumpStatus = args.simulationPumpStatus;
+
+    // Leaving simulation mode should restore normal live polling behavior immediately.
+    if (args.isSimulationMode === false) {
+      patch.freezeSimulationReadings = false;
+      patch.simulationMoisture = undefined;
+      patch.simulationTemperature = undefined;
+      patch.simulationFlowRate = undefined;
+      patch.simulationPumpStatus = undefined;
+      patch.testOverrideUntil = undefined;
+    }
 
     await ctx.db.patch(args.deviceId, patch);
 

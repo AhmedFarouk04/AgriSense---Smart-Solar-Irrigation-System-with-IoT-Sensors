@@ -1,5 +1,5 @@
 ﻿﻿﻿import { useEffect, useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,6 +17,7 @@ import {
   Save,
   AlertTriangle,
   Code2,
+  Power,
 } from "lucide-react";
 import { AgriSenseLogo } from "../components/Logo";
 
@@ -90,6 +91,7 @@ export default function DeviceSettings({
   const plants = useQuery(api.plants.getPlants);
   const updateDevice = useMutation(api.devices.updateDevice);
   const deleteDevice = useMutation(api.devices.deleteDevice);
+  const fetchReading = useAction(api.readings.fetchAndSaveReading);
 
   const [scrolled, setScrolled] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -111,6 +113,11 @@ export default function DeviceSettings({
   const [customOptimalTemp, setCustomOptimalTemp] = useState<string | null>(
     null,
   );
+  const [simMoisture, setSimMoisture] = useState("45");
+  const [simTemperature, setSimTemperature] = useState("25");
+  const [simFlowRate, setSimFlowRate] = useState("1.5");
+  const [simPumpStatus, setSimPumpStatus] = useState<"on" | "off">("off");
+  const [applyingSimulation, setApplyingSimulation] = useState(false);
 
   const getVal = (state: string | null, field: any) =>
     state !== null ? state : (field ?? "");
@@ -130,6 +137,12 @@ export default function DeviceSettings({
       setCustomMinMoisture(device.customMinMoisture?.toString() ?? "");
       setCustomMaxMoisture(device.customMaxMoisture?.toString() ?? "");
       setCustomOptimalTemp(device.customOptimalTemp?.toString() ?? "");
+      setSimMoisture((device as any).simulationMoisture?.toString() ?? "45");
+      setSimTemperature(
+        (device as any).simulationTemperature?.toString() ?? "25",
+      );
+      setSimFlowRate((device as any).simulationFlowRate?.toString() ?? "1.5");
+      setSimPumpStatus((device as any).simulationPumpStatus ? "on" : "off");
     }
   }, [device]);
 
@@ -252,6 +265,88 @@ export default function DeviceSettings({
       showCleanErrorToast(err);
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleToggleSimulationMode = async () => {
+    if (!device) return;
+    const enable = !device.isSimulationMode;
+    try {
+      await updateDevice({
+        deviceId: device._id,
+        isSimulationMode: enable,
+      });
+      await fetchReading({ deviceId: device._id });
+      showCleanToast(
+        enable ? "Simulation Mode Enabled" : "Simulation Mode Disabled",
+        enable
+          ? "You can now control mock readings manually."
+          : "Live Firebase readings resumed.",
+        "success",
+      );
+    } catch (e) {
+      showCleanErrorToast(e);
+    }
+  };
+
+  const applyManualSimulationReading = async () => {
+    if (!device || !device.isSimulationMode) return;
+
+    const moisture = Number(simMoisture);
+    const temperature = Number(simTemperature);
+    const flowRate = Number(simFlowRate);
+    const normalizedFlowRate = simPumpStatus === "off" ? 0 : flowRate;
+
+    if (
+      !Number.isFinite(moisture) ||
+      !Number.isFinite(temperature) ||
+      !Number.isFinite(normalizedFlowRate)
+    ) {
+      showCleanToast("Invalid values", "Please enter valid numbers", "warning");
+      return;
+    }
+
+    setApplyingSimulation(true);
+    try {
+      await updateDevice({
+        deviceId: device._id,
+        freezeSimulationReadings: true,
+        simulationMoisture: Math.max(0, Math.min(100, moisture)),
+        simulationTemperature: Math.max(-20, Math.min(85, temperature)),
+        simulationFlowRate: Math.max(0, normalizedFlowRate),
+        simulationPumpStatus: simPumpStatus === "on",
+      });
+      await fetchReading({ deviceId: device._id });
+      showCleanToast(
+        "Manual simulation applied",
+        "Custom readings are now active.",
+        "success",
+      );
+    } catch (e) {
+      showCleanErrorToast(e);
+    } finally {
+      setApplyingSimulation(false);
+    }
+  };
+
+  const clearManualSimulationReading = async () => {
+    if (!device || !device.isSimulationMode) return;
+    setApplyingSimulation(true);
+    try {
+      await updateDevice({
+        deviceId: device._id,
+        freezeSimulationReadings: false,
+      });
+      await fetchReading({ deviceId: device._id });
+      showCleanToast(
+        "Auto simulation restored",
+        "Readings are generated automatically again.",
+        "success",
+      );
+    } catch (e) {
+      showCleanErrorToast(e);
+    } finally {
+      setApplyingSimulation(false);
     }
   };
 
@@ -585,21 +680,7 @@ export default function DeviceSettings({
           >
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <button
-                onClick={async () => {
-                  try {
-                    await updateDevice({
-                      deviceId: device._id,
-                      isSimulationMode: !device.isSimulationMode,
-                    });
-                    showCleanToast(
-                      `Simulation Mode ${!device.isSimulationMode ? "Enabled" : "Disabled"}`,
-                      "",
-                      "success",
-                    );
-                  } catch (e) {
-                    showCleanErrorToast(e);
-                  }
-                }}
+                onClick={handleToggleSimulationMode}
                 style={{
                   padding: "10px 18px",
                   borderRadius: 10,
@@ -623,6 +704,151 @@ export default function DeviceSettings({
               </button>
             </div>
           </Field>
+
+          {device.isSimulationMode && (
+            <>
+              <Field
+                label="Manual Simulation Reading"
+                hint="Set moisture, temperature, flow and pump status exactly as you want."
+              >
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                    gap: 10,
+                  }}
+                >
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={simMoisture}
+                    onChange={(e) => setSimMoisture(e.target.value)}
+                    style={inputStyle}
+                    placeholder="Moisture %"
+                  />
+                  <input
+                    type="number"
+                    value={simTemperature}
+                    onChange={(e) => setSimTemperature(e.target.value)}
+                    style={inputStyle}
+                    placeholder="Temp °C"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={simFlowRate}
+                    onChange={(e) => setSimFlowRate(e.target.value)}
+                    disabled={simPumpStatus === "off"}
+                    style={{
+                      ...inputStyle,
+                      opacity: simPumpStatus === "off" ? 0.6 : 1,
+                      cursor: simPumpStatus === "off" ? "not-allowed" : "text",
+                    }}
+                    placeholder="Flow L/min"
+                  />
+                </div>
+              </Field>
+
+              <Field
+                label="Pump Status"
+                hint="When set to OFF, saved flow will be forced to 0 for consistency."
+              >
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button
+                    onClick={() => {
+                      setSimPumpStatus("on");
+                      if (!Number.isFinite(Number(simFlowRate)) || Number(simFlowRate) <= 0) {
+                        setSimFlowRate("1.5");
+                      }
+                    }}
+                    style={{
+                      padding: "9px 14px",
+                      borderRadius: 10,
+                      border:
+                        simPumpStatus === "on"
+                          ? "1px solid #22c55e"
+                          : "1px solid var(--border-card)",
+                      background:
+                        simPumpStatus === "on"
+                          ? "rgba(34,197,94,0.18)"
+                          : "var(--glass-bg)",
+                      color:
+                        simPumpStatus === "on"
+                          ? "#86efac"
+                          : "var(--text-primary)",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Power size={14} style={{ marginRight: 6 }} /> ON
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSimPumpStatus("off");
+                      setSimFlowRate("0");
+                    }}
+                    style={{
+                      padding: "9px 14px",
+                      borderRadius: 10,
+                      border:
+                        simPumpStatus === "off"
+                          ? "1px solid #f87171"
+                          : "1px solid var(--border-card)",
+                      background:
+                        simPumpStatus === "off"
+                          ? "rgba(248,113,113,0.16)"
+                          : "var(--glass-bg)",
+                      color:
+                        simPumpStatus === "off"
+                          ? "#fda4af"
+                          : "var(--text-primary)",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Power size={14} style={{ marginRight: 6 }} /> OFF
+                  </button>
+                </div>
+              </Field>
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  onClick={applyManualSimulationReading}
+                  disabled={applyingSimulation}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(34,197,94,0.4)",
+                    background: "rgba(34,197,94,0.16)",
+                    color: "#86efac",
+                    fontWeight: 700,
+                    cursor: applyingSimulation ? "not-allowed" : "pointer",
+                    opacity: applyingSimulation ? 0.7 : 1,
+                  }}
+                >
+                  {applyingSimulation ? "Applying..." : "Apply Manual Reading"}
+                </button>
+                <button
+                  onClick={clearManualSimulationReading}
+                  disabled={applyingSimulation}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    border: "1px solid var(--border-card)",
+                    background: "var(--glass-bg)",
+                    color: "var(--text-secondary)",
+                    fontWeight: 700,
+                    cursor: applyingSimulation ? "not-allowed" : "pointer",
+                    opacity: applyingSimulation ? 0.7 : 1,
+                  }}
+                >
+                  Use Auto Simulation
+                </button>
+              </div>
+            </>
+          )}
         </Section>
 
         {/* â”€â”€ Connection Info (read only) */}

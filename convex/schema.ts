@@ -45,6 +45,11 @@ export default defineSchema({
     isTankEmptySuspected: v.optional(v.boolean()),
     lastTankEmptyAlertAt: v.optional(v.number()),
     testOverrideUntil: v.optional(v.number()),
+    freezeSimulationReadings: v.optional(v.boolean()),
+    simulationMoisture: v.optional(v.number()),
+    simulationTemperature: v.optional(v.number()),
+    simulationFlowRate: v.optional(v.number()),
+    simulationPumpStatus: v.optional(v.boolean()),
   }).index("by_user", ["userId"]),
 
   readings: defineTable({

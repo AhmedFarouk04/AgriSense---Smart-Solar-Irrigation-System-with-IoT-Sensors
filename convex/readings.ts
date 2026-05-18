@@ -117,6 +117,63 @@ function formatStopReason(stopReason: string) {
   return "Stopped.";
 }
 
+function toFiniteNumber(raw: unknown): number | null {
+  if (typeof raw === "number") {
+    return Number.isFinite(raw) ? raw : null;
+  }
+
+  if (typeof raw === "string") {
+    const cleaned = raw.trim().replace(",", ".");
+    const matched = cleaned.match(/-?\d+(\.\d+)?/);
+    if (!matched) return null;
+    const parsed = Number(matched[0]);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  if (raw && typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    for (const key of ["value", "reading", "val", "data"]) {
+      if (key in obj) {
+        const nested = toFiniteNumber(obj[key]);
+        if (nested !== null) return nested;
+      }
+    }
+  }
+
+  return null;
+}
+
+function normalizeMoisture(raw: number): number {
+  // Accept ratio-based payloads (0..1) and convert to percentage.
+  const asPercent = raw >= 0 && raw <= 1 ? raw * 100 : raw;
+  return Math.min(100, Math.max(0, asPercent));
+}
+
+function normalizeTemperature(raw: number): number {
+  // If firmware sends Fahrenheit, convert to Celsius.
+  if (raw > 60 && raw <= 140) {
+    return (raw - 32) * (5 / 9);
+  }
+  return raw;
+}
+
+function normalizeFlowRate(raw: number): number {
+  return Math.max(0, raw);
+}
+
+function parseControlState(raw: unknown): boolean | null {
+  if (raw === true || raw === 1) return true;
+  if (raw === false || raw === 0) return false;
+
+  if (typeof raw === "string") {
+    const value = raw.trim().toLowerCase();
+    if (["1", "true", "on", "yes", "y"].includes(value)) return true;
+    if (["0", "false", "off", "no", "n"].includes(value)) return false;
+  }
+
+  return null;
+}
+
 export const getDeviceInternal = internalQuery({
   args: { deviceId: v.id("devices") },
   handler: async (ctx, args) => {
@@ -537,32 +594,55 @@ export const fetchAndSaveReadingInternal = internalAction({
         const currentT = latest?.temperature ?? 25;
         const currentP = latest?.pumpStatus ?? false;
         const currentF = latest?.flowRate ?? 0;
+        const hasManualSimulationValues =
+          device.freezeSimulationReadings === true &&
+          typeof device.simulationMoisture === "number" &&
+          Number.isFinite(device.simulationMoisture) &&
+          typeof device.simulationTemperature === "number" &&
+          Number.isFinite(device.simulationTemperature) &&
+          typeof device.simulationFlowRate === "number" &&
+          Number.isFinite(device.simulationFlowRate) &&
+          typeof device.simulationPumpStatus === "boolean";
 
-        // Realistic Sensor Inertia & Physics (Ultra-smooth for charts)
-        if (currentP) {
-          moisture = Math.min(100, currentM + (100 - currentM) * 0.004); // ultra slow easing up
+        if (hasManualSimulationValues) {
+          const simM = device.simulationMoisture as number;
+          const simT = device.simulationTemperature as number;
+          const simF = device.simulationFlowRate as number;
+          const simPumpOn = !!device.simulationPumpStatus;
+          moisture = Number(simM.toFixed(2));
+          temperature = Number(simT.toFixed(2));
+          flowRate = simPumpOn
+            ? Math.max(0, Number(simF.toFixed(2)))
+            : 0;
+          pumpRaw = simPumpOn ? 1 : 0;
+          valveRaw = simPumpOn ? 1 : 0;
         } else {
-          moisture = Math.max(0, currentM - currentM * 0.0002 - 0.003); // microscopic decay
+          // Realistic Sensor Inertia & Physics (Ultra-smooth for charts)
+          if (currentP) {
+            moisture = Math.min(100, currentM + (100 - currentM) * 0.004); // ultra slow easing up
+          } else {
+            moisture = Math.max(0, currentM - currentM * 0.0002 - 0.003); // microscopic decay
+          }
+
+          // Temperature drift (minimal jitter)
+          const tempDrift = Math.random() * 0.01 - 0.005;
+          temperature = Math.min(45, Math.max(10, currentT + tempDrift));
+
+          // Flow rate inertia (gradual rise and fall, minimal noise)
+          // If flow is forced to 0 while pump is ON, assume a simulated failure (tank empty test)
+          const isSimulatingFailure = currentP && currentF < 0.05;
+          const targetFlow = currentP && !isSimulatingFailure ? 1.5 : 0;
+          flowRate =
+            currentF +
+            (targetFlow - currentF) * 0.05 +
+            (currentP ? Math.random() * 0.006 - 0.003 : 0);
+
+          moisture = Number(moisture.toFixed(2));
+          temperature = Number(temperature.toFixed(2));
+          flowRate = Math.max(0, Number(flowRate.toFixed(2)));
+          pumpRaw = currentP ? 1 : 0;
+          valveRaw = currentP ? 1 : 0;
         }
-
-        // Temperature drift (minimal jitter)
-        const tempDrift = Math.random() * 0.01 - 0.005;
-        temperature = Math.min(45, Math.max(10, currentT + tempDrift));
-
-        // Flow rate inertia (gradual rise and fall, minimal noise)
-        // If flow is forced to 0 while pump is ON, assume a simulated failure (tank empty test)
-        const isSimulatingFailure = currentP && currentF < 0.05;
-        const targetFlow = currentP && !isSimulatingFailure ? 1.5 : 0;
-        flowRate =
-          currentF +
-          (targetFlow - currentF) * 0.05 +
-          (currentP ? Math.random() * 0.006 - 0.003 : 0);
-
-        moisture = Number(moisture.toFixed(2));
-        temperature = Number(temperature.toFixed(2));
-        flowRate = Math.max(0, Number(flowRate.toFixed(2)));
-        pumpRaw = currentP ? 1 : 0;
-        valveRaw = currentP ? 1 : 0;
       } else if (
         device.testOverrideUntil &&
         Date.now() < device.testOverrideUntil
@@ -609,16 +689,26 @@ export const fetchAndSaveReadingInternal = internalAction({
           );
       }
 
-      const controlRaw = pumpRaw ?? valveRaw;
+      const parsedMoisture = toFiniteNumber(moisture);
+      const parsedTemperature = toFiniteNumber(temperature);
+      const parsedFlowRate = toFiniteNumber(flowRate);
+      const pumpState = parseControlState(pumpRaw);
+      const valveState = parseControlState(valveRaw);
+      const controlState = pumpState ?? valveState;
 
-      if (moisture === null || temperature === null || flowRate === null) {
+      if (
+        parsedMoisture === null ||
+        parsedTemperature === null ||
+        parsedFlowRate === null
+      ) {
         return;
       }
 
-      const m = Math.min(100, Math.max(0, Number(moisture)));
-      const t = Number(temperature);
-      const f = Math.max(0, Number(flowRate));
-      const p = controlRaw === 1 || controlRaw === true;
+      const m = normalizeMoisture(parsedMoisture);
+      const t = normalizeTemperature(parsedTemperature);
+      const f = normalizeFlowRate(parsedFlowRate);
+      // Fallback to flow-based inference only when control path is unavailable.
+      const p = controlState ?? f > 0.05;
       const now = Date.now();
 
       const activeSession = await ctx.runQuery(
@@ -1024,7 +1114,12 @@ export const fetchAndSaveReadingInternal = internalAction({
           isTest: device.isSimulationMode || !!isOverrideActive,
         });
       }
-    } catch {}
+    } catch (error) {
+      console.error("fetchAndSaveReadingInternal failed", {
+        deviceId: args.deviceId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   },
 });
 
