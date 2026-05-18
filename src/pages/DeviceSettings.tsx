@@ -416,16 +416,21 @@ export default function DeviceSettings({
             <select
               value={plantId ?? device.plantId ?? ""}
               onChange={(e) => setPlantId(e.target.value)}
-              style={inputStyle}
+              style={{ ...inputStyle, colorScheme: "dark" }}
             >
-              <option value="">No crop selected</option>
+              <option
+                value=""
+                style={{ color: "#111827", backgroundColor: "#ffffff" }}
+              >
+                No crop selected
+              </option>
               {(plants ?? []).map((p: any) => (
                 <option
                   key={p._id}
                   value={p._id}
-                  style={{ background: "#0f1f12" }}
+                  style={{ color: "#111827", backgroundColor: "#ffffff" }}
                 >
-                  {p.name} â€” {p.nameAr}
+                  {p.name} - {p.nameAr}
                 </option>
               ))}
             </select>
@@ -466,7 +471,7 @@ export default function DeviceSettings({
             </div>
           </Field>
           <Field
-            label="Zone Area (mÂ²)"
+            label="Zone Area (m2)"
             hint="Used to calculate water consumption"
           >
             <input

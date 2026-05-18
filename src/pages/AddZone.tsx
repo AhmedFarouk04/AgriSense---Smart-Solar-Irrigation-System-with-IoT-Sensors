@@ -643,6 +643,7 @@ export default function AddZone() {
                         style={{
                           ...inputStyle,
                           appearance: "none",
+                          colorScheme: "dark",
                           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
                           backgroundRepeat: "no-repeat",
                           backgroundPosition: "right 14px center",
@@ -652,9 +653,18 @@ export default function AddZone() {
                           cursor: "pointer",
                         }}
                       >
-                        <option value="">No crop selected</option>
+                        <option
+                          value=""
+                          style={{ color: "#111827", backgroundColor: "#ffffff" }}
+                        >
+                          No crop selected
+                        </option>
                         {(plants ?? []).map((p: any) => (
-                          <option key={p._id} value={p._id}>
+                          <option
+                            key={p._id}
+                            value={p._id}
+                            style={{ color: "#111827", backgroundColor: "#ffffff" }}
+                          >
                             {p.nameAr} ({p.name})
                           </option>
                         ))}
@@ -677,7 +687,7 @@ export default function AddZone() {
                   </div>
 
                   <InputField
-                    label="Zone Area (mÂ²) (optional)"
+                    label="Zone Area (m2) (optional)"
                     icon={<Ruler size={16} />}
                     value={areaM2}
                     onChange={(v) => {
@@ -751,8 +761,8 @@ export default function AddZone() {
                       lineHeight: 1.6,
                     }}
                   >
-                    ðŸ’¡ Find these in your Firebase console under{" "}
-                    <strong>Realtime Database â†’ Rules â†’ Data</strong>
+                    Tip: Find these in your Firebase console under{" "}
+                    <strong>Realtime Database &gt; Rules &gt; Data</strong>
                   </div>
 
                   <InputField
@@ -781,7 +791,7 @@ export default function AddZone() {
                     }}
                     placeholder="Your Firebase auth secret token"
                     type="password"
-                    hint="Found in Firebase â†’ Project Settings â†’ Service Accounts â†’ Database Secrets"
+                    hint="Found in Firebase > Project Settings > Service Accounts > Database Secrets"
                     error={errors.firebaseSecret}
                   />
 
@@ -841,7 +851,7 @@ export default function AddZone() {
                     ) : testResult === "ok" ? (
                       <>
                         <Wifi size={15} color="var(--success-color)" />
-                        <span>Connected âœ“</span>
+                        <span>Connected</span>
                       </>
                     ) : testResult === "warn" ? (
                       <>
@@ -851,7 +861,7 @@ export default function AddZone() {
                     ) : testResult === "fail" ? (
                       <>
                         <WifiOff size={15} />
-                        <span>Connection failed â€” retry</span>
+                        <span>Connection failed - retry</span>
                       </>
                     ) : (
                       <>
@@ -934,7 +944,7 @@ export default function AddZone() {
                       {
                         label: "Zone Area",
                         value: areaM2.trim()
-                          ? `${areaM2.trim()} m²`
+                          ? `${areaM2.trim()} m2`
                           : "Not provided",
                       },
                     ].map((row, i) => (
